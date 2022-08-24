@@ -5,32 +5,35 @@
 
 OglGame::OglGame()
 {
-	m_Display = new OglWindow();
+	m_Display = std::make_unique<OglWindow>();
 }
 
 OglGame::~OglGame()
 {
-	delete m_Display;
+	
 }
 
 void OglGame::run()
 {
-	//Log Mesg System
-	MSG msg;
-
-	//While The Project Is Running - See The Mesg and Log It!
-	while (m_IsRuning && m_Display->IsClosed())
+	
+	
+	while (m_IsRuning)
 	{
-		//
+		MSG msg = {};
 		if (PeekMessage(&msg,NULL,NULL,NULL,PM_REMOVE))
 		{
-			//
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-
+			if (msg.message == WM_QUIT)
+			{
+				m_IsRuning = false;
+				continue;
+			}
+			else
+			{
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
 
 		}
-		//Stop logging for 1 ms - avoid 
 		Sleep(1);
 	}
 }
