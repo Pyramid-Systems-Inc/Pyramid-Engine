@@ -6,15 +6,20 @@
 WndProc:
 	This function MUST be created and used to determine how your application will respond to various events.
 	The Windows procedure may also be called the event handler.
+	------------------------------------------------------------------
+	Event Message System:
+		What You see here is how win32 API works, consents of Event Message
+		System that handle window quit and resize and minimizing and maximizing,Etc.
 */
-
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 {
-
+	 //change between Event Message
 	switch (msg)
 	{
+	//event for destroying windows
 	case WM_DESTROY:
 	{
+		//the gets the window info and the sets the data based on user events
 		OglWindow* window = (OglWindow*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
 		/*
 		GWLP_USERDATA:
@@ -23,11 +28,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		*/
 		break;
 	}
+	//event for closing the window
 	case WM_CLOSE:
 	{
+		//send the quit message
 		PostQuitMessage(0);
 		break;
 	}
+	//send the case of above to the window DefWindowProc
 	default:
 		return DefWindowProc(hwnd, msg, wParam, lParam);
 	}
@@ -57,23 +65,32 @@ OglWindow::OglWindow()
 	*/
 	wn.lpfnWndProc = &WndProc;
 
-
+	//window class register
 	auto classId = RegisterClassEx(&wn);
+	//assigning class id
 	assert(classId);
 
-
+	//main starting size of the window
+	//need to be more data oriented / TO Do
 	RECT rc = { 0,0,1024,768 };
 
+	//windows window theme values
 	AdjustWindowRect(&rc, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, false);
 
+	//windows handler that create window, with all its values, needs more explain
 	m_Handle = CreateWindowEx(NULL, MAKEINTATOM(classId), L"Main Window - East Wind", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
 		CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left , rc.bottom - rc.top, NULL, NULL, NULL, NULL);
 
+	//assign window handle
 	assert(m_Handle);
 
+	//window long pointer set
 	SetWindowLongPtr((HWND)m_Handle,GWLP_USERDATA,(LONG_PTR)this);
 
+	//show window
 	ShowWindow((HWND)m_Handle, SW_SHOW);
+
+	//update based on events
 	UpdateWindow((HWND)m_Handle);
 }
 

@@ -7,26 +7,29 @@ OglGame::OglGame()
 {
 	m_Display = std::make_unique<OglWindow>();
 }
-
+//main Game Method
 OglGame::~OglGame()
 {
 	
 }
-
+//Main Run method
 void OglGame::run()
 {
 	
-	
+	//if the engine is running
 	while (m_IsRuning)
 	{
+		//Message value
 		MSG msg = {};
 		if (PeekMessage(&msg,NULL,NULL,NULL,PM_REMOVE))
 		{
+			// If msg Value is == WM_QUIT Then Begin event Quit
 			if (msg.message == WM_QUIT)
 			{
 				m_IsRuning = false;
 				continue;
 			}
+			//Other Dispatch Message
 			else
 			{
 				TranslateMessage(&msg);
@@ -34,6 +37,7 @@ void OglGame::run()
 			}
 
 		}
+		//Wait For 1 ms
 		Sleep(1);
 	}
 }

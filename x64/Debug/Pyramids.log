@@ -1,2 +1,5 @@
-﻿  OglWindow.cpp
+﻿  Main.cpp
+  OglGame.cpp
+  OglWindow.cpp
+  Generating Code...
   Pyramids.vcxproj -> D:\Pyramids\Pyramids\x64\Debug\Pyramid.exe
