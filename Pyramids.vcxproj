@@ -79,10 +79,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>OpenGL3D\source\;OpenGL3D\include\;$(IncludePath)</IncludePath>
+    <IncludePath>OpenGL3D\include\;OpenGL3D\source\;OpenGL3D\vendor\glad\include\;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <AllProjectBMIsArePublic>true</AllProjectBMIsArePublic>
+    <IncludePath>OpenGL3D\include\;OpenGL3D\source\;OpenGL3D\vendor\glad\include\;$(IncludePath)</IncludePath>
+    <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -124,6 +127,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -146,10 +150,14 @@
     <ClCompile Include="Game\Main.cpp" />
     <ClCompile Include="OpenGL3D\source\OpenGL3D\Game\OglGame.cpp" />
     <ClCompile Include="OpenGL3D\source\OpenGL3D\Window\OglWindow.cpp" />
+    <ClCompile Include="OpenGL3D\source\OpenGL3D\Graphic\OpenGLGraphicEngine.cpp" />
+    <ClCompile Include="OpenGL3D\vendor\glad\src\glad.c" />
+    <ClCompile Include="OpenGL3D\vendor\glad\src\glad_wgl.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="OpenGL3D\include\OpenGL3D\Game\OglGame.h" />
     <ClInclude Include="OpenGL3D\include\OpenGL3D\Window\OglWindow.h" />
+    <ClInclude Include="OpenGL3D\include\OpenGL3D\Graphic\OpenGLGraphicEngine.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

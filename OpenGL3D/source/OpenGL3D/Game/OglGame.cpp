@@ -1,10 +1,13 @@
 #include <OpenGL3D/Game/OglGame.h>
 #include <OpenGL3D/Window/OglWindow.h>
+#include <OpenGL3D\Graphic\OpenGLGraphicEngine.h>
 #include <Windows.h>
 
 
 OglGame::OglGame()
 {
+	m_GraphicEngine = std::make_unique<OpenGLGraphicEngine>();
+
 	m_Display = std::make_unique<OglWindow>();
 }
 //main Game Method

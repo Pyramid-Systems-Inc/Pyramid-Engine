@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+class OpenGLGraphicEngine;
 class OglWindow;
 /// <summary>
 /// main Class Of the Game And OpenGl Context
@@ -20,6 +21,8 @@ public:
 protected:
 	//is the engine running
 	bool m_IsRuning = true;
+	//
+	std::unique_ptr<OpenGLGraphicEngine> m_GraphicEngine;
 	//Pointer With Window Display
 	std::unique_ptr<OglWindow> m_Display;
 };

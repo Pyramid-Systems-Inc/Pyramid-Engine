@@ -1,3 +1,0 @@
-language: c++
-rvm:
- - C++14

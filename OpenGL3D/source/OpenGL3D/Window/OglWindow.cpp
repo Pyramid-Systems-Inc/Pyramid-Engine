@@ -81,8 +81,8 @@ OglWindow::OglWindow()
 	m_Handle = CreateWindowEx(NULL, MAKEINTATOM(classId), L"Main Window - East Wind", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
 		CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left , rc.bottom - rc.top, NULL, NULL, NULL, NULL);
 
-	//assign window handle
-	assert(m_Handle);
+	//Check and assumes window handler and Pointer Does Exist
+	assert(m_Handle); 
 
 	//window long pointer set
 	SetWindowLongPtr((HWND)m_Handle,GWLP_USERDATA,(LONG_PTR)this);
