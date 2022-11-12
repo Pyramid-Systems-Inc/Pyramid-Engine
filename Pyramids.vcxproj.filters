@@ -44,7 +44,10 @@
     <ClInclude Include="OpenGL3D\include\OpenGL3D\Graphic\OpenGLGraphicEngine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="OpenGL3D\vendor\glad\include\KHR\khrplatform.h">
+    <ClInclude Include="OpenGL3D\include\OpenGL3D\Helpers\OGLVector4.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OpenGL3D\include\OpenGL3D\OGLPrerequisites.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

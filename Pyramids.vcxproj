@@ -156,6 +156,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="OpenGL3D\include\OpenGL3D\Game\OglGame.h" />
+    <ClInclude Include="OpenGL3D\include\OpenGL3D\Helpers\OGLVector4.h" />
+    <ClInclude Include="OpenGL3D\include\OpenGL3D\OGLPrerequisites.h" />
     <ClInclude Include="OpenGL3D\include\OpenGL3D\Window\OglWindow.h" />
     <ClInclude Include="OpenGL3D\include\OpenGL3D\Graphic\OpenGLGraphicEngine.h" />
   </ItemGroup>

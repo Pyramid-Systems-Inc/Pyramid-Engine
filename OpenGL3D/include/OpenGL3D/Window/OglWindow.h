@@ -6,5 +6,6 @@ public:
 	~OglWindow();
 private:
 	void* m_Handle = nullptr;
+	void* m_Context = nullptr;
 };
 
