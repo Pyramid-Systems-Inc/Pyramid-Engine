@@ -66,6 +66,7 @@ OglWindow::OglWindow()
 	application, that processes messages sent to a window. See:" LRESULT CALLBACK WndProc
 	*/
 	wn.lpfnWndProc = &WndProc;
+	wn.style = CS_OWNDC;
 
 	//window class register
 	auto classId = RegisterClassEx(&wn);
@@ -151,4 +152,15 @@ OglWindow::~OglWindow()
 {
 	wglDeleteContext(HGLRC(m_Context));
 	DestroyWindow((HWND)m_Handle);
+}
+
+void OglWindow::makeCurrentContext()
+{
+	wglMakeCurrent(GetDC(HWND(m_Handle)), HGLRC(m_Context));
+}
+
+void OglWindow::present(bool vSync)
+{
+	wglSwapIntervalEXT(vSync);
+	wglSwapLayerBuffers(GetDC(HWND(m_Handle)),WGL_SWAP_MAIN_PLANE);
 }

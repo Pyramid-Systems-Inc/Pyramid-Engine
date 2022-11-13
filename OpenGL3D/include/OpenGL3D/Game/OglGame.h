@@ -13,6 +13,11 @@ public:
 	OglGame();
 	~OglGame();
 
+
+	virtual void onCreate();
+	virtual void onUpdate();
+	virtual void onQuit();
+
 	// Run Function to start The Main Window
 	void run();
 	// Quit Function to Stop The Main Window

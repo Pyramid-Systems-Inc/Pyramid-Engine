@@ -18,7 +18,7 @@
     <ClCompile Include="Game\Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="OpenGL3D\source\OpenGL3D\Window\OglWindow.cpp">
+    <ClCompile Include="OpenGL3D\source\OpenGL3D\Window\Win32OpenGLWindow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="OpenGL3D\source\OpenGL3D\Game\OglGame.cpp">
@@ -31,6 +31,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="OpenGL3D\source\OpenGL3D\Graphic\OpenGLGraphicEngine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OpenGL3D\source\OpenGL3D\Game\Win32Src\Win32GameSrc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OpenGL3D\source\OpenGL3D\Graphic\Win32Src\Win32GraphicSrc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -149,7 +149,9 @@
   <ItemGroup>
     <ClCompile Include="Game\Main.cpp" />
     <ClCompile Include="OpenGL3D\source\OpenGL3D\Game\OglGame.cpp" />
-    <ClCompile Include="OpenGL3D\source\OpenGL3D\Window\OglWindow.cpp" />
+    <ClCompile Include="OpenGL3D\source\OpenGL3D\Game\Win32Src\Win32GameSrc.cpp" />
+    <ClCompile Include="OpenGL3D\source\OpenGL3D\Graphic\Win32Src\Win32GraphicSrc.cpp" />
+    <ClCompile Include="OpenGL3D\source\OpenGL3D\Window\Win32OpenGLWindow.cpp" />
     <ClCompile Include="OpenGL3D\source\OpenGL3D\Graphic\OpenGLGraphicEngine.cpp" />
     <ClCompile Include="OpenGL3D\vendor\glad\src\glad.c" />
     <ClCompile Include="OpenGL3D\vendor\glad\src\glad_wgl.c" />

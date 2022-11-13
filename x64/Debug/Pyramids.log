@@ -1,2 +1,7 @@
-﻿  OpenGLGraphicEngine.cpp
+﻿  OglGame.cpp
+  Win32GameSrc.cpp
+  Win32GraphicSrc.cpp
+  Win32OpenGLWindow.cpp
+  OpenGLGraphicEngine.cpp
+  Generating Code...
   Pyramids.vcxproj -> D:\Pyramids\Pyramids\x64\Debug\Pyramid.exe
