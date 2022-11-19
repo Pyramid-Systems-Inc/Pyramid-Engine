@@ -13,9 +13,11 @@ public:
 	OglGame();
 	~OglGame();
 
-
+	//OpenGl Create Method
 	virtual void onCreate();
+	//OpenGl Update Method
 	virtual void onUpdate();
+	//OpenGl Quit Method
 	virtual void onQuit();
 
 	// Run Function to start The Main Window
@@ -26,7 +28,7 @@ public:
 protected:
 	//is the engine running
 	bool m_IsRuning = true;
-	//
+	//Pointer With OpenGl Graphic Engine Display
 	std::unique_ptr<OpenGLGraphicEngine> m_GraphicEngine;
 	//Pointer With Window Display
 	std::unique_ptr<OglWindow> m_Display;

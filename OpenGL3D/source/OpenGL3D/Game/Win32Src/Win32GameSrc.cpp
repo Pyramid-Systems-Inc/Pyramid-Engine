@@ -8,6 +8,7 @@
 //Main Run method
 void OglGame::run()
 {
+	//Before Starting The Engine Run OpenGL Context Creation
 	onCreate();
 
 
@@ -21,10 +22,11 @@ void OglGame::run()
 			// If msg Value is == WM_QUIT Then Begin event Quit
 			if (msg.message == WM_QUIT)
 			{
+				//Set The Is Running To false
 				m_IsRuning = false;
 				continue;
 			}
-			//Other Dispatch Message
+			//Other Translate Or Dispatch Message
 			else
 			{
 				TranslateMessage(&msg);
@@ -32,8 +34,9 @@ void OglGame::run()
 			}
 
 		}
+		//OpenGL Context Update
 		onUpdate();
 	}
-
+	//OpenGl Quit
 	onQuit();
 }
