@@ -1,1 +1,2 @@
 D:\Pyramids\Pyramids\x64\Debug\Pyramid.exe
+E:\Games Dev\Pyramid\x64\Debug\Pyramid.exe

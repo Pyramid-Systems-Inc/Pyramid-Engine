@@ -13,11 +13,11 @@ public:
 	OglGame();
 	~OglGame();
 
-	//OpenGl Create Method
+	//OpenGl On Createing Context 
 	virtual void onCreate();
-	//OpenGl Update Method
+	//OpenGl On Updating
 	virtual void onUpdate();
-	//OpenGl Quit Method
+	//OpenGl When Quiting 
 	virtual void onQuit();
 
 	// Run Function to start The Main Window

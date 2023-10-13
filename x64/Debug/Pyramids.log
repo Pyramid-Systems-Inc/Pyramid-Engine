@@ -1,3 +1,1 @@
-﻿  OglGame.cpp
-D:\Pyramids\Pyramids\OpenGL3D\source\OpenGL3D\Game\OglGame.cpp(26,58): warning C4305: 'argument': truncation from 'double' to 'f32'
-  Pyramids.vcxproj -> D:\Pyramids\Pyramids\x64\Debug\Pyramid.exe
+﻿  Pyramids.vcxproj -> E:\Games Dev\Pyramid\x64\Debug\Pyramid.exe

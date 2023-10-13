@@ -5,6 +5,9 @@
 
 OglGame::OglGame()
 {
+	/// <summary>
+	/// Use The Graphic Engine (OpenGl)
+	/// </summary>
 	m_GraphicEngine = std::make_unique<OpenGLGraphicEngine>();
 
 	m_Display = std::make_unique<OglWindow>();
@@ -32,7 +35,7 @@ void OglGame::onUpdate()
 void OglGame::onQuit()
 {
 }
-//Set The pool m_IsRuning To False - Once the project closes
+//Set The pool m_IsRuning To False - to Close the Program
 void OglGame::quit()
 {
 	m_IsRuning = false;
