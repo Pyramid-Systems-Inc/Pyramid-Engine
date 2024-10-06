@@ -1,0 +1,308 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "C:/Users/Administrator/Desktop/Projects In Work/Game Engine/Pyramid/x64/Debug/Pyramid.exe"
+		},
+		{
+			"path" : "C:/Users/Administrator/Desktop/Projects In Work/Game Engine/Pyramid/x64/Debug/Pyramid.pdb"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_executable",
+			"target_link_libraries",
+			"target_compile_definitions",
+			"include_directories"
+		],
+		"files" : 
+		[
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 151,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 266,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 172,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 89,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 90,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 91,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -fdiagnostics-color=always"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 3,
+					"define" : "UNICODE"
+				},
+				{
+					"backtrace" : 3,
+					"define" : "_CONSOLE"
+				},
+				{
+					"backtrace" : 3,
+					"define" : "_DEBUG"
+				},
+				{
+					"backtrace" : 3,
+					"define" : "_UNICODE"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 4,
+					"path" : "C:/Users/Administrator/Desktop/Projects In Work/Game Engine/Pyramid/OpenGL3D/include"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "C:/Users/Administrator/Desktop/Projects In Work/Game Engine/Pyramid/OpenGL3D/source"
+				},
+				{
+					"backtrace" : 6,
+					"path" : "C:/Users/Administrator/Desktop/Projects In Work/Game Engine/Pyramid/OpenGL3D/vendor/glad/include"
+				}
+			],
+			"language" : "CXX",
+			"sourceIndexes" : 
+			[
+				5,
+				6,
+				7,
+				8,
+				9,
+				10
+			]
+		},
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -fdiagnostics-color=always"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 3,
+					"define" : "UNICODE"
+				},
+				{
+					"backtrace" : 3,
+					"define" : "_CONSOLE"
+				},
+				{
+					"backtrace" : 3,
+					"define" : "_DEBUG"
+				},
+				{
+					"backtrace" : 3,
+					"define" : "_UNICODE"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 4,
+					"path" : "C:/Users/Administrator/Desktop/Projects In Work/Game Engine/Pyramid/OpenGL3D/include"
+				},
+				{
+					"backtrace" : 5,
+					"path" : "C:/Users/Administrator/Desktop/Projects In Work/Game Engine/Pyramid/OpenGL3D/source"
+				},
+				{
+					"backtrace" : 6,
+					"path" : "C:/Users/Administrator/Desktop/Projects In Work/Game Engine/Pyramid/OpenGL3D/vendor/glad/include"
+				}
+			],
+			"language" : "C",
+			"sourceIndexes" : 
+			[
+				11,
+				12
+			]
+		}
+	],
+	"id" : "Pyramid::@6890427a1f51a3e7e1df",
+	"link" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "-g",
+				"role" : "flags"
+			},
+			{
+				"fragment" : "",
+				"role" : "flags"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "-lopengl32",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "-lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32",
+				"role" : "libraries"
+			}
+		],
+		"language" : "CXX"
+	},
+	"name" : "Pyramid",
+	"nameOnDisk" : "Pyramid.exe",
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Header Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4
+			]
+		},
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				5,
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"path" : "OpenGL3D/include/OpenGL3D/Game/OglGame.h",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "OpenGL3D/include/OpenGL3D/Graphic/OpenGLGraphicEngine.h",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "OpenGL3D/include/OpenGL3D/Helpers/OGLVector4.h",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "OpenGL3D/include/OpenGL3D/OGLPrerequisites.h",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "OpenGL3D/include/OpenGL3D/Window/OglWindow.h",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "Game/Main.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "OpenGL3D/source/OpenGL3D/Game/OglGame.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "OpenGL3D/source/OpenGL3D/Game/Win32Src/Win32GameSrc.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "OpenGL3D/source/OpenGL3D/Graphic/OpenGLGraphicEngine.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "OpenGL3D/source/OpenGL3D/Graphic/Win32Src/Win32GraphicSrc.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "OpenGL3D/source/OpenGL3D/Window/Win32OpenGLWindow.cpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "OpenGL3D/vendor/glad/src/glad.c",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "OpenGL3D/vendor/glad/src/glad_wgl.c",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "EXECUTABLE"
+}

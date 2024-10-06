@@ -1,0 +1,12 @@
+# ninja log v6
+6	414	7499555742880405	build.ninja	e343a075b7980c4b
+20	1344	7499555633920428	CMakeFiles/Pyramid.dir/OpenGL3D/source/OpenGL3D/Game/OglGame.cpp.obj	8d530ab75cbb8d2c
+24	4441	7499555633970425	CMakeFiles/Pyramid.dir/OpenGL3D/source/OpenGL3D/Game/Win32Src/Win32GameSrc.cpp.obj	1675408fe5c377
+15	1627	7499555633870435	CMakeFiles/Pyramid.dir/Game/Main.cpp.obj	ac4c14b0810c80c0
+2434	5275	7499555658070418	CMakeFiles/Pyramid.dir/OpenGL3D/source/OpenGL3D/Window/Win32OpenGLWindow.cpp.obj	ffac8adab98e3797
+4930	7035	7499555683030423	CMakeFiles/Pyramid.dir/OpenGL3D/vendor/glad/src/glad_wgl.c.obj	d7c9ae2416f5db62
+1346	2434	7499555647180449	CMakeFiles/Pyramid.dir/OpenGL3D/source/OpenGL3D/Graphic/OpenGLGraphicEngine.cpp.obj	8e05f4b1211c906b
+1640	4929	7499555650120439	CMakeFiles/Pyramid.dir/OpenGL3D/source/OpenGL3D/Graphic/Win32Src/Win32GraphicSrc.cpp.obj	5f0983aea6322818
+4442	8624	7499555678140453	CMakeFiles/Pyramid.dir/OpenGL3D/vendor/glad/src/glad.c.obj	43eb075de21e5eb2
+8625	8923	7499555719970415	C:/Users/Administrator/Desktop/Projects In Work/Game Engine/Pyramid/x64/Debug/Pyramid.exe	46ba53e4827cc6b0
+16	279	7499556424820409	C:/Users/Administrator/Desktop/Projects In Work/Game Engine/Pyramid/x64/Debug/Pyramid.exe	46ba53e4827cc6b0

@@ -1,0 +1,3 @@
+C:/Users/Administrator/Desktop/Projects In Work/Game Engine/Pyramid/cmake-build-debug/CMakeFiles/Pyramid.dir
+C:/Users/Administrator/Desktop/Projects In Work/Game Engine/Pyramid/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/Administrator/Desktop/Projects In Work/Game Engine/Pyramid/cmake-build-debug/CMakeFiles/rebuild_cache.dir

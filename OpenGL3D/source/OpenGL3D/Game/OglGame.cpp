@@ -1,6 +1,7 @@
-#include <OpenGL3D/Game/OglGame.h>
-#include <OpenGL3D/Window/OglWindow.h>
-#include <OpenGL3D\Graphic\OpenGLGraphicEngine.h>
+#include "OpenGL3D/Game/OglGame.h"
+
+#include "OpenGL3D/Window/OglWindow.h"
+#include "OpenGL3D/Graphic/OpenGLGraphicEngine.h"
 
 
 OglGame::OglGame()

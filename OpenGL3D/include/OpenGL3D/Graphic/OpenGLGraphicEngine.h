@@ -1,5 +1,5 @@
 #pragma once
-#include <OpenGL3D\Helpers\OGLVector4.h>
+#include <OpenGL3D/Helpers/OGLVector4.h>
 /// <summary>
 /// OpenGL Graphic Engine Main Header
 /// </summary>
