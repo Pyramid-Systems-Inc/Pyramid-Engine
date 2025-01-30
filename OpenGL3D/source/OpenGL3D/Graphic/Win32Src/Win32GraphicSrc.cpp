@@ -8,32 +8,38 @@
 OpenGLGraphicEngine::OpenGLGraphicEngine()
 {
 	//Define Window Class, contains window class information
-	WNDCLASSEX wn = {};
+	WNDCLASSEXW wn = {};
 
 	/*
 		Assign Values, Specifies the size, in bytes, of this structure.
 		Data Type = UINT, An unsigned INT. The range is 0 through 4294967295 decimal
 	*/
-	wn.cbSize = sizeof(WNDCLASSEX);
+	wn.cbSize = sizeof(WNDCLASSEXW);
 	//Class Name
 	wn.lpszClassName = L"OpenGL3DSecWindow";
 	/*
 	A pointer to the window procedure, callback function, which you define in your
 	application, that processes messages sent to a window. See:" LRESULT CALLBACK WndProc
 	*/
-	wn.lpfnWndProc = DefWindowProc;
+	wn.lpfnWndProc = DefWindowProcW;
 
 	wn.style = CS_OWNDC;
 
 	//window class register
-	auto classId = RegisterClassEx(&wn);
+	ATOM classId = RegisterClassExW(&wn);
 	//assigning class id
 	assert(classId);
 
 	//SecWindows handler that create A Dummy Window that is being used for OpenGL Context
-	auto SecWindow = CreateWindowEx(NULL, MAKEINTATOM(classId), L"", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
+	auto SecWindow = CreateWindowExW(
+		0,                              // Extended window style
+		(LPCWSTR)(DWORD_PTR)classId,   // Window class
+		L"",                           // Window title
+		WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
 		CW_USEDEFAULT, CW_USEDEFAULT,
-		CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, NULL, NULL);
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		NULL, NULL, NULL, NULL
+	);
 
 	//Check and assumes SecWindow handler and Pointer Does Exist
 	assert(SecWindow);
@@ -48,13 +54,13 @@ OpenGLGraphicEngine::OpenGLGraphicEngine()
 	PixelFormatDesc.nSize = sizeof(PIXELFORMATDESCRIPTOR);
 
 	//the version of this data structure. This value should be set to 1.
-	PixelFormatDesc.nSize = 1;
-
-	//
-	PixelFormatDesc.iPixelType = PFD_TYPE_RGBA;
+	PixelFormatDesc.nVersion = 1;
 
 	//
 	PixelFormatDesc.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+
+	//
+	PixelFormatDesc.iPixelType = PFD_TYPE_RGBA;
 
 	//
 	PixelFormatDesc.cColorBits = 32;

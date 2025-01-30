@@ -52,13 +52,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 OglWindow::OglWindow()
 {
 	//Define Window Class, contains window class information
-	WNDCLASSEX wn = {};
+	WNDCLASSEXW wn = {};
 
 	/*
 		Assign Values, Specifies the size, in bytes, of this structure.
 		Data Type = UINT, An unsigned INT. The range is 0 through 4294967295 decimal
 	*/
-	wn.cbSize = sizeof(WNDCLASSEX);
+	wn.cbSize = sizeof(WNDCLASSEXW);
 	//Class Name
 	wn.lpszClassName = L"OpenGL3DWindow";
 	/*
@@ -68,21 +68,24 @@ OglWindow::OglWindow()
 	wn.lpfnWndProc = &WndProc;
 	wn.style = CS_OWNDC;
 
-	//window class register
-	auto classId = RegisterClassEx(&wn);
-	//assigning class id
-	assert(classId);
+	// Register window class
+    ATOM classId = RegisterClassExW(&wn);
+    assert(classId);
 
-	//main starting size of the window
-	//need to be more data oriented / TO Do
-	RECT rc = { 0,0,1024,768 };
+    // Calculate window size
+    RECT rc = { 0, 0, 1024, 768 };
+    AdjustWindowRect(&rc, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, false);
 
-	//windows window theme values
-	AdjustWindowRect(&rc, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, false);
-
-	//windows handler that create window, with all its values, needs more explain
-	m_Handle = CreateWindowEx(NULL, MAKEINTATOM(classId), L"Main Window - East Wind", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
-		CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left , rc.bottom - rc.top, NULL, NULL, NULL, NULL);
+    // Create window using the registered class atom
+    m_Handle = CreateWindowExW(
+        0,                              // Extended window style
+        (LPCWSTR)(DWORD_PTR)classId,   // Window class
+        L"Main Window - East Wind",     // Window title
+        WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
+        CW_USEDEFAULT, CW_USEDEFAULT,
+        rc.right - rc.left, rc.bottom - rc.top,
+        NULL, NULL, NULL, NULL
+    );
 
 	//Check and assumes window handler and Pointer Does Exist
 	assert(m_Handle); 

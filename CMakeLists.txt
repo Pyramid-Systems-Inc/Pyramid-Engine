@@ -1,267 +1,109 @@
 cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR)
 
-set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
-
-project(Pyramids C CXX)
-
-################################################################################
-# Set target arch type if empty. Visual studio solution generator provides it.
-################################################################################
-if(NOT CMAKE_VS_PLATFORM_NAME)
-    set(CMAKE_VS_PLATFORM_NAME "x64")
-endif()
-message("${CMAKE_VS_PLATFORM_NAME} architecture in use")
-
-if(NOT ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64"
-     OR "${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86"))
-    message(FATAL_ERROR "${CMAKE_VS_PLATFORM_NAME} arch is not supported!")
-endif()
-
-################################################################################
-# Global configuration types
-################################################################################
-set(CMAKE_CONFIGURATION_TYPES
-    "Debug"
-    "Release"
-    CACHE STRING "" FORCE
+# Set project name and languages
+project(Pyramids 
+    VERSION 1.0.0
+    DESCRIPTION "Pyramid Game Engine"
+    LANGUAGES C CXX
 )
 
-################################################################################
-# Global compiler options
-################################################################################
-if(MSVC)
-    # remove default flags provided with CMake for MSVC
-    set(CMAKE_C_FLAGS "")
-    set(CMAKE_C_FLAGS_DEBUG "")
-    set(CMAKE_C_FLAGS_RELEASE "")
-    set(CMAKE_CXX_FLAGS "")
-    set(CMAKE_CXX_FLAGS_DEBUG "")
-    set(CMAKE_CXX_FLAGS_RELEASE "")
-endif()
+# Use modern C++
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-################################################################################
-# Global linker options
-################################################################################
-if(MSVC)
-    # remove default flags provided with CMake for MSVC
-    set(CMAKE_EXE_LINKER_FLAGS "")
-    set(CMAKE_MODULE_LINKER_FLAGS "")
-    set(CMAKE_SHARED_LINKER_FLAGS "")
-    set(CMAKE_STATIC_LINKER_FLAGS "")
-    set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS}")
-    set(CMAKE_MODULE_LINKER_FLAGS_DEBUG "${CMAKE_MODULE_LINKER_FLAGS}")
-    set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS}")
-    set(CMAKE_STATIC_LINKER_FLAGS_DEBUG "${CMAKE_STATIC_LINKER_FLAGS}")
-    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS}")
-    set(CMAKE_MODULE_LINKER_FLAGS_RELEASE "${CMAKE_MODULE_LINKER_FLAGS}")
-    set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS}")
-    set(CMAKE_STATIC_LINKER_FLAGS_RELEASE "${CMAKE_STATIC_LINKER_FLAGS}")
-endif()
+# Set output directories
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-################################################################################
-# Nuget packages function stub.
-################################################################################
-function(use_package TARGET PACKAGE VERSION)
-    message(WARNING "No implementation of use_package. Create yours. "
-                    "Package \"${PACKAGE}\" with version \"${VERSION}\" "
-                    "for target \"${TARGET}\" is ignored!")
-endfunction()
-
-################################################################################
-# Common utils
-################################################################################
-include(CMake/Utils.cmake)
-
-################################################################################
-# Additional Global Settings(add specific info there)
-################################################################################
-include(CMake/GlobalSettingsInclude.cmake OPTIONAL)
-
-################################################################################
-# Use solution folders feature
-################################################################################
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
-################################################################################
-# Sub-projects
-################################################################################
-# Set Includes
-include_directories(OpenGL3D/include)
-include_directories(OpenGL3D/source)
-include_directories(OpenGL3D/vendor/glad/include)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-set(PROJECT_NAME Pyramid)
-
-################################################################################
-# Source groups
-################################################################################
-set(Header_Files
-    "OpenGL3D/include/OpenGL3D/Game/OglGame.h"
-    "OpenGL3D/include/OpenGL3D/Graphic/OpenGLGraphicEngine.h"
-    "OpenGL3D/include/OpenGL3D/Helpers/OGLVector4.h"
-    "OpenGL3D/include/OpenGL3D/OGLPrerequisites.h"
-    "OpenGL3D/include/OpenGL3D/Window/OglWindow.h"
-)
-source_group("Header Files" FILES ${Header_Files})
-
-set(Source_Files
-    "Game/Main.cpp"
-    "OpenGL3D/source/OpenGL3D/Game/OglGame.cpp"
-    "OpenGL3D/source/OpenGL3D/Game/Win32Src/Win32GameSrc.cpp"
-    "OpenGL3D/source/OpenGL3D/Graphic/OpenGLGraphicEngine.cpp"
-    "OpenGL3D/source/OpenGL3D/Graphic/Win32Src/Win32GraphicSrc.cpp"
-    "OpenGL3D/source/OpenGL3D/Window/Win32OpenGLWindow.cpp"
-    "OpenGL3D/vendor/glad/src/glad.c"
-    "OpenGL3D/vendor/glad/src/glad_wgl.c"
-)
-source_group("Source Files" FILES ${Source_Files})
-
-set(ALL_FILES
-    ${Header_Files}
-    ${Source_Files}
-)
-
-################################################################################
-# Target
-################################################################################
-add_executable(${PROJECT_NAME} ${ALL_FILES})
-
-use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
-set(ROOT_NAMESPACE Pyramids)
-
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    VS_GLOBAL_KEYWORD "Win32Proj"
-)
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-    )
-endif()
-################################################################################
-# Compile definitions
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        "$<$<CONFIG:Debug>:"
-            "_DEBUG"
-        ">"
-        "$<$<CONFIG:Release>:"
-            "NDEBUG"
-        ">"
-        "_CONSOLE;"
-        "UNICODE;"
-        "_UNICODE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        "$<$<CONFIG:Debug>:"
-            "_DEBUG"
-        ">"
-        "$<$<CONFIG:Release>:"
-            "NDEBUG"
-        ">"
-        "WIN32;"
-        "_CONSOLE;"
-        "UNICODE;"
-        "_UNICODE"
-    )
-endif()
-
-################################################################################
-# Compile and link options
-################################################################################
-if(MSVC)
-    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Release>:
-                /Oi;
-                /Gy
-            >
-            /permissive-;
-            /sdl;
-            /W3;
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            ${DEFAULT_CXX_EXCEPTION_HANDLING}
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Release>:
-                /Oi;
-                /Gy
-            >
-            /permissive-;
-            /sdl;
-            /W3;
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            ${DEFAULT_CXX_EXCEPTION_HANDLING}
-        )
+# Platform specific settings
+if(WIN32)
+    set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
+    
+    if(NOT CMAKE_VS_PLATFORM_NAME)
+        set(CMAKE_VS_PLATFORM_NAME "x64")
     endif()
-    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Debug>:
-                /INCREMENTAL
-            >
-            $<$<CONFIG:Release>:
-                /OPT:REF;
-                /OPT:ICF;
-                /INCREMENTAL:NO
-            >
-            /DEBUG;
-            /SUBSYSTEM:CONSOLE
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Debug>:
-                /INCREMENTAL
-            >
-            $<$<CONFIG:Release>:
-                /OPT:REF;
-                /OPT:ICF;
-                /INCREMENTAL:NO
-            >
-            /DEBUG;
-            /SUBSYSTEM:CONSOLE
-        )
+    
+    if(NOT ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64"
+         OR "${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86"))
+        message(FATAL_ERROR "${CMAKE_VS_PLATFORM_NAME} arch is not supported!")
     endif()
+    
+    message(STATUS "Building for ${CMAKE_VS_PLATFORM_NAME} architecture")
 endif()
 
-################################################################################
+# Build type configuration
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose the type of build" FORCE)
+endif()
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
+
+# Compiler specific options
+if(MSVC)
+    # Enable multi-processor compilation
+    add_compile_options(/MP)
+    
+    # Use static runtime libraries
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    
+    # Warning level
+    add_compile_options(/W4)
+else()
+    # GCC/Clang warnings
+    add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+# Add subdirectories first
+add_subdirectory(OpenGL3D)
+add_subdirectory(Game)
+
+# Main library target
+add_library(${PROJECT_NAME} STATIC)
+
+# Add source files
+target_sources(${PROJECT_NAME}
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/source/OpenGL3D/Game/OglGame.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/source/OpenGL3D/Game/Win32Src/Win32GameSrc.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/source/OpenGL3D/Graphic/OpenGLGraphicEngine.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/source/OpenGL3D/Graphic/Win32Src/Win32GraphicSrc.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/source/OpenGL3D/Window/Win32OpenGLWindow.cpp
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Game/OglGame.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Graphic/OpenGLGraphicEngine.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Helpers/OGLVector4.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/OGLPrerequisites.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Window/OglWindow.h
+)
+
+# Include directories
+target_include_directories(${PROJECT_NAME}
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include>
+        $<INSTALL_INTERFACE:include>
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/source
+)
+
 # Dependencies
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "$<$<CONFIG:Debug>:"
-            "opengl32"
-        ">"
-    )
-endif()
-target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
+include(CMake/Dependencies.cmake)
 
+# Installation rules
+include(GNUInstallDirs)
+install(TARGETS ${PROJECT_NAME}
+    EXPORT ${PROJECT_NAME}Targets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_BINARY_DIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(FILES 
+    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Game/OglGame.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Graphic/OpenGLGraphicEngine.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Helpers/OGLVector4.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/OGLPrerequisites.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Window/OglWindow.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
+)
