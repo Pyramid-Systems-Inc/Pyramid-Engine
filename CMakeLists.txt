@@ -17,6 +17,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
+# Enable folders for IDE organization
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 # Platform specific settings
 if(WIN32)
     set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
@@ -34,10 +37,10 @@ if(WIN32)
 endif()
 
 # Build type configuration
-if(NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose the type of build" FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release")
 endif()
-set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
 
 # Compiler specific options
 if(MSVC)
@@ -58,23 +61,37 @@ endif()
 add_subdirectory(OpenGL3D)
 add_subdirectory(Game)
 
-# Main library target
-add_library(${PROJECT_NAME} STATIC)
+# Define source files
+set(PYRAMID_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/source/OpenGL3D/Game/OglGame.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/source/OpenGL3D/Game/Win32Src/Win32GameSrc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/source/OpenGL3D/Graphic/OpenGLGraphicEngine.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/source/OpenGL3D/Graphic/Win32Src/Win32GraphicSrc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/source/OpenGL3D/Window/Win32OpenGLWindow.cpp
+)
 
-# Add source files
-target_sources(${PROJECT_NAME}
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/source/OpenGL3D/Game/OglGame.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/source/OpenGL3D/Game/Win32Src/Win32GameSrc.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/source/OpenGL3D/Graphic/OpenGLGraphicEngine.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/source/OpenGL3D/Graphic/Win32Src/Win32GraphicSrc.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/source/OpenGL3D/Window/Win32OpenGLWindow.cpp
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Game/OglGame.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Graphic/OpenGLGraphicEngine.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Helpers/OGLVector4.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/OGLPrerequisites.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Window/OglWindow.h
+set(PYRAMID_HEADERS
+    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Game/OglGame.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Graphic/OpenGLGraphicEngine.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Helpers/OGLVector4.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/OGLPrerequisites.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Window/OglWindow.h
+)
+
+# Main library target
+add_library(${PROJECT_NAME} STATIC ${PYRAMID_SOURCES} ${PYRAMID_HEADERS})
+
+# Create source groups for better IDE organization
+source_group(
+    TREE ${CMAKE_CURRENT_SOURCE_DIR}
+    PREFIX "Source Files"
+    FILES ${PYRAMID_SOURCES}
+)
+
+source_group(
+    TREE ${CMAKE_CURRENT_SOURCE_DIR}
+    PREFIX "Header Files"
+    FILES ${PYRAMID_HEADERS}
 )
 
 # Include directories
@@ -95,15 +112,10 @@ install(TARGETS ${PROJECT_NAME}
     EXPORT ${PROJECT_NAME}Targets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_BINARY_DIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-install(FILES 
-    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Game/OglGame.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Graphic/OpenGLGraphicEngine.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Helpers/OGLVector4.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/OGLPrerequisites.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/OpenGL3D/include/OpenGL3D/Window/OglWindow.h
+install(FILES ${PYRAMID_HEADERS}
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
 )

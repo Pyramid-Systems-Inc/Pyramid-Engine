@@ -28,7 +28,7 @@ void OglGame::onUpdate()
 {
 	//Pick Color in Form Of Vector4
 	//RGBA To Vector4 Color Here:https://codepen.io/sandstedt/full/gJqJEJ
-	m_GraphicEngine->Clear(OGLVec4(0.207, 0.741, 0.796, 0.7));
+	m_GraphicEngine->Clear(OGLVec4(0.207f, 0.741f, 0.796f, 0.7f));
 
 
 	m_Display->present(false);

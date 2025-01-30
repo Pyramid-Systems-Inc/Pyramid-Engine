@@ -4,166 +4,141 @@
 #include <windows.h>
 #include <assert.h>
 
-/*
-WndProc:
-	This function MUST be created and used to determine how your application will respond to various events.
-	The Windows procedure may also be called the event handler.
-	------------------------------------------------------------------
-	Event Message System:
-		What You see here is how win32 API works, consents of Event Message
-		System that handle window quit and resize and minimizing and maximizing,Etc.
-*/
+/**
+ * @brief Windows event handler callback function
+ * 
+ * This function processes all window events (messages) sent by the Windows OS.
+ * It handles basic window operations like closing and destroying the window.
+ * 
+ * @param hwnd Window handle
+ * @param msg Message type
+ * @param wParam Additional message information
+ * @param lParam Additional message information
+ * @return LRESULT Result of message processing
+ */
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 {
-	 //change between Event Message
-	switch (msg)
-	{
-	//event for destroying windows
-	case WM_DESTROY:
-	{
-		//the gets the window info and the sets the data based on user events
-		OglWindow* window = (OglWindow*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
-		/*
-		GWLP_USERDATA:
-			Sets the user data associated with the window.This data is intended for use by the application 
-			that created the window.Its value is initially zero.
-		*/
-		break;
-	}
-	//event for closing the window
-	case WM_CLOSE:
-	{
-		//send the quit message
-		PostQuitMessage(0);
-		break;
-	}
-	//send the case of above to the window DefWindowProc
-	default:
-		return DefWindowProc(hwnd, msg, wParam, lParam);
-	}
+    switch (msg)
+    {
+    case WM_DESTROY:
+    {
+        // Get the window instance associated with this window
+        // This can be used to handle cleanup if needed
+        GetWindowLongPtr(hwnd, GWLP_USERDATA);
+        break;
+    }
+    case WM_CLOSE:
+    {
+        // Post quit message to terminate the application
+        PostQuitMessage(0);
+        break;
+    }
+    default:
+        return DefWindowProc(hwnd, msg, wParam, lParam);
+    }
 
-	return NULL;
+    return NULL;
 }
 
-/* 
-	Main Class of Window Using Win32 API:
-	See: https://docs.microsoft.com/en-us/windows/win32/learnwin32/learn-to-program-for-windows
-*/
+/**
+ * @brief Constructor for the Win32 OpenGL window implementation
+ * 
+ * Creates a Win32 window and initializes the OpenGL context.
+ * The window is created with default size of 1024x768 pixels.
+ */
 OglWindow::OglWindow()
 {
-	//Define Window Class, contains window class information
-	WNDCLASSEXW wn = {};
+    // Create and register the window class
+    WNDCLASSEXW wn = {};
+    wn.cbSize = sizeof(WNDCLASSEXW);
+    wn.lpszClassName = L"PyramidGameEngine";
+    wn.lpfnWndProc = &WndProc;
+    wn.style = CS_OWNDC;
 
-	/*
-		Assign Values, Specifies the size, in bytes, of this structure.
-		Data Type = UINT, An unsigned INT. The range is 0 through 4294967295 decimal
-	*/
-	wn.cbSize = sizeof(WNDCLASSEXW);
-	//Class Name
-	wn.lpszClassName = L"OpenGL3DWindow";
-	/*
-	A pointer to the window procedure, callback function, which you define in your 
-	application, that processes messages sent to a window. See:" LRESULT CALLBACK WndProc
-	*/
-	wn.lpfnWndProc = &WndProc;
-	wn.style = CS_OWNDC;
-
-	// Register window class
     ATOM classId = RegisterClassExW(&wn);
     assert(classId);
 
-    // Calculate window size
+    // Calculate window size with standard decorations
     RECT rc = { 0, 0, 1024, 768 };
     AdjustWindowRect(&rc, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, false);
 
-    // Create window using the registered class atom
+    // Create the main window
     m_Handle = CreateWindowExW(
         0,                              // Extended window style
         (LPCWSTR)(DWORD_PTR)classId,   // Window class
-        L"Main Window - East Wind",     // Window title
+        L"Pyramid Game Engine",         // Window title
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
-        CW_USEDEFAULT, CW_USEDEFAULT,
-        rc.right - rc.left, rc.bottom - rc.top,
+        CW_USEDEFAULT, CW_USEDEFAULT,  // Window position
+        rc.right - rc.left,            // Window width
+        rc.bottom - rc.top,            // Window height
         NULL, NULL, NULL, NULL
     );
 
-	//Check and assumes window handler and Pointer Does Exist
-	assert(m_Handle); 
+    assert(m_Handle);
 
-	//window long pointer set
-	SetWindowLongPtr((HWND)m_Handle,GWLP_USERDATA,(LONG_PTR)this);
+    // Associate the window instance with the window handle
+    SetWindowLongPtr((HWND)m_Handle, GWLP_USERDATA, (LONG_PTR)this);
 
-	//show window
-	ShowWindow((HWND)m_Handle, SW_SHOW);
+    // Show and update the window
+    ShowWindow((HWND)m_Handle, SW_SHOW);
+    UpdateWindow((HWND)m_Handle);
 
-	//update based on events
-	UpdateWindow((HWND)m_Handle);
+    // Initialize OpenGL context
+    auto hDC = GetDC(HWND(m_Handle));
 
+    // Configure pixel format for OpenGL
+    int glPixelFormat = 0;
+    UINT numFormats = 0;
 
-	//Create OpenGL Context 
+    // Define pixel format attributes for modern OpenGL
+    int pixelFormatAttributes[] =
+    {
+        WGL_DRAW_TO_WINDOW_ARB,     GL_TRUE,
+        WGL_SUPPORT_OPENGL_ARB,     GL_TRUE,
+        WGL_DOUBLE_BUFFER_ARB,      GL_TRUE,
+        WGL_ACCELERATION_ARB,       WGL_FULL_ACCELERATION_ARB,
+        WGL_PIXEL_TYPE_ARB,         WGL_TYPE_RGBA_ARB,
+        WGL_COLOR_BITS_ARB,         32,
+        WGL_DEPTH_BITS_ARB,         24,
+        WGL_STENCIL_BITS_ARB,       8,
+        0
+    };
 
-	auto hDC = GetDC(HWND(m_Handle));
+    // Choose and set pixel format
+    wglChoosePixelFormatARB(hDC, pixelFormatAttributes, nullptr, 1, &glPixelFormat, &numFormats);
+    assert(numFormats);
 
+    PIXELFORMATDESCRIPTOR pixelFormatDesc = {};
+    DescribePixelFormat(hDC, glPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), &pixelFormatDesc);
+    SetPixelFormat(hDC, glPixelFormat, &pixelFormatDesc);
 
-	//Pixel Format Attributes
-	//
-	int glPixelFormat = 0;
-	//
-	UINT numFormats = 0;
+    // Create OpenGL 4.0 core profile context
+    int OpenGlAttributes[] =
+    {
+        WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
+        WGL_CONTEXT_MINOR_VERSION_ARB, 0,
+        WGL_CONTEXT_LAYER_PLANE_ARB,
+        WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+        0
+    };
 
-	int pixelFormatAttributes[] =
-	{
-		WGL_DRAW_TO_WINDOW_ARB,
-		GL_TRUE,
-		WGL_SUPPORT_OPENGL_ARB,
-		GL_TRUE,
-		WGL_DOUBLE_BUFFER_ARB,
-		GL_TRUE,
-		WGL_ACCELERATION_ARB,
-		WGL_FULL_ACCELERATION_ARB,
-		WGL_PIXEL_TYPE_ARB,
-		WGL_TYPE_RGBA_ARB,
-		WGL_COLOR_BITS_ARB,32,
-		WGL_DEPTH_BITS_ARB,24,
-		WGL_STENCIL_BITS_ARB,8,0
-	};
-
-	wglChoosePixelFormatARB(hDC, pixelFormatAttributes, nullptr, 1, &glPixelFormat, &numFormats);
-
-	assert(numFormats);
-
-	PIXELFORMATDESCRIPTOR pixelFormatDesc = {};
-
-	DescribePixelFormat(hDC, glPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), &pixelFormatDesc);
-	SetPixelFormat(hDC, glPixelFormat, &pixelFormatDesc);
-
-	int OpenGlAttributes[] =
-	{
-		WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
-		WGL_CONTEXT_MINOR_VERSION_ARB, 0,
-		WGL_CONTEXT_LAYER_PLANE_ARB,
-		WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
-		0
-	};
-
-	m_Context = wglCreateContextAttribsARB(hDC, 0, OpenGlAttributes);
-
-	assert(m_Context);
+    m_Context = wglCreateContextAttribsARB(hDC, 0, OpenGlAttributes);
+    assert(m_Context);
 }
 
 OglWindow::~OglWindow()
 {
-	wglDeleteContext(HGLRC(m_Context));
-	DestroyWindow((HWND)m_Handle);
+    wglDeleteContext(HGLRC(m_Context));
+    DestroyWindow((HWND)m_Handle);
 }
 
 void OglWindow::makeCurrentContext()
 {
-	wglMakeCurrent(GetDC(HWND(m_Handle)), HGLRC(m_Context));
+    wglMakeCurrent(GetDC(HWND(m_Handle)), HGLRC(m_Context));
 }
 
 void OglWindow::present(bool vSync)
 {
-	wglSwapIntervalEXT(vSync);
-	wglSwapLayerBuffers(GetDC(HWND(m_Handle)),WGL_SWAP_MAIN_PLANE);
+    wglSwapIntervalEXT(vSync);
+    wglSwapLayerBuffers(GetDC(HWND(m_Handle)), WGL_SWAP_MAIN_PLANE);
 }

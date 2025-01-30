@@ -2,6 +2,44 @@
 
 All notable changes to the Pyramid Game Engine project will be documented in this file.
 
+## [0.2.3] - 2025-01-30
+
+### Added
+- Comprehensive Doxygen-style documentation for all major classes
+- New `docs/` directory with detailed documentation:
+  - Architecture.md: Engine architecture documentation
+  - GettingStarted.md: User guide and tutorials
+- Better code comments and explanations
+
+### Changed
+- Window title changed to "Pyramid Game Engine"
+- Window class name updated to "PyramidGameEngine"
+- Improved code formatting and style
+- Enhanced error handling documentation
+
+### Fixed
+- Float truncation warnings in OglGame
+- Unused variable warning in Win32OpenGLWindow
+- Code style consistency
+
+## [0.2.2] - 2025-01-30
+
+### Added
+- Source file grouping for better IDE organization
+- Proper folder organization in Visual Studio
+- More comprehensive .gitignore rules
+
+### Changed
+- Improved CMake configuration
+- Better organization of source and header files in CMake
+- Enhanced build type configuration
+- Optimized installation rules using GNUInstallDirs
+- Cleaned up project structure
+
+### Removed
+- Unused CMake utility files
+- Redundant CMake configurations
+
 ## [0.2.1] - 2025-01-30
 
 ### Added

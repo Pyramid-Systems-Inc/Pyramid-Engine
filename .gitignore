@@ -1,7 +1,18 @@
-# CMake
-CMakeLists.txt.user
-CMakeCache.txt
+# Build directories
+build/
+cmake-build*/
+out/
+Debug/
+Release/
+x64/
+x86/
+[Bb]in/
+[Ll]ib/
+[Oo]bj/
+
+# CMake generated files
 CMakeFiles/
+CMakeCache.txt
 CMakeScripts/
 Testing/
 Makefile
@@ -10,54 +21,44 @@ install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 _deps/
+*.cmake
+!CMake/*.cmake
+CMakeLists.txt.user
 CMakeUserPresets.json
-cmake-build-*/
-build/
 
-# IDE specific files
-.vs/
-.idea/
-*.swp
-*.swo
-.vscode/
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
-
-# Compiled Object files
-*.slo
-*.lo
-*.o
+# Compiled files
+*.dll
+*.exe
+*.lib
+*.pdb
+*.ilk
+*.exp
 *.obj
-
-# Precompiled Headers
+*.o
+*.a
+*.so
+*.dylib
 *.gch
 *.pch
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-# Debug files
-x64/
-x86/
-[Bb]in/
-[Dd]ebug/
-[Rr]elease/
-*.pdb
+# IDE files
+.vs/
+.idea/
+.vscode/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.suo
+*.user
+*.userosscache
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.opendb
+ipch/
+*.swp
+*.swo
 
 # OS generated files
 .DS_Store
@@ -67,3 +68,12 @@ x86/
 .Trashes
 ehthumbs.db
 Thumbs.db
+Desktop.ini
+
+# Project specific
+x64/
+x86/
+[Dd]ebug/
+[Rr]elease/
+*.log
+*.tlog
