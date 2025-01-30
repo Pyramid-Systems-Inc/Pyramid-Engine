@@ -2,64 +2,148 @@
 
 ## Overview
 
-Pyramid is a modern, OpenGL-based game engine designed with modularity and performance in mind. The engine is built using C++17 and provides a robust foundation for game development.
+Pyramid is a modern, multi-platform game engine designed with flexibility and performance in mind. The engine supports multiple graphics APIs and provides a clean abstraction layer for rendering.
 
 ## Core Components
 
-### 1. Window Management (`OpenGL3D/Window`)
-- Handles window creation and management
-- Provides platform-specific implementations (currently Windows)
-- Manages OpenGL context creation and lifecycle
+### Graphics System
 
-### 2. Graphics Engine (`OpenGL3D/Graphic`)
-- OpenGL-based rendering system
-- Handles graphics context and rendering pipeline
-- Supports modern OpenGL features (4.0+)
+The graphics system is built around a flexible abstraction layer that supports multiple graphics APIs:
 
-### 3. Game Framework (`OpenGL3D/Game`)
-- Core game loop implementation
+- **IGraphicsDevice**: Core interface for all graphics implementations
+  - OpenGL (3.3 - 4.6)
+  - DirectX 9 (planned)
+  - DirectX 10 (planned)
+  - DirectX 11 (planned)
+  - DirectX 12 (planned)
+
+#### Graphics Features
+- Multiple graphics API support
+- Version detection and fallback
+- Automatic feature detection
+- Unified resource management
+
+### Window Management
+
+- Platform-specific window implementations
 - Event handling system
-- Base game class for user implementations
+- Input management
+- Resolution and display mode handling
 
-## Build System
+### Game Loop
 
-The project uses CMake (3.16+) as its build system with the following features:
-- Multi-configuration support (Debug/Release)
-- Modern CMake practices
-- Proper dependency management
-- IDE integration with source grouping
-- Installation rules for headers and binaries
-
-## Dependencies
-
-### External
-- OpenGL 4.0+
-- GLAD for OpenGL loading
-- Windows API (for Windows platform)
-
-### Internal
-- OpenGL3D - Core engine library
-- Game - Example game implementation
+The main game loop is managed by the `OglGame` class, which provides:
+- Game state management
+- Update and render cycle
+- Event processing
+- Graphics device management
 
 ## Directory Structure
 
 ```
 Pyramid/
-├── CMake/              # CMake configuration files
-├── docs/               # Documentation
-├── Game/               # Example game implementation
-├── OpenGL3D/          # Core engine library
-│   ├── include/       # Public headers
-│   ├── source/        # Implementation files
-│   └── vendor/        # Third-party dependencies
-└── README.md          # Project documentation
+├── OpenGL3D/               # Core engine library
+│   ├── include/           # Public headers
+│   │   └── OpenGL3D/
+│   │       ├── Core/     # Core engine types and utilities
+│   │       ├── Game/     # Game loop and management
+│   │       ├── Graphics/ # Graphics abstraction and implementations
+│   │       └── Window/   # Window management
+│   └── source/           # Implementation files
+├── Game/                  # Example game implementation
+├── docs/                  # Documentation
+└── build/                # Build output
 ```
+
+## Dependencies
+
+- GLAD: OpenGL loader
+- Windows API: Window management (Windows platform)
+- CMake: Build system
+- Visual Studio 2022: Development environment
+
+## Build System
+
+The project uses CMake for build configuration:
+- Minimum CMake version: 3.16.0
+- Multi-configuration support
+- Proper dependency management
+- Installation rules
+
+## Platform Support
+
+Currently supported platforms:
+- Windows 10/11 (primary)
+
+Planned platform support:
+- Linux
+- macOS
+
+## Graphics Pipeline
+
+The graphics pipeline is abstracted through the following components:
+
+1. **Graphics Device**
+   - Device creation and management
+   - Context handling
+   - Resource management
+
+2. **Resource Management**
+   - Textures
+   - Vertex buffers
+   - Shaders
+   - State objects
+
+3. **Rendering**
+   - Command submission
+   - State management
+   - Present/swap chain
 
 ## Future Development
 
 Planned features and improvements:
-1. Cross-platform support (Linux, macOS)
-2. Vulkan renderer
-3. Asset management system
-4. Physics integration
-5. Audio system
+- Multiple graphics API support
+- Resource management system
+- Material system
+- Scene graph
+- Physics integration
+- Audio system
+
+## Best Practices
+
+When developing for the Pyramid Engine:
+
+1. **Graphics API Independence**
+   - Use the IGraphicsDevice interface
+   - Don't make API-specific assumptions
+   - Handle feature availability gracefully
+
+2. **Resource Management**
+   - Use engine resource handles
+   - Properly manage resource lifetime
+   - Handle device lost scenarios
+
+3. **Error Handling**
+   - Check initialization results
+   - Handle graphics API errors
+   - Provide meaningful error messages
+
+4. **Performance**
+   - Batch similar operations
+   - Minimize state changes
+   - Use appropriate resource types
+
+## Version Support
+
+The engine supports various graphics API versions:
+
+### OpenGL
+- Minimum: OpenGL 3.3
+- Recommended: OpenGL 4.0
+- Optional features: OpenGL 4.3+ (compute shaders)
+
+### DirectX (Planned)
+- DirectX 9.0c
+- DirectX 10.0
+- DirectX 11.0
+- DirectX 12.0

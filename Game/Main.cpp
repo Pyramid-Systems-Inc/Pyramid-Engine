@@ -10,6 +10,34 @@
 #include <iostream>
 
 /**
+ * @brief Custom game class that inherits from OglGame
+ */
+class PyramidGame : public Pyramid::OglGame
+{
+public:
+    PyramidGame() : OglGame(Pyramid::GraphicsAPI::OpenGL) {}
+
+    void onCreate() override
+    {
+        // Initialize game resources here
+    }
+
+    void onUpdate() override
+    {
+        // Call base class update first
+        OglGame::onUpdate();
+
+        // Add game-specific update logic here
+    }
+
+    void onQuit() override
+    {
+        // Clean up game resources here
+        OglGame::onQuit();
+    }
+};
+
+/**
  * @brief Main entry point for the Pyramid Game Engine
  * 
  * Initializes the game engine and starts the main game loop.
@@ -22,7 +50,7 @@ int main()
     try
     {
         // Create the main game instance
-        OglGame game;
+        PyramidGame game;
 
         // Start the game loop
         game.run();

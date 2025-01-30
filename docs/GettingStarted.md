@@ -2,11 +2,12 @@
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed:
-- Visual Studio 2019 or later
-- CMake 3.16 or later
-- Git
-- OpenGL-capable graphics card with drivers supporting OpenGL 4.0+
+- Windows 10 or later
+- Visual Studio 2022
+- CMake 3.16.0 or later
+- Graphics card supporting:
+  - OpenGL 3.3 or later (primary)
+  - DirectX 9.0c or later (planned)
 
 ## Building the Engine
 
@@ -16,84 +17,141 @@ git clone https://github.com/yourusername/Pyramid.git
 cd Pyramid
 ```
 
-2. Generate the project files:
+2. Generate project files:
 ```bash
 cmake -B build -S .
 ```
 
-3. Build the project:
+3. Build the engine:
 ```bash
-cmake --build build --config Debug  # or Release
+cmake --build build --config Debug
 ```
-
-## Project Structure
-
-The engine is organized into several key components:
-
-### OpenGL3D Library
-- Core engine functionality
-- Graphics and window management
-- Game loop and event handling
-
-### Game Project
-- Example game implementation
-- Starting point for your own games
-- Demonstrates engine usage
 
 ## Creating Your First Game
 
-1. Create a new class inheriting from `OglGame`:
+1. Create a new class inheriting from `Pyramid::OglGame`:
+
 ```cpp
-class MyGame : public OglGame {
+#include <OpenGL3D/Game/OglGame.h>
+
+class MyGame : public Pyramid::OglGame {
 public:
+    // Choose your graphics API (OpenGL is default)
+    MyGame() : OglGame(Pyramid::GraphicsAPI::OpenGL) {}
+
     void onCreate() override {
-        // Initialize your game
+        // Initialize your game resources
     }
 
     void onUpdate() override {
-        // Update game logic
+        // Call base class update first
+        OglGame::onUpdate();
+        
+        // Add your game logic here
     }
 
     void onQuit() override {
-        // Cleanup resources
+        // Clean up your resources
+        OglGame::onQuit();
     }
 };
 ```
 
-2. Initialize and run your game:
+2. Create the main entry point:
+
 ```cpp
 int main() {
-    try {
-        MyGame game;
-        game.run();
-        return 0;
-    }
-    catch (const std::exception& e) {
-        std::cout << "Error: " << e.what() << std::endl;
-        return 1;
-    }
+    MyGame game;
+    game.run();
+    return 0;
 }
 ```
 
+## Graphics API Support
+
+### OpenGL
+- Default graphics API
+- Supports versions 3.3 through 4.6
+- Automatic version detection and fallback
+
+### DirectX (Planned)
+- DirectX 9.0c support coming soon
+- Future support for DirectX 10/11/12
+- Unified API interface
+
 ## Best Practices
 
-1. **Resource Management**
-   - Use RAII principles
-   - Prefer smart pointers
-   - Clean up resources in onQuit()
+1. **Graphics API Independence**
+   ```cpp
+   // Good - Use the abstract interface
+   m_GraphicsDevice->Clear(Color(0.0f, 0.0f, 0.2f, 1.0f));
 
-2. **Error Handling**
-   - Use try-catch blocks for error handling
-   - Log errors appropriately
-   - Clean up resources on error
+   // Bad - Direct API calls
+   glClear(GL_COLOR_BUFFER_BIT);
+   ```
 
-3. **Performance**
-   - Minimize state changes
-   - Batch similar operations
-   - Use appropriate data structures
+2. **Resource Management**
+   ```cpp
+   // Coming soon: Resource handle system
+   ResourceHandle texture = resourceManager.CreateTexture(desc);
+   ```
+
+3. **Error Handling**
+   ```cpp
+   // Always check initialization
+   if (!m_GraphicsDevice->Initialize()) {
+       // Handle error
+       return false;
+   }
+   ```
+
+## Project Structure
+
+Organize your game project like this:
+```
+MyGame/
+├── src/
+│   ├── Game.h        # Your game class
+│   ├── Game.cpp      # Implementation
+│   └── Main.cpp      # Entry point
+├── assets/
+│   ├── textures/
+│   ├── models/
+│   └── shaders/
+└── CMakeLists.txt
+```
 
 ## Getting Help
 
-- Check the documentation in the `docs` folder
-- Review the example game implementation
-- Look at the API headers in `OpenGL3D/include`
+1. Check the documentation in the `docs/` directory
+2. Look at example code in the `Game/` directory
+3. Review the Architecture.md file
+4. Submit issues on GitHub
+
+## Common Issues
+
+1. **OpenGL Version**
+   - Error: "Failed to create OpenGL context"
+   - Solution: Check your graphics driver supports OpenGL 3.3+
+
+2. **Build Issues**
+   - Error: "CMake not found"
+   - Solution: Install CMake 3.16.0 or later
+
+3. **Runtime Errors**
+   - Error: "Failed to create graphics device"
+   - Solution: Ensure graphics drivers are up to date
+
+## Next Steps
+
+1. Review the Architecture.md document
+2. Explore the example game code
+3. Try creating different graphics effects
+4. Experiment with the upcoming DirectX support
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Submit a pull request
+4. Follow the coding standards in Architecture.md

@@ -2,6 +2,26 @@
 
 All notable changes to the Pyramid Game Engine project will be documented in this file.
 
+## [0.3.0] - 2025-01-30
+
+### Added
+- Graphics API abstraction layer (IGraphicsDevice interface)
+- OpenGL implementation of graphics device
+- Support for multiple OpenGL versions (3.3 to 4.6)
+- Core engine types and platform detection in Prerequisites.h
+- Graphics API selection in game initialization
+
+### Changed
+- Refactored OglGame to use new graphics abstraction
+- Improved error handling and initialization
+- Better organization of graphics-related code
+- Updated window management to work with graphics abstraction
+
+### Prepared
+- Framework for future DirectX 9/10/11/12 support
+- Version detection and fallback system
+- Graphics API feature management
+
 ## [0.2.3] - 2025-01-30
 
 ### Added

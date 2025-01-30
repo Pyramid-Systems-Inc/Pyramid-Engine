@@ -1,43 +1,75 @@
 #include "OpenGL3D/Game/OglGame.h"
+#include <windows.h>
+#include <cassert>
 
-#include "OpenGL3D/Window/OglWindow.h"
-#include "OpenGL3D/Graphic/OpenGLGraphicEngine.h"
+namespace Pyramid {
 
-
-OglGame::OglGame()
+OglGame::OglGame(GraphicsAPI api)
 {
-	/// <summary>
-	/// Use The Graphic Engine (OpenGl)
-	/// </summary>
-	m_GraphicEngine = std::make_unique<OpenGLGraphicEngine>();
-
-	m_Display = std::make_unique<OglWindow>();
-
-	m_Display->makeCurrentContext();
+    // Create graphics device
+    m_GraphicsDevice = IGraphicsDevice::Create(api);
+    assert(m_GraphicsDevice && "Failed to create graphics device");
 }
-//main Game Method
+
 OglGame::~OglGame()
 {
-	
+    onQuit();
 }
+
 void OglGame::onCreate()
 {
-	
 }
+
 void OglGame::onUpdate()
 {
-	//Pick Color in Form Of Vector4
-	//RGBA To Vector4 Color Here:https://codepen.io/sandstedt/full/gJqJEJ
-	m_GraphicEngine->Clear(OGLVec4(0.207f, 0.741f, 0.796f, 0.7f));
-
-
-	m_Display->present(false);
+    // Clear screen with dark blue color
+    m_GraphicsDevice->Clear(Color(0.0f, 0.0f, 0.2f, 1.0f));
 }
+
 void OglGame::onQuit()
 {
+    if (m_GraphicsDevice)
+        m_GraphicsDevice->Shutdown();
 }
-//Set The pool m_IsRuning To False - to Close the Program
+
+void OglGame::run()
+{
+    // Initialize graphics device
+    if (!m_GraphicsDevice->Initialize())
+        return;
+
+    m_GraphicsDevice->MakeContextCurrent();
+
+    // Call user initialization
+    onCreate();
+
+    // Main game loop
+    MSG msg = {};
+    while (m_IsRunning)
+    {
+        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        {
+            if (msg.message == WM_QUIT)
+            {
+                quit();
+                continue;
+            }
+
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+
+        // Update game logic
+        onUpdate();
+
+        // Present the frame
+        m_GraphicsDevice->Present(true);
+    }
+}
+
 void OglGame::quit()
 {
-	m_IsRuning = false;
+    m_IsRunning = false;
 }
+
+} // namespace Pyramid

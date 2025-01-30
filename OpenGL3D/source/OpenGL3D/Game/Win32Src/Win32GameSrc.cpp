@@ -1,42 +1,18 @@
 #include <OpenGL3D/Game/OglGame.h>
-#include <OpenGL3D/Window/OglWindow.h>
-#include <OpenGL3D\Graphic\OpenGLGraphicEngine.h>
-#include <Windows.h>
+#include <windows.h>
 
-
-
-//Main Run method
-void OglGame::run()
+extern "C" int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	//Before Starting The Engine Run OpenGL Context Creation
-	onCreate();
-
-
-	//if the engine is running
-	while (m_IsRuning)
-	{
-		//Message value
-		MSG msg = {};
-		if (PeekMessage(&msg, NULL, NULL, NULL, PM_REMOVE))
-		{
-			// If msg Value is == WM_QUIT Then Begin event Quit
-			if (msg.message == WM_QUIT)
-			{
-				//Set The Is Running To false
-				m_IsRuning = false;
-				continue;
-			}
-			//Other Translate Or Dispatch Message
-			else
-			{
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-			}
-
-		}
-		//OpenGL Context Update
-		onUpdate();
-	}
-	//OpenGl Quit
-	onQuit();
+    try
+    {
+        // Create and run the game
+        Pyramid::OglGame game;
+        game.run();
+        return 0;
+    }
+    catch (const std::exception& e)
+    {
+        MessageBoxA(NULL, e.what(), "Error", MB_OK | MB_ICONERROR);
+        return 1;
+    }
 }

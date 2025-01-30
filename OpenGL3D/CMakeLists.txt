@@ -2,10 +2,20 @@ add_library(OpenGL3D STATIC
     vendor/glad/src/glad.c
     vendor/glad/src/glad_wgl.c
     source/OpenGL3D/Game/OglGame.cpp
+    source/OpenGL3D/Window/Win32OpenGLWindow.cpp
+    source/OpenGL3D/Graphics/OpenGL/OpenGLDevice.cpp
     source/OpenGL3D/Game/Win32Src/Win32GameSrc.cpp
     source/OpenGL3D/Graphic/OpenGLGraphicEngine.cpp
     source/OpenGL3D/Graphic/Win32Src/Win32GraphicSrc.cpp
-    source/OpenGL3D/Window/Win32OpenGLWindow.cpp
+)
+
+# Header files
+set(OPENGL3D_HEADERS
+    include/OpenGL3D/Core/Prerequisites.h
+    include/OpenGL3D/Game/OglGame.h
+    include/OpenGL3D/Window/OglWindow.h
+    include/OpenGL3D/Graphics/IGraphicsDevice.h
+    include/OpenGL3D/Graphics/OpenGL/OpenGLDevice.h
 )
 
 target_include_directories(OpenGL3D
