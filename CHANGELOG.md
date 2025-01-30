@@ -2,6 +2,115 @@
 
 All notable changes to the Pyramid Game Engine project will be documented in this file.
 
+## [0.3.5] - 2025-01-31
+
+### Added
+- Initial project setup
+- Core engine architecture
+- Graphics abstraction layer
+- Window management system
+- Basic game loop
+- OpenGL 3.3+ support
+- GLAD integration
+- CMake build system
+- Basic game example
+- Documentation
+
+### Changed
+- Reorganized project structure into modular components:
+  - Core: Core engine functionality
+  - Graphics: Graphics abstraction layer
+  - Platform: Platform-specific code
+  - Math: Math library
+  - Utils: Utility functions
+  - Renderer: Rendering system
+  - Input: Input handling
+  - Scene: Scene management
+  - Audio: Audio system
+  - Physics: Physics system
+- Renamed OglGame to Game for better abstraction
+- Renamed OglWindow to Window for better abstraction
+- Updated documentation to reflect new structure
+
+### Removed
+- Direct OpenGL dependencies from public headers
+- Platform-specific code from core components
+
+## [0.3.4] - 2025-01-31
+
+### Changed
+- Major reorganization of engine structure:
+  - Moved all core functionality to `Engine/` directory
+  - Separated graphics, platform, and core components
+  - Created proper module hierarchy
+  - Improved code organization and maintainability
+- Renamed files for better clarity and consistency:
+  - OglGame -> Game
+  - OglWindow -> Window
+  - Added proper namespacing under Pyramid::
+- Enhanced graphics abstraction:
+  - Improved shader system
+  - Better vertex buffer management
+  - Cleaner graphics device interface
+
+### Added
+- New directory structure:
+  - Engine/Core: Core engine functionality
+  - Engine/Graphics: Graphics abstraction layer
+  - Engine/Platform: Platform-specific code
+  - Examples/BasicGame: Example game implementation
+  - vendor/glad: OpenGL loader
+- Comprehensive documentation for new structure
+- Better separation of concerns between modules
+
+### Removed
+- Old OpenGL3D directory structure
+- Redundant graphics engine implementation
+- Deprecated file naming conventions
+
+## [0.3.3] - 2025-01-31
+
+### Added
+- Proper window message processing
+- Window state management (minimize, maximize, close)
+- OpenGL context management improvements
+
+### Fixed
+- Window closing immediately after opening
+- OpenGL context initialization issues
+- Window procedure message handling
+- Memory leaks in OpenGL context management
+
+## [0.3.2] - 2025-01-31
+
+### Added
+- Proper vsync support
+- Unicode support for window creation
+
+### Changed
+- Fixed window management system
+- Better error handling in graphics initialization
+
+### Fixed
+- Unicode string handling in window creation
+- Proper cleanup of OpenGL resources
+- Vsync implementation
+- Window class registration
+
+## [0.3.1] - 2025-01-30
+
+### Added
+- Basic geometry rendering support
+- Vertex buffer abstraction
+- Shader system abstraction
+- Test rectangle rendering with colored vertices
+- Improved file organization for graphics components
+
+### Changed
+- Reorganized graphics-related files into more logical structure
+- Enhanced OpenGL device implementation with proper resource management
+- Improved version detection for OpenGL
+
 ## [0.3.0] - 2025-01-30
 
 ### Added

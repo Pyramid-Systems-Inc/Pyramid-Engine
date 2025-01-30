@@ -29,129 +29,181 @@ cmake --build build --config Debug
 
 ## Creating Your First Game
 
-1. Create a new class inheriting from `Pyramid::OglGame`:
+1. Create a new class inheriting from `Pyramid::Game`:
 
 ```cpp
-#include <OpenGL3D/Game/OglGame.h>
+#include <Pyramid/Core/Game.hpp>
 
-class MyGame : public Pyramid::OglGame {
+class MyGame : public Pyramid::Game {
 public:
-    // Choose your graphics API (OpenGL is default)
-    MyGame() : OglGame(Pyramid::GraphicsAPI::OpenGL) {}
+    MyGame() = default;
 
     void onCreate() override {
         // Initialize your game resources
     }
 
     void onUpdate() override {
-        // Call base class update first
-        OglGame::onUpdate();
-        
         // Add your game logic here
     }
 
     void onQuit() override {
         // Clean up your resources
-        OglGame::onQuit();
     }
 };
 ```
 
-2. Create the main entry point:
+2. Create the main entry point (Windows):
 
 ```cpp
-int main() {
-    MyGame game;
-    game.run();
-    return 0;
+#include <windows.h>
+
+int WINAPI WinMain(
+    [[maybe_unused]] HINSTANCE hInstance,
+    [[maybe_unused]] HINSTANCE hPrevInstance,
+    [[maybe_unused]] LPSTR lpCmdLine,
+    [[maybe_unused]] int nCmdShow)
+{
+    try
+    {
+        MyGame game;
+        game.run();
+        return 0;
+    }
+    catch (const std::exception& e)
+    {
+        MessageBoxA(NULL, e.what(), "Error", MB_OK | MB_ICONERROR);
+        return 1;
+    }
 }
 ```
 
-## Graphics API Support
+## Window Management
 
-### OpenGL
-- Default graphics API
-- Supports versions 3.3 through 4.6
-- Automatic version detection and fallback
+The engine provides a robust window management system:
 
-### DirectX (Planned)
-- DirectX 9.0c support coming soon
-- Future support for DirectX 10/11/12
-- Unified API interface
+### Basic Window Management
+```cpp
+// Window is automatically created and managed by Game
+// You can customize window creation by overriding:
+void onCreate() override {
+    // Set window title
+    setWindowTitle("My Game");
+    
+    // Set window size
+    setWindowSize(1280, 720);
+}
+```
 
-## Best Practices
+### Window Events
+```cpp
+// Handle window events in your game class
+void onWindowEvent(const WindowEvent& event) override {
+    switch (event.type) {
+    case WindowEvent::Resize:
+        // Handle window resize
+        break;
+    case WindowEvent::Focus:
+        // Handle window focus change
+        break;
+    case WindowEvent::Close:
+        // Handle window close request
+        break;
+    }
+}
+```
 
-1. **Graphics API Independence**
-   ```cpp
-   // Good - Use the abstract interface
-   m_GraphicsDevice->Clear(Color(0.0f, 0.0f, 0.2f, 1.0f));
+## Graphics
 
-   // Bad - Direct API calls
-   glClear(GL_COLOR_BUFFER_BIT);
-   ```
+The engine provides a flexible graphics abstraction layer:
 
-2. **Resource Management**
-   ```cpp
-   // Coming soon: Resource handle system
-   ResourceHandle texture = resourceManager.CreateTexture(desc);
-   ```
+### Graphics Device
+```cpp
+// Graphics device is automatically created and managed by Game
+// You can access it in your game class:
+void onCreate() override {
+    auto* device = getGraphicsDevice();
+    
+    // Create graphics resources
+    auto vertexBuffer = device->createVertexBuffer();
+    auto shader = device->createShader();
+}
+```
 
-3. **Error Handling**
-   ```cpp
-   // Always check initialization
-   if (!m_GraphicsDevice->Initialize()) {
-       // Handle error
-       return false;
-   }
-   ```
+### Shaders
+```cpp
+// Create and use shaders
+void onCreate() override {
+    auto* device = getGraphicsDevice();
+    
+    // Create shader
+    auto shader = device->createShader();
+    shader->setVertexSource(vertexShaderSource);
+    shader->setFragmentSource(fragmentShaderSource);
+    shader->compile();
+    
+    // Use shader
+    shader->bind();
+}
+```
+
+### Vertex Buffers
+```cpp
+// Create and use vertex buffers
+void onCreate() override {
+    auto* device = getGraphicsDevice();
+    
+    // Create vertex buffer
+    auto vertexBuffer = device->createVertexBuffer();
+    vertexBuffer->setData(vertices, sizeof(vertices));
+    
+    // Use vertex buffer
+    vertexBuffer->bind();
+}
+```
 
 ## Project Structure
 
-Organize your game project like this:
+A typical Pyramid game project structure looks like this:
+
 ```
 MyGame/
-├── src/
-│   ├── Game.h        # Your game class
-│   ├── Game.cpp      # Implementation
-│   └── Main.cpp      # Entry point
-├── assets/
-│   ├── textures/
-│   ├── models/
-│   └── shaders/
+├── include/
+│   └── MyGame.hpp
+├── source/
+│   ├── MyGame.cpp
+│   └── Main.cpp
 └── CMakeLists.txt
 ```
 
-## Getting Help
+Example CMakeLists.txt:
+```cmake
+add_executable(MyGame WIN32
+    source/Main.cpp
+    source/MyGame.cpp
+    include/MyGame.hpp
+)
 
-1. Check the documentation in the `docs/` directory
-2. Look at example code in the `Game/` directory
-3. Review the Architecture.md file
-4. Submit issues on GitHub
+target_link_libraries(MyGame PRIVATE PyramidEngine)
 
-## Common Issues
-
-1. **OpenGL Version**
-   - Error: "Failed to create OpenGL context"
-   - Solution: Check your graphics driver supports OpenGL 3.3+
-
-2. **Build Issues**
-   - Error: "CMake not found"
-   - Solution: Install CMake 3.16.0 or later
-
-3. **Runtime Errors**
-   - Error: "Failed to create graphics device"
-   - Solution: Ensure graphics drivers are up to date
+target_include_directories(MyGame
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+```
 
 ## Next Steps
 
-1. Review the Architecture.md document
-2. Explore the example game code
-3. Try creating different graphics effects
-4. Experiment with the upcoming DirectX support
+1. Check out the example projects in the `Examples/` directory
+2. Read the API documentation
+3. Join our community:
+   - GitHub Discussions
+   - Discord Server
+   - Forums
 
-## Contributing
+## Getting Help
 
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
-4. Follow the coding standards in Architecture.md
+If you need help:
+1. Check the documentation
+2. Look at the example projects
+3. Ask in our community channels
+4. File an issue on GitHub

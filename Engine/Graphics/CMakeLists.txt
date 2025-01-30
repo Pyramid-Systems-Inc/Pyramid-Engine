@@ -1,0 +1,23 @@
+target_sources(PyramidEngine
+    PRIVATE
+        source/GraphicsDevice.cpp
+        source/OpenGL/OpenGLDevice.cpp
+        source/OpenGL/Buffer/OpenGLVertexBuffer.cpp
+        source/OpenGL/Shader/OpenGLShader.cpp
+    PUBLIC
+        include/Pyramid/Graphics/GraphicsDevice.hpp
+        include/Pyramid/Graphics/Buffer/VertexBuffer.hpp
+        include/Pyramid/Graphics/Shader/Shader.hpp
+        include/Pyramid/Graphics/Geometry/Vertex.hpp
+        include/Pyramid/Graphics/OpenGL/OpenGLDevice.hpp
+        include/Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexBuffer.hpp
+        include/Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp
+)
+
+target_include_directories(PyramidEngine
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/source
+)

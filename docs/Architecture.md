@@ -22,17 +22,38 @@ The graphics system is built around a flexible abstraction layer that supports m
 - Version detection and fallback
 - Automatic feature detection
 - Unified resource management
+- Shader system
+- Vertex buffer abstraction
 
 ### Window Management
 
+The window management system provides a platform-independent interface for window creation and management:
+
+#### Components
+- **Window**: Abstract window interface
+  - Window creation and destruction
+  - Event processing
+  - Context management
+  - Window state handling
+
+- **Win32OpenGLWindow**: Windows implementation
+  - Native Win32 API integration
+  - OpenGL context management
+  - Window procedure handling
+  - Message processing
+
+#### Features
 - Platform-specific window implementations
 - Event handling system
 - Input management
 - Resolution and display mode handling
+- Window state management (minimize, maximize, close)
+- Message processing and event dispatch
+- Graphics context integration
 
 ### Game Loop
 
-The main game loop is managed by the `OglGame` class, which provides:
+The main game loop is managed by the `Game` class, which provides:
 - Game state management
 - Update and render cycle
 - Event processing
@@ -42,17 +63,33 @@ The main game loop is managed by the `OglGame` class, which provides:
 
 ```
 Pyramid/
-├── OpenGL3D/               # Core engine library
-│   ├── include/           # Public headers
-│   │   └── OpenGL3D/
-│   │       ├── Core/     # Core engine types and utilities
-│   │       ├── Game/     # Game loop and management
-│   │       ├── Graphics/ # Graphics abstraction and implementations
-│   │       └── Window/   # Window management
-│   └── source/           # Implementation files
-├── Game/                  # Example game implementation
-├── docs/                  # Documentation
-└── build/                # Build output
+├── Engine/                # Core engine library
+│   ├── Core/             # Core engine functionality
+│   │   ├── include/      # Public headers
+│   │   └── source/       # Implementation files
+│   ├── Graphics/         # Graphics abstraction layer
+│   │   ├── include/      # Public headers
+│   │   └── source/       # Implementation files
+│   ├── Platform/         # Platform-specific code
+│   │   ├── include/      # Public headers
+│   │   └── source/       # Implementation files
+│   ├── Math/             # Math library
+│   ├── Utils/            # Utility functions
+│   ├── Renderer/         # Rendering system
+│   ├── Input/            # Input handling
+│   ├── Scene/            # Scene management
+│   ├── Audio/            # Audio system
+│   └── Physics/          # Physics system
+├── Examples/             # Example projects
+│   └── BasicGame/        # Basic game example
+├── Tools/                # Development tools
+│   └── AssetProcessor/   # Asset processing tools
+├── Tests/                # Test projects
+│   ├── Unit/            # Unit tests
+│   └── Integration/     # Integration tests
+├── vendor/              # Third-party dependencies
+│   └── glad/            # OpenGL loader
+└── docs/                # Documentation
 ```
 
 ## Dependencies
@@ -81,69 +118,41 @@ Planned platform support:
 
 ## Graphics Pipeline
 
-The graphics pipeline is abstracted through the following components:
+The graphics pipeline is designed to be API-agnostic:
 
-1. **Graphics Device**
-   - Device creation and management
-   - Context handling
+1. **Graphics Device Layer**
+   - IGraphicsDevice interface
+   - API-specific implementations (OpenGL, DirectX)
    - Resource management
-
-2. **Resource Management**
-   - Textures
-   - Vertex buffers
-   - Shaders
-   - State objects
-
-3. **Rendering**
-   - Command submission
    - State management
-   - Present/swap chain
+
+2. **Shader System**
+   - Abstract shader interface
+   - GLSL support (OpenGL)
+   - HLSL support (planned for DirectX)
+   - Shader compilation and linking
+   - Uniform/constant buffer management
+
+3. **Buffer Management**
+   - Vertex buffer abstraction
+   - Index buffer support (planned)
+   - Constant/uniform buffer support (planned)
+   - Dynamic buffer updates
+
+4. **Rendering**
+   - Geometry management
+   - Material system (planned)
+   - Texture management (planned)
+   - Render state management (planned)
 
 ## Future Development
 
 Planned features and improvements:
-- Multiple graphics API support
-- Resource management system
-- Material system
-- Scene graph
-- Physics integration
+- Complete math library
+- Physics system
 - Audio system
-
-## Best Practices
-
-When developing for the Pyramid Engine:
-
-1. **Graphics API Independence**
-   - Use the IGraphicsDevice interface
-   - Don't make API-specific assumptions
-   - Handle feature availability gracefully
-
-2. **Resource Management**
-   - Use engine resource handles
-   - Properly manage resource lifetime
-   - Handle device lost scenarios
-
-3. **Error Handling**
-   - Check initialization results
-   - Handle graphics API errors
-   - Provide meaningful error messages
-
-4. **Performance**
-   - Batch similar operations
-   - Minimize state changes
-   - Use appropriate resource types
-
-## Version Support
-
-The engine supports various graphics API versions:
-
-### OpenGL
-- Minimum: OpenGL 3.3
-- Recommended: OpenGL 4.0
-- Optional features: OpenGL 4.3+ (compute shaders)
-
-### DirectX (Planned)
-- DirectX 9.0c
-- DirectX 10.0
-- DirectX 11.0
-- DirectX 12.0
+- Scene graph
+- Asset management
+- Input system
+- Networking
+- Scripting support

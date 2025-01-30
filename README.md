@@ -21,12 +21,17 @@ A modern, multi-platform game engine with support for multiple graphics APIs. Cu
   - Event processing
   - Multiple monitor support
   - Resolution management
+  - Window state management
+  - Message processing
+  - Graphics context integration
 
 - **Graphics Features**
   - Multiple API support
   - Version detection
   - Feature management
   - Resource abstraction
+  - VSync support
+  - Modern OpenGL context
 
 ## Requirements
 
@@ -57,7 +62,7 @@ cmake --build build --config Debug
 
 4. Run the example game:
 ```bash
-./build/bin/Debug/PyramidGame.exe
+./build/bin/Debug/BasicGame.exe
 ```
 
 ## Documentation
@@ -70,17 +75,28 @@ cmake --build build --config Debug
 
 ```
 Pyramid/
-├── OpenGL3D/               # Core engine library
-│   ├── include/           # Public headers
-│   │   └── OpenGL3D/
-│   │       ├── Core/     # Core engine types
-│   │       ├── Game/     # Game loop and management
-│   │       ├── Graphics/ # Graphics abstraction
-│   │       └── Window/   # Window management
-│   └── source/           # Implementation files
-├── Game/                  # Example game
-├── docs/                  # Documentation
-└── build/                # Build output
+├── Engine/                 # Core engine library
+│   ├── Core/              # Core engine functionality
+│   ├── Graphics/          # Graphics abstraction layer
+│   ├── Platform/          # Platform-specific code
+│   ├── Math/              # Math library
+│   ├── Utils/             # Utility functions
+│   ├── Renderer/          # Rendering system
+│   ├── Input/             # Input handling
+│   ├── Scene/             # Scene management
+│   ├── Audio/             # Audio system
+│   └── Physics/           # Physics system
+├── Examples/              # Example projects
+│   └── BasicGame/         # Basic game example
+├── Tools/                 # Development tools
+│   └── AssetProcessor/    # Asset processing tools
+├── Tests/                 # Test projects
+│   ├── Unit/             # Unit tests
+│   └── Integration/       # Integration tests
+├── vendor/               # Third-party dependencies
+│   ├── glad/             # OpenGL loader
+│   └── stb/              # Image loading
+└── docs/                 # Documentation
 ```
 
 ## Contributing
@@ -99,27 +115,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - GLAD for OpenGL loading
 - Windows API for window management
 - CMake for build system
-
-## Roadmap
-
-### Current
-- [x] OpenGL 3.3+ support
-- [x] Basic window management
-- [x] Graphics abstraction layer
-
-### Short Term
-- [ ] DirectX 9 support
-- [ ] Resource management system
-- [ ] Shader system improvements
-
-### Long Term
-- [ ] DirectX 10/11/12 support
-- [ ] Physics integration
-- [ ] Audio system
-- [ ] Asset management
-
-## Contact
-
-- Submit issues through GitHub
-- Join our Discord community (coming soon)
-- Follow development updates on Twitter (coming soon)
