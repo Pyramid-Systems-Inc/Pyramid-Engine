@@ -1,44 +1,70 @@
 #include <Pyramid/Graphics/OpenGL/OpenGLDevice.hpp>
 #include <glad/glad.h>
 
-namespace Pyramid {
-
-OpenGLDevice::OpenGLDevice()
-    : m_window(std::make_unique<Win32OpenGLWindow>())
+namespace Pyramid
 {
-}
 
-OpenGLDevice::~OpenGLDevice()
-{
-    Shutdown();
-}
+    OpenGLDevice::OpenGLDevice()
+        : m_window(std::make_unique<Win32OpenGLWindow>())
+    {
+    }
 
-bool OpenGLDevice::Initialize()
-{
-    // Initialize the window
-    if (!m_window->Initialize())
-        return false;
+    OpenGLDevice::~OpenGLDevice()
+    {
+        Shutdown();
+    }
 
-    // Make OpenGL context current
-    m_window->MakeContextCurrent();
+    bool OpenGLDevice::Initialize()
+    {
+        // Initialize the window
+        if (!m_window->Initialize())
+            return false;
 
-    return true;
-}
+        // Make OpenGL context current
+        m_window->MakeContextCurrent();
 
-void OpenGLDevice::Shutdown()
-{
-    m_window.reset();
-}
+        return true;
+    }
 
-void OpenGLDevice::Clear(const Color& color)
-{
-    glClearColor(color.r, color.g, color.b, color.a);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-}
+    void OpenGLDevice::Shutdown()
+    {
+        m_window.reset();
+    }
 
-void OpenGLDevice::Present(bool vsync)
-{
-    m_window->Present(vsync);
-}
+    void OpenGLDevice::Clear(const Color &color)
+    {
+        glClearColor(color.r, color.g, color.b, color.a);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
+
+    void OpenGLDevice::Present(bool vsync)
+    {
+        m_window->Present(vsync);
+    }
+
+    void OpenGLDevice::DrawIndexed(u32 count)
+    {
+        glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
+    }
+
+    void OpenGLDevice::SetViewport(u32 x, u32 y, u32 width, u32 height)
+    {
+        glViewport(x, y, width, height);
+    }
+
+    std::shared_ptr<IVertexBuffer> OpenGLDevice::CreateVertexBuffer()
+    {
+        return std::make_shared<OpenGLVertexBuffer>();
+    }
+
+    std::shared_ptr<IIndexBuffer> OpenGLDevice::CreateIndexBuffer()
+    {
+        return std::make_shared<OpenGLIndexBuffer>();
+    }
+
+    std::shared_ptr<IVertexArray> OpenGLDevice::CreateVertexArray()
+    {
+        return std::make_shared<OpenGLVertexArray>();
+    }
 
 } // namespace Pyramid

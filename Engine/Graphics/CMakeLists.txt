@@ -3,13 +3,19 @@ target_sources(PyramidEngine
         source/GraphicsDevice.cpp
         source/OpenGL/OpenGLDevice.cpp
         source/OpenGL/Buffer/OpenGLVertexBuffer.cpp
+        source/OpenGL/Buffer/OpenGLIndexBuffer.cpp
+        source/OpenGL/Buffer/OpenGLVertexArray.cpp
         source/OpenGL/Shader/OpenGLShader.cpp
     PUBLIC
         include/Pyramid/Graphics/GraphicsDevice.hpp
         include/Pyramid/Graphics/Buffer/VertexBuffer.hpp
+        include/Pyramid/Graphics/Buffer/IndexBuffer.hpp
+        include/Pyramid/Graphics/Buffer/VertexArray.hpp
         include/Pyramid/Graphics/Shader/Shader.hpp
         include/Pyramid/Graphics/Geometry/Vertex.hpp
         include/Pyramid/Graphics/OpenGL/OpenGLDevice.hpp
+        include/Pyramid/Graphics/OpenGL/Buffer/OpenGLIndexBuffer.hpp
+        include/Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexArray.hpp
         include/Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexBuffer.hpp
         include/Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp
 )

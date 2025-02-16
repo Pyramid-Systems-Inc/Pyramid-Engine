@@ -2,6 +2,22 @@
 
 All notable changes to the Pyramid Game Engine will be documented in this file.
 
+## [0.3.7] - 2025-02-16
+
+### Added
+
+- Vertex Array Objects (VAO) support
+- Index buffer support
+- Updated BasicGame example to use VAOs
+- Vertex attribute management
+- DrawIndexed and SetViewport methods
+
+### Changed
+
+- Refactored rendering pipeline to use VAOs
+- Enhanced OpenGL buffer management
+- Updated example to demonstrate vertex arrays and indexed drawing
+
 ## [0.3.6] - 2025-01-31
 
 ### Fixed
