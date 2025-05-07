@@ -27,10 +27,10 @@
 
 - [X] Graphics Enhancement Phase 1
   - [X] Vertex Array Objects (VAO) - Enhanced with `BufferLayout` system for attribute definition.
-  - [~] Enhanced shader management - `IGraphicsDevice::CreateShader()` added; shader compilation verified.
-    - [ ] Uniform buffer support (Still pending)
+  - [X] Enhanced shader management - `IGraphicsDevice::CreateShader()` added; shader compilation verified; basic `glUniform*` style support implemented in `IShader` and `OpenGLShader`.
+    - [~] Uniform buffer support (Basic `glUniform*` support added; true Uniform Buffer Objects (UBOs) still pending)
     - [ ] Multiple shader programs (Supported by creating multiple IShader instances, advanced management pending)
-  - [ ] Texture system implementation
+  - [~] Texture system implementation (Basic 2D texture loading via stb_image and rendering implemented)
   - Material system foundation
   - State management system
 

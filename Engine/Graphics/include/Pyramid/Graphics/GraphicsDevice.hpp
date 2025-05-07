@@ -1,12 +1,15 @@
 #pragma once
 #include <Pyramid/Core/Prerequisites.hpp>
 #include <memory>
+#include <string> // Added for std::string
 
 namespace Pyramid
 {
     // Forward declarations
     class Window;
-    class IShader; // Added
+    class IShader;
+    class ITexture2D; // Added
+    struct TextureSpecification; // Added
 
     /**
      * @brief Interface for graphics device implementations
@@ -76,8 +79,25 @@ namespace Pyramid
          * @brief Create a shader program
          * @return std::shared_ptr<IShader> The created shader program
          */
-        virtual std::shared_ptr<IShader> CreateShader() = 0; // Added
+        virtual std::shared_ptr<IShader> CreateShader() = 0;
 
+        /**
+         * @brief Create a 2D Texture from specification and data
+         * @param specification The texture specification
+         * @param data Optional raw pixel data
+         * @return std::shared_ptr<ITexture2D> The created texture
+         */
+        virtual std::shared_ptr<ITexture2D> CreateTexture2D(const TextureSpecification& specification, const void* data = nullptr) = 0; // Added
+
+        /**
+         * @brief Create a 2D Texture from a filepath
+         * @param filepath Path to the image file
+         * @param srgb Whether the texture should be treated as sRGB
+         * @param generateMips Whether to generate mipmaps
+         * @return std::shared_ptr<ITexture2D> The created texture
+         */
+        virtual std::shared_ptr<ITexture2D> CreateTexture2D(const std::string& filepath, bool srgb = false, bool generateMips = true) = 0; // Added
+        
         /**
          * @brief Create a graphics device for the specified API
          * @param api The graphics API to use

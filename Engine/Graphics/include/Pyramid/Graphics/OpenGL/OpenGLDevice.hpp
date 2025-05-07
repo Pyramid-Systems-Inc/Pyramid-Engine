@@ -1,8 +1,10 @@
 #pragma once
 #include "Pyramid/Graphics/GraphicsDevice.hpp"
 #include "Pyramid/Platform/Window.hpp"
-#include "Pyramid/Graphics/Shader/Shader.hpp" // Added for IShader
+#include "Pyramid/Graphics/Shader/Shader.hpp"
+#include "Pyramid/Graphics/Texture.hpp" // Added for ITexture2D and TextureSpecification
 #include <memory>
+#include <string> // For std::string in CreateTexture2D
 
 namespace Pyramid
 {
@@ -27,7 +29,9 @@ namespace Pyramid
         std::shared_ptr<IVertexBuffer> CreateVertexBuffer() override;
         std::shared_ptr<IIndexBuffer> CreateIndexBuffer() override;
         std::shared_ptr<IVertexArray> CreateVertexArray() override;
-        std::shared_ptr<IShader> CreateShader() override; // Added
+        std::shared_ptr<IShader> CreateShader() override;
+        std::shared_ptr<ITexture2D> CreateTexture2D(const TextureSpecification& specification, const void* data = nullptr) override; // Added
+        std::shared_ptr<ITexture2D> CreateTexture2D(const std::string& filepath, bool srgb = false, bool generateMips = true) override; // Added
 
         /**
          * @brief Get the window associated with this device

@@ -1,6 +1,7 @@
 #include <Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp>
+#include <Pyramid/Core/Log.hpp> // Added
 #include <vector>
-#include <iostream>
+// #include <iostream> // No longer needed directly if using Log macros
 
 namespace Pyramid {
 
@@ -48,7 +49,7 @@ bool OpenGLShader::Compile(const std::string& vertexSrc, const std::string& frag
         glGetShaderInfoLog(vertexShader, maxLength, &maxLength, &infoLog[0]);
 
         glDeleteShader(vertexShader);
-        std::cerr << "Vertex shader compilation failed:\n" << infoLog.data() << std::endl;
+        PYRAMID_LOG_ERROR("Vertex shader compilation failed:\n", infoLog.data()); // Changed
         return false;
     }
 
@@ -69,7 +70,7 @@ bool OpenGLShader::Compile(const std::string& vertexSrc, const std::string& frag
 
         glDeleteShader(fragmentShader);
         glDeleteShader(vertexShader);
-        std::cerr << "Fragment shader compilation failed:\n" << infoLog.data() << std::endl;
+        PYRAMID_LOG_ERROR("Fragment shader compilation failed:\n", infoLog.data()); // Changed
         return false;
     }
 
@@ -93,7 +94,7 @@ bool OpenGLShader::Compile(const std::string& vertexSrc, const std::string& frag
         glDeleteProgram(m_programId);
         glDeleteShader(vertexShader);
         glDeleteShader(fragmentShader);
-        std::cerr << "Shader program linking failed:\n" << infoLog.data() << std::endl;
+        PYRAMID_LOG_ERROR("Shader program linking failed:\n", infoLog.data()); // Changed
         return false;
     }
 
@@ -104,6 +105,75 @@ bool OpenGLShader::Compile(const std::string& vertexSrc, const std::string& frag
     glDeleteShader(fragmentShader);
 
     return true;
+}
+
+GLint OpenGLShader::GetUniformLocation(const std::string& name)
+{
+    if (m_uniformLocationCache.find(name) != m_uniformLocationCache.end())
+        return m_uniformLocationCache[name];
+
+    GLint location = glGetUniformLocation(m_programId, name.c_str());
+    if (location == -1) 
+        PYRAMID_LOG_WARN("Uniform '", name, "' not found in shader program ", m_programId); // Changed
+    
+    m_uniformLocationCache[name] = location;
+    return location;
+}
+
+void OpenGLShader::SetUniformInt(const std::string& name, int value)
+{
+    Bind(); // Ensure shader is bound
+    GLint location = GetUniformLocation(name);
+    if (location != -1)
+        glUniform1i(location, value);
+}
+
+void OpenGLShader::SetUniformFloat(const std::string& name, float value)
+{
+    Bind();
+    GLint location = GetUniformLocation(name);
+    if (location != -1)
+        glUniform1f(location, value);
+}
+
+void OpenGLShader::SetUniformFloat2(const std::string& name, float v0, float v1)
+{
+    Bind();
+    GLint location = GetUniformLocation(name);
+    if (location != -1)
+        glUniform2f(location, v0, v1);
+}
+
+void OpenGLShader::SetUniformFloat3(const std::string& name, float v0, float v1, float v2)
+{
+    Bind();
+    GLint location = GetUniformLocation(name);
+    if (location != -1)
+        glUniform3f(location, v0, v1, v2);
+}
+
+void OpenGLShader::SetUniformFloat4(const std::string& name, float v0, float v1, float v2, float v3)
+{
+    Bind();
+    GLint location = GetUniformLocation(name);
+    if (location != -1)
+        glUniform4f(location, v0, v1, v2, v3);
+}
+
+void OpenGLShader::SetUniformMat3(const std::string& name, const float* matrix_ptr, bool transpose, int count)
+{
+    Bind();
+    GLint location = GetUniformLocation(name);
+    if (location != -1)
+        glUniformMatrix3fv(location, count, transpose ? GL_TRUE : GL_FALSE, matrix_ptr);
+}
+
+void OpenGLShader::SetUniformMat4(const std::string& name, const float* matrix_ptr, bool transpose, int count)
+{
+    Bind();
+    GLint location = GetUniformLocation(name);
+    if (location != -1)
+        glUniformMatrix4fv(location, count, transpose ? GL_TRUE : GL_FALSE, matrix_ptr);
 }
 
 } // namespace Pyramid

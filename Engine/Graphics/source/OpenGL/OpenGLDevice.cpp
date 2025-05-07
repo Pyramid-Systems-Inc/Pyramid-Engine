@@ -2,7 +2,8 @@
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexBuffer.hpp>
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLIndexBuffer.hpp>
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexArray.hpp>
-#include <Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp> // Added
+#include <Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp>
+#include <Pyramid/Graphics/Texture.hpp> // Added for ITexture2D factory methods
 #include <glad/glad.h>
 
 namespace Pyramid
@@ -74,6 +75,16 @@ namespace Pyramid
     std::shared_ptr<IShader> OpenGLDevice::CreateShader()
     {
         return std::make_shared<OpenGLShader>();
+    }
+
+    std::shared_ptr<ITexture2D> OpenGLDevice::CreateTexture2D(const TextureSpecification& specification, const void* data)
+    {
+        return ITexture2D::Create(specification, data);
+    }
+
+    std::shared_ptr<ITexture2D> OpenGLDevice::CreateTexture2D(const std::string& filepath, bool srgb, bool generateMips)
+    {
+        return ITexture2D::Create(filepath, srgb, generateMips);
     }
 
 } // namespace Pyramid

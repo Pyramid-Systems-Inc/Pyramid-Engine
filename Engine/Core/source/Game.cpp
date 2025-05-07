@@ -1,7 +1,8 @@
 #include "Pyramid/Core/Game.hpp"
-// Removed OpenGLDevice.hpp include as it's an implementation detail of IGraphicsDevice::Create
+#include "Pyramid/Core/Game.hpp"
 #include "Pyramid/Platform/Windows/Win32OpenGLWindow.hpp" // Added for concrete window creation
-#include <cassert>
+#include <Pyramid/Core/Log.hpp> // Added
+// #include <cassert> // No longer needed directly
 #include <memory>
 #include <chrono>
 
@@ -20,12 +21,12 @@ Game::Game(GraphicsAPI api)
     }
     // TODO: Add window creation for other APIs/platforms if necessary
 
-    assert(m_window && "Failed to create window");
+    PYRAMID_CORE_ASSERT(m_window, "Failed to create window"); // Changed
     if (!m_window) return; // Early exit if window creation fails
 
     // Create graphics device, passing the window
     m_graphicsDevice = IGraphicsDevice::Create(api, m_window.get());
-    assert(m_graphicsDevice && "Failed to create graphics device");
+    PYRAMID_CORE_ASSERT(m_graphicsDevice, "Failed to create graphics device"); // Changed
 }
 
 Game::~Game()
@@ -41,8 +42,7 @@ void Game::onCreate()
     // Base implementation. Derived classes should call this.
     // Initialize graphics device
     if (!m_graphicsDevice || !m_graphicsDevice->Initialize()) {
-        // PYRAMID_CORE_CRITICAL("Graphics device failed to initialize!");
-        // Consider throwing an exception or logging an error
+        PYRAMID_LOG_CRITICAL("Graphics device failed to initialize!"); // Changed
         m_isRunning = false; // Prevent run() from looping
         return;
     }
@@ -69,7 +69,7 @@ void Game::run()
     onCreate(); 
 
     if (!m_isRunning) {
-        // PYRAMID_CORE_ERROR("Game::onCreate failed. Aborting run loop.");
+        PYRAMID_LOG_ERROR("Game::onCreate failed. Aborting run loop."); // Changed
         return; // Don't start loop if onCreate failed (e.g. device init failed)
     }
 

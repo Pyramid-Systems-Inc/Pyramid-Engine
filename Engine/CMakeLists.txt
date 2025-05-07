@@ -19,6 +19,12 @@ set_target_properties(PyramidEngine PROPERTIES
     DEBUG_POSTFIX d
 )
 
+# Include directories
+target_include_directories(PyramidEngine
+    PRIVATE
+        "${PROJECT_SOURCE_DIR}/vendor" # For stb_image.h and other vendor libs
+)
+
 # Link dependencies
 target_link_libraries(PyramidEngine
     PRIVATE

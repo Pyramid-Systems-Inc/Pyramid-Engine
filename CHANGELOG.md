@@ -9,9 +9,21 @@ All notable changes to the Pyramid Game Engine will be documented in this file.
 - `BufferLayout` system (`BufferLayout.hpp`, `BufferElement`, `ShaderDataType`) for defining vertex attribute layouts.
 - `IVertexArray::AddVertexBuffer` now accepts a `BufferLayout` to configure vertex attributes.
 - Protected `Game::GetGraphicsDevice()` accessor for derived game classes.
-- `BasicGame` example now renders a colored triangle using shaders, VBO, IBO, and VAO with buffer layouts.
+- Implemented uniform setting methods (`SetUniformInt`, `SetUniformFloat*`, `SetUniformMat*`) in `IShader` and `OpenGLShader`.
+- `OpenGLShader` now caches uniform locations.
+- Added basic Texture System:
+    - `ITexture`, `ITexture2D` interfaces (`Texture.hpp`).
+    - `OpenGLTexture2D` implementation using `stb_image` for loading (`OpenGLTexture.hpp`, `OpenGLTexture.cpp`).
+    - `TextureSpecification` struct and related enums.
+    - Static `ITexture2D::Create` factory methods (`Texture.cpp`).
+    - `IGraphicsDevice::CreateTexture2D` methods added and implemented for OpenGL.
+- Added basic Logging system (`Log.hpp` with `PYRAMID_LOG_*` macros).
+- Added basic Assertion system (`Log.hpp` with `PYRAMID_ASSERT` / `PYRAMID_CORE_ASSERT` macros).
+- `BasicGame` example updated to load and render a textured triangle, modulated by the dynamic uniform tint.
 
 ### Changed
+- Integrated logging macros into `Game.cpp`, `OpenGLShader.cpp`, `OpenGLTexture.cpp`, `BasicGame.cpp`.
+- Integrated assertion macros into `Game.cpp`.
 - Refactored `OpenGLDevice` to accept a `Window*` dependency via constructor, decoupling it from direct `Win32OpenGLWindow` instantiation.
 - `Game` class now owns the `Window` instance (`std::unique_ptr<Window> m_window`).
 - `Game` constructor now creates the `Window` and passes it to `IGraphicsDevice::Create`.

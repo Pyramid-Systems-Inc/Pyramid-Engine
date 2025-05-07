@@ -31,6 +31,8 @@ A modern, multi-platform game engine with support for multiple graphics APIs. Cu
   - Feature management (via `IGraphicsDevice` abstraction)
   - Resource abstraction:
     - Shader system with GLSL support (via `IGraphicsDevice::CreateShader()`)
+    - Uniform variable support in shaders (`IShader::SetUniform*` methods)
+    - Basic 2D Texture loading (PNG, JPG, etc. via stb_image) and rendering (`ITexture2D`)
     - Vertex Array Objects (VAOs) with configurable vertex attribute layouts (`BufferLayout`)
     - Vertex Buffer Objects (VBOs) and Index Buffer Objects (IBOs)
   - VSync support
