@@ -1,5 +1,6 @@
 #pragma once
 #include <Pyramid/Graphics/GraphicsDevice.hpp>
+#include <Pyramid/Platform/Window.hpp> // Added for std::unique_ptr<Window>
 #include <memory>
 
 namespace Pyramid {
@@ -63,7 +64,14 @@ protected:
      */
     virtual void onRender();
 
+    /**
+     * @brief Gets the graphics device instance
+     * @return IGraphicsDevice* Pointer to the graphics device
+     */
+    IGraphicsDevice* GetGraphicsDevice() const { return m_graphicsDevice.get(); }
+
 private:
+    std::unique_ptr<Window> m_window; // Added: Game now owns the window
     std::unique_ptr<IGraphicsDevice> m_graphicsDevice;
     bool m_isRunning;
 };

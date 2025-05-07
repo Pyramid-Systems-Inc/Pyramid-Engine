@@ -1,6 +1,7 @@
 #pragma once
 #include "Pyramid/Graphics/GraphicsDevice.hpp"
-#include "Pyramid/Platform/Windows/Win32OpenGLWindow.hpp"
+#include "Pyramid/Platform/Window.hpp"
+#include "Pyramid/Graphics/Shader/Shader.hpp" // Added for IShader
 #include <memory>
 
 namespace Pyramid
@@ -12,7 +13,7 @@ namespace Pyramid
     class OpenGLDevice : public IGraphicsDevice
     {
     public:
-        OpenGLDevice();
+        explicit OpenGLDevice(Window* window); // Changed
         ~OpenGLDevice() override;
 
         bool Initialize() override;
@@ -26,15 +27,16 @@ namespace Pyramid
         std::shared_ptr<IVertexBuffer> CreateVertexBuffer() override;
         std::shared_ptr<IIndexBuffer> CreateIndexBuffer() override;
         std::shared_ptr<IVertexArray> CreateVertexArray() override;
+        std::shared_ptr<IShader> CreateShader() override; // Added
 
         /**
-         * @brief Get the OpenGL window
-         * @return Win32OpenGLWindow* The window instance
+         * @brief Get the window associated with this device
+         * @return Window* The window instance
          */
-        Win32OpenGLWindow *GetWindow() const { return m_window.get(); }
+        Window* GetWindow() const { return m_window; } // Changed
 
     private:
-        std::unique_ptr<Win32OpenGLWindow> m_window;
+        Window* m_window; // Changed
     };
 
 } // namespace Pyramid

@@ -1,11 +1,15 @@
 #include <Pyramid/Graphics/OpenGL/OpenGLDevice.hpp>
+#include <Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexBuffer.hpp>
+#include <Pyramid/Graphics/OpenGL/Buffer/OpenGLIndexBuffer.hpp>
+#include <Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexArray.hpp>
+#include <Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp> // Added
 #include <glad/glad.h>
 
 namespace Pyramid
 {
 
-    OpenGLDevice::OpenGLDevice()
-        : m_window(std::make_unique<Win32OpenGLWindow>())
+    OpenGLDevice::OpenGLDevice(Window* window) // Changed
+        : m_window(window) // Changed
     {
     }
 
@@ -28,7 +32,7 @@ namespace Pyramid
 
     void OpenGLDevice::Shutdown()
     {
-        m_window.reset();
+        // m_window.reset(); // Removed as OpenGLDevice no longer owns the window
     }
 
     void OpenGLDevice::Clear(const Color &color)
@@ -65,6 +69,11 @@ namespace Pyramid
     std::shared_ptr<IVertexArray> OpenGLDevice::CreateVertexArray()
     {
         return std::make_shared<OpenGLVertexArray>();
+    }
+
+    std::shared_ptr<IShader> OpenGLDevice::CreateShader()
+    {
+        return std::make_shared<OpenGLShader>();
     }
 
 } // namespace Pyramid

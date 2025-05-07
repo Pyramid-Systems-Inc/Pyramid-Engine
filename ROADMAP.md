@@ -1,41 +1,44 @@
 # Pyramid Game Engine Roadmap
 
-## Current Version: 0.3.7
+## Current Version: 0.3.8
 
-### ✅ Implemented Features (As of February 2025)
+### ✅ Implemented Features (As of May 2025)
 
 - Core Systems
-  - Window management system with Unicode support
-  - Event handling and message processing
-  - Basic game loop
-  - Platform abstraction layer
+  - Window management system with Unicode support (title usage fixed)
+  - Event handling and message processing (game loop verified and fixed)
+  - Basic game loop (initialization and message loop corrected)
+  - Platform abstraction layer (GraphicsDevice decoupled from concrete Window)
   - CMake build system
+  - `Game` class owns `Window` and `IGraphicsDevice`
 
 - Graphics Foundation
-  - OpenGL 3.3+ support with GLAD
-  - Graphics API abstraction layer
-  - Basic shader system
-  - Vertex buffer management
+  - OpenGL 3.3+ support with GLAD (initialization verified)
+  - Graphics API abstraction layer (`IGraphicsDevice` with `CreateShader`)
+  - Basic shader system (creation via `IGraphicsDevice`, compilation, linking verified)
+  - Vertex buffer management (VBO)
+  - Index buffer management (IBO)
+  - Vertex Array Objects (VAO) with configurable BufferLayout system
   - Depth testing
-  - Basic geometry rendering
+  - Basic geometry rendering (triangle example working)
   - Vsync support
 
-### Q1 2025 (March)
+### Q1 2025 (March) - Progress Update
 
-- [ ] Graphics Enhancement Phase 1
-  - Vertex Array Objects (VAO)
-  - Enhanced shader management
-    - Uniform buffer support
-    - Multiple shader programs
-  - Texture system implementation
+- [X] Graphics Enhancement Phase 1
+  - [X] Vertex Array Objects (VAO) - Enhanced with `BufferLayout` system for attribute definition.
+  - [~] Enhanced shader management - `IGraphicsDevice::CreateShader()` added; shader compilation verified.
+    - [ ] Uniform buffer support (Still pending)
+    - [ ] Multiple shader programs (Supported by creating multiple IShader instances, advanced management pending)
+  - [ ] Texture system implementation
   - Material system foundation
   - State management system
 
 - [ ] Core Systems Enhancement
   - Resource management system
   - Memory management improvements
-  - Extended input handling
-  - File I/O system
+  - [~] Extended input handling - Game loop message processing fixed, foundational for input.
+  - [ ] File I/O system
 
 ### Q2 2025 (June)
 

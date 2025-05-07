@@ -1,6 +1,7 @@
 // Engine/Graphics/include/Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexArray.hpp
 #pragma once
 #include "Pyramid/Graphics/Buffer/VertexArray.hpp"
+#include "Pyramid/Graphics/Buffer/BufferLayout.hpp" // Added
 #include <glad/glad.h>
 #include <vector>
 
@@ -15,7 +16,7 @@ namespace Pyramid
 
         void Bind() const override;
         void Unbind() const override;
-        void AddVertexBuffer(const std::shared_ptr<IVertexBuffer> &vertexBuffer) override;
+        void AddVertexBuffer(const std::shared_ptr<IVertexBuffer>& vertexBuffer, const BufferLayout& layout) override; // Changed
         void SetIndexBuffer(const std::shared_ptr<IIndexBuffer> &indexBuffer) override;
         const std::shared_ptr<IIndexBuffer> &GetIndexBuffer() const override { return m_indexBuffer; }
 

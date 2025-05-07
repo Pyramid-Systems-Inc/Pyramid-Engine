@@ -26,10 +26,13 @@ A modern, multi-platform game engine with support for multiple graphics APIs. Cu
   - Graphics context integration
 
 - **Graphics Features**
-  - Multiple API support
+  - Multiple API support (OpenGL current, DirectX planned)
   - Version detection
-  - Feature management
-  - Resource abstraction
+  - Feature management (via `IGraphicsDevice` abstraction)
+  - Resource abstraction:
+    - Shader system with GLSL support (via `IGraphicsDevice::CreateShader()`)
+    - Vertex Array Objects (VAOs) with configurable vertex attribute layouts (`BufferLayout`)
+    - Vertex Buffer Objects (VBOs) and Index Buffer Objects (IBOs)
   - VSync support
   - Modern OpenGL context
 

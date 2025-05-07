@@ -1,6 +1,12 @@
 #include <Pyramid/Platform/Windows/Win32OpenGLWindow.hpp>
 #include <glad/glad.h>
 #include <glad/glad_wgl.h>
+#include <string> // For strlen
+#include <vector> // For dynamic buffer for wide string conversion
+
+// Ensure <windows.h> is available for MultiByteToWideChar,
+// It's usually pulled in by glad_wgl.h or other Windows-specific headers.
+// If not, it would need to be explicitly included, but that's unlikely here.
 
 namespace Pyramid {
 
@@ -70,10 +76,27 @@ bool Win32OpenGLWindow::Initialize(const char* title, int width, int height)
     RECT windowRect = { 0, 0, width, height };
     AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
 
+    // Convert title to wide string
+    std::wstring wTitle;
+    if (title) {
+        int titleLen = static_cast<int>(strlen(title));
+        if (titleLen > 0) {
+            int wideLen = MultiByteToWideChar(CP_UTF8, 0, title, titleLen, nullptr, 0);
+            if (wideLen > 0) {
+                std::vector<wchar_t> wideBuf(wideLen);
+                MultiByteToWideChar(CP_UTF8, 0, title, titleLen, wideBuf.data(), wideLen);
+                wTitle.assign(wideBuf.data(), wideLen);
+            }
+        }
+    }
+    if (wTitle.empty()) {
+        wTitle = L"Pyramid Game"; // Default title if conversion fails or input is null/empty
+    }
+
     m_hwnd = CreateWindowExW(
         0,                              // Extended style
         L"PyramidWindowClass",          // Class name
-        L"Pyramid Game",                // Window title
+        wTitle.c_str(),                 // Window title (Changed)
         WS_OVERLAPPEDWINDOW,            // Style
         CW_USEDEFAULT,                  // X position
         CW_USEDEFAULT,                  // Y position

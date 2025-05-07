@@ -2,6 +2,28 @@
 
 All notable changes to the Pyramid Game Engine will be documented in this file.
 
+## [0.3.8] - 2025-05-07
+
+### Added
+- `IGraphicsDevice::CreateShader()` method and `OpenGLDevice` implementation for shader program creation.
+- `BufferLayout` system (`BufferLayout.hpp`, `BufferElement`, `ShaderDataType`) for defining vertex attribute layouts.
+- `IVertexArray::AddVertexBuffer` now accepts a `BufferLayout` to configure vertex attributes.
+- Protected `Game::GetGraphicsDevice()` accessor for derived game classes.
+- `BasicGame` example now renders a colored triangle using shaders, VBO, IBO, and VAO with buffer layouts.
+
+### Changed
+- Refactored `OpenGLDevice` to accept a `Window*` dependency via constructor, decoupling it from direct `Win32OpenGLWindow` instantiation.
+- `Game` class now owns the `Window` instance (`std::unique_ptr<Window> m_window`).
+- `Game` constructor now creates the `Window` and passes it to `IGraphicsDevice::Create`.
+- `OpenGLVertexArray.cpp` updated to use `BufferLayout` for `glVertexAttribPointer` setup.
+
+### Fixed
+- `Game::run()` loop now correctly processes window messages (`m_window->ProcessMessages()`), resolving issues with window not appearing or becoming unresponsive.
+- `Game::onCreate()` now explicitly initializes the graphics device (`m_graphicsDevice->Initialize()`) and checks for success before starting the game loop.
+- `Win32OpenGLWindow::Initialize` now correctly uses the provided `title` parameter instead of a hardcoded one.
+- Removed unnecessary `#include <windows.h>` from `Engine/Core/source/Game.cpp`.
+- Made graphics device creation in `Game::Game()` constructor consistently use the `IGraphicsDevice::Create()` factory.
+
 ## [0.3.7] - 2025-02-16
 
 ### Added

@@ -4,6 +4,9 @@
 
 namespace Pyramid
 {
+    // Forward declarations
+    class Window;
+    class IShader; // Added
 
     /**
      * @brief Interface for graphics device implementations
@@ -70,11 +73,18 @@ namespace Pyramid
         virtual std::shared_ptr<class IVertexArray> CreateVertexArray() = 0;
 
         /**
+         * @brief Create a shader program
+         * @return std::shared_ptr<IShader> The created shader program
+         */
+        virtual std::shared_ptr<IShader> CreateShader() = 0; // Added
+
+        /**
          * @brief Create a graphics device for the specified API
          * @param api The graphics API to use
+         * @param window The window to associate with the graphics device
          * @return std::unique_ptr<IGraphicsDevice> The created graphics device
          */
-        static std::unique_ptr<IGraphicsDevice> Create(GraphicsAPI api);
+        static std::unique_ptr<IGraphicsDevice> Create(GraphicsAPI api, Window* window); // Changed
     };
 
 } // namespace Pyramid
