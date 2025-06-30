@@ -94,6 +94,9 @@ bool TestJPEGMarkerParsing()
         // EOI (End of Image)
         0xFF, 0xD9};
 
+    // Debug: Print the JPEG data size and some key offsets
+    std::cout << "DEBUG: JPEG test data size: " << jpegData.size() << " bytes" << std::endl;
+
     // Test loading from memory
     ImageData result = JPEGLoader::LoadFromMemory(jpegData.data(), jpegData.size());
 
@@ -101,6 +104,11 @@ bool TestJPEGMarkerParsing()
     {
         std::cout << "ERROR: Failed to parse JPEG markers" << std::endl;
         std::cout << "Last error: " << JPEGLoader::GetLastError() << std::endl;
+
+        // Let's try a simpler test - just check if we can recognize the SOI marker
+        std::cout << "DEBUG: First 4 bytes: 0x" << std::hex
+                  << (int)jpegData[0] << (int)jpegData[1] << " 0x"
+                  << (int)jpegData[2] << (int)jpegData[3] << std::dec << std::endl;
         return false;
     }
 
