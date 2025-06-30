@@ -199,15 +199,15 @@ namespace Pyramid
 } // namespace Pyramid::Util
 
 // Enhanced logging macros with backward compatibility
-#define PYRAMID_LOG_TRACE(...) ::Pyramid::Util::Logger::GetInstance().LogFormatted(::Pyramid::Util::LogLevel::Trace, ::Pyramid::Util::SourceLocation{}, __VA_ARGS__)
-#define PYRAMID_LOG_DEBUG(...) ::Pyramid::Util::Logger::GetInstance().LogFormatted(::Pyramid::Util::LogLevel::Debug, ::Pyramid::Util::SourceLocation{}, __VA_ARGS__)
-#define PYRAMID_LOG_INFO(...) ::Pyramid::Util::Logger::GetInstance().LogFormatted(::Pyramid::Util::LogLevel::Info, ::Pyramid::Util::SourceLocation{}, __VA_ARGS__)
-#define PYRAMID_LOG_WARN(...) ::Pyramid::Util::Logger::GetInstance().LogFormatted(::Pyramid::Util::LogLevel::Warn, ::Pyramid::Util::SourceLocation{}, __VA_ARGS__)
-#define PYRAMID_LOG_ERROR(...) ::Pyramid::Util::Logger::GetInstance().LogFormatted(::Pyramid::Util::LogLevel::Error, ::Pyramid::Util::SourceLocation{}, __VA_ARGS__)
-#define PYRAMID_LOG_CRITICAL(...) ::Pyramid::Util::Logger::GetInstance().LogFormatted(::Pyramid::Util::LogLevel::Critical, ::Pyramid::Util::SourceLocation{}, __VA_ARGS__)
+#define PYRAMID_LOG_TRACE(...) ::Pyramid::Util::Logger::GetInstance().LogFormatted(::Pyramid::Util::LogLevel::Trace, ::Pyramid::Util::SourceLocation{__FILE__, PYRAMID_FUNCTION_NAME, __LINE__}, __VA_ARGS__)
+#define PYRAMID_LOG_DEBUG(...) ::Pyramid::Util::Logger::GetInstance().LogFormatted(::Pyramid::Util::LogLevel::Debug, ::Pyramid::Util::SourceLocation{__FILE__, PYRAMID_FUNCTION_NAME, __LINE__}, __VA_ARGS__)
+#define PYRAMID_LOG_INFO(...) ::Pyramid::Util::Logger::GetInstance().LogFormatted(::Pyramid::Util::LogLevel::Info, ::Pyramid::Util::SourceLocation{__FILE__, PYRAMID_FUNCTION_NAME, __LINE__}, __VA_ARGS__)
+#define PYRAMID_LOG_WARN(...) ::Pyramid::Util::Logger::GetInstance().LogFormatted(::Pyramid::Util::LogLevel::Warn, ::Pyramid::Util::SourceLocation{__FILE__, PYRAMID_FUNCTION_NAME, __LINE__}, __VA_ARGS__)
+#define PYRAMID_LOG_ERROR(...) ::Pyramid::Util::Logger::GetInstance().LogFormatted(::Pyramid::Util::LogLevel::Error, ::Pyramid::Util::SourceLocation{__FILE__, PYRAMID_FUNCTION_NAME, __LINE__}, __VA_ARGS__)
+#define PYRAMID_LOG_CRITICAL(...) ::Pyramid::Util::Logger::GetInstance().LogFormatted(::Pyramid::Util::LogLevel::Critical, ::Pyramid::Util::SourceLocation{__FILE__, PYRAMID_FUNCTION_NAME, __LINE__}, __VA_ARGS__)
 
 // Stream-style logging macros
-#define PYRAMID_LOG_STREAM(level) ::Pyramid::Util::LogStream(level, ::Pyramid::Util::SourceLocation{})
+#define PYRAMID_LOG_STREAM(level) ::Pyramid::Util::LogStream(level, ::Pyramid::Util::SourceLocation{__FILE__, PYRAMID_FUNCTION_NAME, __LINE__})
 #define PYRAMID_TRACE_STREAM() PYRAMID_LOG_STREAM(::Pyramid::Util::LogLevel::Trace)
 #define PYRAMID_DEBUG_STREAM() PYRAMID_LOG_STREAM(::Pyramid::Util::LogLevel::Debug)
 #define PYRAMID_INFO_STREAM() PYRAMID_LOG_STREAM(::Pyramid::Util::LogLevel::Info)
@@ -217,7 +217,7 @@ namespace Pyramid
 
 // Structured logging macros
 #define PYRAMID_LOG_STRUCTURED(level, message, fields) \
-    ::Pyramid::Util::Logger::GetInstance().LogStructured(level, message, fields, ::Pyramid::Util::SourceLocation{})
+    ::Pyramid::Util::Logger::GetInstance().LogStructured(level, message, fields, ::Pyramid::Util::SourceLocation{__FILE__, PYRAMID_FUNCTION_NAME, __LINE__})
 
 // Conditional logging (only in debug builds)
 #ifdef NDEBUG
