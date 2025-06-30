@@ -4,10 +4,10 @@
 #include <Pyramid/Graphics/Buffer/IndexBuffer.hpp>
 #include <Pyramid/Graphics/Buffer/BufferLayout.hpp>
 #include <Pyramid/Graphics/Texture.hpp> // Added
-#include <Pyramid/Core/Log.hpp> // Added
+#include <Pyramid/Core/Log.hpp>         // Added
 #include <vector>
 // #include <iostream> // No longer needed directly
-#include <cmath>    // For sinf
+#include <cmath> // For sinf
 
 // Updated vertex structure with texture coordinates
 struct Vertex
@@ -77,14 +77,12 @@ void BasicGame::onCreate()
         return;
     }
 
-    // 2. Load Texture
-    // IMPORTANT: Replace "test_texture.png" with an actual path to your texture image.
-    // For simplicity, place it where the executable can find it (e.g., build/bin/Debug/)
-    // or provide an absolute path.
-    m_texture = device->CreateTexture2D("testtexture.png");
+    // 2. Load Texture using our custom Pyramid image loader
+    // Now supports TGA and BMP formats through our custom implementation
+    m_texture = device->CreateTexture2D("testtexture.tga");
     if (!m_texture || m_texture->GetRendererID() == 0) // Check if texture loading failed (OpenGLTexture sets ID to 0 on fail)
     {
-        PYRAMID_LOG_ERROR("Failed to load texture 'testtexture.png'!"); // Changed
+        PYRAMID_LOG_ERROR("Failed to load texture 'testtexture.tga'!");
         // Continue without texture, or handle error more gracefully
         m_texture.reset();
     }

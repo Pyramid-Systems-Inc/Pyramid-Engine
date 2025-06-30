@@ -99,8 +99,7 @@ Pyramid/
 │   ├── Unit/             # Unit tests
 │   └── Integration/       # Integration tests
 ├── vendor/               # Third-party dependencies
-│   ├── glad/             # OpenGL loader
-│   └── stb/              # Image loading
+│   └── glad/             # OpenGL loader
 └── docs/                 # Documentation
 ```
 

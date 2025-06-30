@@ -30,7 +30,11 @@
   - [X] Enhanced shader management - `IGraphicsDevice::CreateShader()` added; shader compilation verified; basic `glUniform*` style support implemented in `IShader` and `OpenGLShader`.
     - [~] Uniform buffer support (Basic `glUniform*` support added; true Uniform Buffer Objects (UBOs) still pending)
     - [ ] Multiple shader programs (Supported by creating multiple IShader instances, advanced management pending)
-  - [~] Texture system implementation (Basic 2D texture loading via stb_image and rendering implemented)
+  - [X] Texture system implementation (2D texture loading with custom Pyramid image loader supporting TGA/BMP formats and rendering implemented)
+    - [X] Custom Pyramid::Util::Image loader (Phase 1 complete: TGA and BMP support with proper format detection, BGR→RGB conversion, and coordinate system handling)
+    - [X] Integration with OpenGL texture pipeline (replaced stb_image dependency)
+    - [ ] PNG support with DEFLATE decompression (Phase 2 planned)
+    - [ ] JPEG support with DCT decompression (Phase 3 planned)
   - Material system foundation
   - State management system
 
