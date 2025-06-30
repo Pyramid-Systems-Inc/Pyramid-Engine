@@ -1,6 +1,7 @@
 target_sources(PyramidEngine
     PRIVATE
         source/Image.cpp
+        source/Log.cpp
 )
 
 target_include_directories(PyramidEngine

@@ -4,7 +4,7 @@
 #include <Pyramid/Graphics/Buffer/IndexBuffer.hpp>
 #include <Pyramid/Graphics/Buffer/BufferLayout.hpp>
 #include <Pyramid/Graphics/Texture.hpp> // Added
-#include <Pyramid/Core/Log.hpp>         // Added
+#include <Pyramid/Util/Log.hpp>         // Updated to use Utils logging system
 #include <vector>
 // #include <iostream> // No longer needed directly
 #include <cmath> // For sinf

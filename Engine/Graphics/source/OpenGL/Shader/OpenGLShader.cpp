@@ -1,179 +1,180 @@
 #include <Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp>
-#include <Pyramid/Core/Log.hpp> // Added
+#include <Pyramid/Util/Log.hpp> // Updated to use Utils logging system
 #include <vector>
 // #include <iostream> // No longer needed directly if using Log macros
 
-namespace Pyramid {
-
-OpenGLShader::OpenGLShader()
-    : m_programId(0)
+namespace Pyramid
 {
-}
 
-OpenGLShader::~OpenGLShader()
-{
-    if (m_programId)
-        glDeleteProgram(m_programId);
-}
-
-void OpenGLShader::Bind()
-{
-    glUseProgram(m_programId);
-}
-
-void OpenGLShader::Unbind()
-{
-    glUseProgram(0);
-}
-
-bool OpenGLShader::Compile(const std::string& vertexSrc, const std::string& fragmentSrc)
-{
-    // Create shaders
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-
-    // Compile vertex shader
-    const char* source = vertexSrc.c_str();
-    glShaderSource(vertexShader, 1, &source, nullptr);
-    glCompileShader(vertexShader);
-
-    // Check vertex shader compilation
-    GLint isCompiled = 0;
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &isCompiled);
-    if (!isCompiled)
+    OpenGLShader::OpenGLShader()
+        : m_programId(0)
     {
-        GLint maxLength = 0;
-        glGetShaderiv(vertexShader, GL_INFO_LOG_LENGTH, &maxLength);
-
-        std::vector<GLchar> infoLog(maxLength);
-        glGetShaderInfoLog(vertexShader, maxLength, &maxLength, &infoLog[0]);
-
-        glDeleteShader(vertexShader);
-        PYRAMID_LOG_ERROR("Vertex shader compilation failed:\n", infoLog.data()); // Changed
-        return false;
     }
 
-    // Compile fragment shader
-    source = fragmentSrc.c_str();
-    glShaderSource(fragmentShader, 1, &source, nullptr);
-    glCompileShader(fragmentShader);
-
-    // Check fragment shader compilation
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &isCompiled);
-    if (!isCompiled)
+    OpenGLShader::~OpenGLShader()
     {
-        GLint maxLength = 0;
-        glGetShaderiv(fragmentShader, GL_INFO_LOG_LENGTH, &maxLength);
+        if (m_programId)
+            glDeleteProgram(m_programId);
+    }
 
-        std::vector<GLchar> infoLog(maxLength);
-        glGetShaderInfoLog(fragmentShader, maxLength, &maxLength, &infoLog[0]);
+    void OpenGLShader::Bind()
+    {
+        glUseProgram(m_programId);
+    }
 
+    void OpenGLShader::Unbind()
+    {
+        glUseProgram(0);
+    }
+
+    bool OpenGLShader::Compile(const std::string &vertexSrc, const std::string &fragmentSrc)
+    {
+        // Create shaders
+        GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+        GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+
+        // Compile vertex shader
+        const char *source = vertexSrc.c_str();
+        glShaderSource(vertexShader, 1, &source, nullptr);
+        glCompileShader(vertexShader);
+
+        // Check vertex shader compilation
+        GLint isCompiled = 0;
+        glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &isCompiled);
+        if (!isCompiled)
+        {
+            GLint maxLength = 0;
+            glGetShaderiv(vertexShader, GL_INFO_LOG_LENGTH, &maxLength);
+
+            std::vector<GLchar> infoLog(maxLength);
+            glGetShaderInfoLog(vertexShader, maxLength, &maxLength, &infoLog[0]);
+
+            glDeleteShader(vertexShader);
+            PYRAMID_LOG_ERROR("Vertex shader compilation failed:\n", infoLog.data()); // Changed
+            return false;
+        }
+
+        // Compile fragment shader
+        source = fragmentSrc.c_str();
+        glShaderSource(fragmentShader, 1, &source, nullptr);
+        glCompileShader(fragmentShader);
+
+        // Check fragment shader compilation
+        glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &isCompiled);
+        if (!isCompiled)
+        {
+            GLint maxLength = 0;
+            glGetShaderiv(fragmentShader, GL_INFO_LOG_LENGTH, &maxLength);
+
+            std::vector<GLchar> infoLog(maxLength);
+            glGetShaderInfoLog(fragmentShader, maxLength, &maxLength, &infoLog[0]);
+
+            glDeleteShader(fragmentShader);
+            glDeleteShader(vertexShader);
+            PYRAMID_LOG_ERROR("Fragment shader compilation failed:\n", infoLog.data()); // Changed
+            return false;
+        }
+
+        // Create program and link shaders
+        m_programId = glCreateProgram();
+        glAttachShader(m_programId, vertexShader);
+        glAttachShader(m_programId, fragmentShader);
+        glLinkProgram(m_programId);
+
+        // Check program linking
+        GLint isLinked = 0;
+        glGetProgramiv(m_programId, GL_LINK_STATUS, &isLinked);
+        if (!isLinked)
+        {
+            GLint maxLength = 0;
+            glGetProgramiv(m_programId, GL_INFO_LOG_LENGTH, &maxLength);
+
+            std::vector<GLchar> infoLog(maxLength);
+            glGetProgramInfoLog(m_programId, maxLength, &maxLength, &infoLog[0]);
+
+            glDeleteProgram(m_programId);
+            glDeleteShader(vertexShader);
+            glDeleteShader(fragmentShader);
+            PYRAMID_LOG_ERROR("Shader program linking failed:\n", infoLog.data()); // Changed
+            return false;
+        }
+
+        // Cleanup
+        glDetachShader(m_programId, vertexShader);
+        glDetachShader(m_programId, fragmentShader);
+        glDeleteShader(vertexShader);
         glDeleteShader(fragmentShader);
-        glDeleteShader(vertexShader);
-        PYRAMID_LOG_ERROR("Fragment shader compilation failed:\n", infoLog.data()); // Changed
-        return false;
+
+        return true;
     }
 
-    // Create program and link shaders
-    m_programId = glCreateProgram();
-    glAttachShader(m_programId, vertexShader);
-    glAttachShader(m_programId, fragmentShader);
-    glLinkProgram(m_programId);
-
-    // Check program linking
-    GLint isLinked = 0;
-    glGetProgramiv(m_programId, GL_LINK_STATUS, &isLinked);
-    if (!isLinked)
+    GLint OpenGLShader::GetUniformLocation(const std::string &name)
     {
-        GLint maxLength = 0;
-        glGetProgramiv(m_programId, GL_INFO_LOG_LENGTH, &maxLength);
+        if (m_uniformLocationCache.find(name) != m_uniformLocationCache.end())
+            return m_uniformLocationCache[name];
 
-        std::vector<GLchar> infoLog(maxLength);
-        glGetProgramInfoLog(m_programId, maxLength, &maxLength, &infoLog[0]);
+        GLint location = glGetUniformLocation(m_programId, name.c_str());
+        if (location == -1)
+            PYRAMID_LOG_WARN("Uniform '", name, "' not found in shader program ", m_programId); // Changed
 
-        glDeleteProgram(m_programId);
-        glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
-        PYRAMID_LOG_ERROR("Shader program linking failed:\n", infoLog.data()); // Changed
-        return false;
+        m_uniformLocationCache[name] = location;
+        return location;
     }
 
-    // Cleanup
-    glDetachShader(m_programId, vertexShader);
-    glDetachShader(m_programId, fragmentShader);
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    void OpenGLShader::SetUniformInt(const std::string &name, int value)
+    {
+        Bind(); // Ensure shader is bound
+        GLint location = GetUniformLocation(name);
+        if (location != -1)
+            glUniform1i(location, value);
+    }
 
-    return true;
-}
+    void OpenGLShader::SetUniformFloat(const std::string &name, float value)
+    {
+        Bind();
+        GLint location = GetUniformLocation(name);
+        if (location != -1)
+            glUniform1f(location, value);
+    }
 
-GLint OpenGLShader::GetUniformLocation(const std::string& name)
-{
-    if (m_uniformLocationCache.find(name) != m_uniformLocationCache.end())
-        return m_uniformLocationCache[name];
+    void OpenGLShader::SetUniformFloat2(const std::string &name, float v0, float v1)
+    {
+        Bind();
+        GLint location = GetUniformLocation(name);
+        if (location != -1)
+            glUniform2f(location, v0, v1);
+    }
 
-    GLint location = glGetUniformLocation(m_programId, name.c_str());
-    if (location == -1) 
-        PYRAMID_LOG_WARN("Uniform '", name, "' not found in shader program ", m_programId); // Changed
-    
-    m_uniformLocationCache[name] = location;
-    return location;
-}
+    void OpenGLShader::SetUniformFloat3(const std::string &name, float v0, float v1, float v2)
+    {
+        Bind();
+        GLint location = GetUniformLocation(name);
+        if (location != -1)
+            glUniform3f(location, v0, v1, v2);
+    }
 
-void OpenGLShader::SetUniformInt(const std::string& name, int value)
-{
-    Bind(); // Ensure shader is bound
-    GLint location = GetUniformLocation(name);
-    if (location != -1)
-        glUniform1i(location, value);
-}
+    void OpenGLShader::SetUniformFloat4(const std::string &name, float v0, float v1, float v2, float v3)
+    {
+        Bind();
+        GLint location = GetUniformLocation(name);
+        if (location != -1)
+            glUniform4f(location, v0, v1, v2, v3);
+    }
 
-void OpenGLShader::SetUniformFloat(const std::string& name, float value)
-{
-    Bind();
-    GLint location = GetUniformLocation(name);
-    if (location != -1)
-        glUniform1f(location, value);
-}
+    void OpenGLShader::SetUniformMat3(const std::string &name, const float *matrix_ptr, bool transpose, int count)
+    {
+        Bind();
+        GLint location = GetUniformLocation(name);
+        if (location != -1)
+            glUniformMatrix3fv(location, count, transpose ? GL_TRUE : GL_FALSE, matrix_ptr);
+    }
 
-void OpenGLShader::SetUniformFloat2(const std::string& name, float v0, float v1)
-{
-    Bind();
-    GLint location = GetUniformLocation(name);
-    if (location != -1)
-        glUniform2f(location, v0, v1);
-}
-
-void OpenGLShader::SetUniformFloat3(const std::string& name, float v0, float v1, float v2)
-{
-    Bind();
-    GLint location = GetUniformLocation(name);
-    if (location != -1)
-        glUniform3f(location, v0, v1, v2);
-}
-
-void OpenGLShader::SetUniformFloat4(const std::string& name, float v0, float v1, float v2, float v3)
-{
-    Bind();
-    GLint location = GetUniformLocation(name);
-    if (location != -1)
-        glUniform4f(location, v0, v1, v2, v3);
-}
-
-void OpenGLShader::SetUniformMat3(const std::string& name, const float* matrix_ptr, bool transpose, int count)
-{
-    Bind();
-    GLint location = GetUniformLocation(name);
-    if (location != -1)
-        glUniformMatrix3fv(location, count, transpose ? GL_TRUE : GL_FALSE, matrix_ptr);
-}
-
-void OpenGLShader::SetUniformMat4(const std::string& name, const float* matrix_ptr, bool transpose, int count)
-{
-    Bind();
-    GLint location = GetUniformLocation(name);
-    if (location != -1)
-        glUniformMatrix4fv(location, count, transpose ? GL_TRUE : GL_FALSE, matrix_ptr);
-}
+    void OpenGLShader::SetUniformMat4(const std::string &name, const float *matrix_ptr, bool transpose, int count)
+    {
+        Bind();
+        GLint location = GetUniformLocation(name);
+        if (location != -1)
+            glUniformMatrix4fv(location, count, transpose ? GL_TRUE : GL_FALSE, matrix_ptr);
+    }
 
 } // namespace Pyramid

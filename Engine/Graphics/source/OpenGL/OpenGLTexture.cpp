@@ -1,5 +1,5 @@
 #include "Pyramid/Graphics/OpenGL/OpenGLTexture.hpp"
-#include <Pyramid/Core/Log.hpp>
+#include <Pyramid/Util/Log.hpp>   // Updated to use Utils logging system
 #include <Pyramid/Util/Image.hpp> // Our custom image loader
 #include <glad/glad.h>
 

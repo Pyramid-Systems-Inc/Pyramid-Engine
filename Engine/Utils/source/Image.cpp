@@ -1,5 +1,5 @@
 #include "Pyramid/Util/Image.hpp"
-#include "Pyramid/Core/Log.hpp"
+#include "Pyramid/Util/Log.hpp"
 #include <fstream>
 #include <vector>
 #include <algorithm>
