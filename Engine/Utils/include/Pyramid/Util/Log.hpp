@@ -193,7 +193,7 @@ namespace Pyramid
     }
 } // namespace Pyramid::Util
 
-// Enhanced logging macros with backward compatibility
+// Enhanced logging macros
 #define PYRAMID_LOG_TRACE(...) ::Pyramid::Util::Logger::GetInstance().LogFormatted(::Pyramid::Util::LogLevel::Trace, ::Pyramid::Util::SourceLocation{__FILE__, PYRAMID_FUNCTION_NAME, __LINE__}, __VA_ARGS__)
 #define PYRAMID_LOG_DEBUG(...) ::Pyramid::Util::Logger::GetInstance().LogFormatted(::Pyramid::Util::LogLevel::Debug, ::Pyramid::Util::SourceLocation{__FILE__, PYRAMID_FUNCTION_NAME, __LINE__}, __VA_ARGS__)
 #define PYRAMID_LOG_INFO(...) ::Pyramid::Util::Logger::GetInstance().LogFormatted(::Pyramid::Util::LogLevel::Info, ::Pyramid::Util::SourceLocation{__FILE__, PYRAMID_FUNCTION_NAME, __LINE__}, __VA_ARGS__)
