@@ -7,6 +7,7 @@ target_sources(PyramidEngine
         source/Inflate.cpp
         source/ZLib.cpp
         source/PNGLoader.cpp
+        source/JPEGLoader.cpp
 )
 
 target_include_directories(PyramidEngine
