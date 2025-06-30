@@ -117,10 +117,6 @@ namespace Pyramid
 
         void Logger::Log(LogLevel level, const std::string &message, const SourceLocation &location)
         {
-            // Early exit for performance
-            if (level < m_config.consoleLevel && level < m_config.fileLevel)
-                return;
-
             LogEntry entry;
             entry.level = level;
             entry.timestamp = std::chrono::system_clock::now();
@@ -130,14 +126,21 @@ namespace Pyramid
 
             std::lock_guard<std::mutex> lock(m_mutex);
 
+            // Check levels after acquiring lock to avoid race conditions
+            bool shouldWriteConsole = m_config.enableConsole && level >= m_config.consoleLevel;
+            bool shouldWriteFile = m_config.enableFile && level >= m_config.fileLevel && m_logFile.is_open();
+
+            if (!shouldWriteConsole && !shouldWriteFile)
+                return; // Early exit if nothing to do
+
             // Write to console if enabled and level is sufficient
-            if (m_config.enableConsole && level >= m_config.consoleLevel)
+            if (shouldWriteConsole)
             {
                 WriteToConsole(entry);
             }
 
             // Write to file if enabled and level is sufficient
-            if (m_config.enableFile && level >= m_config.fileLevel && m_logFile.is_open())
+            if (shouldWriteFile)
             {
                 WriteToFile(entry);
             }
@@ -147,10 +150,6 @@ namespace Pyramid
                                    const std::unordered_map<std::string, std::string> &fields,
                                    const SourceLocation &location)
         {
-            // Early exit for performance
-            if (level < m_config.consoleLevel && level < m_config.fileLevel)
-                return;
-
             LogEntry entry;
             entry.level = level;
             entry.timestamp = std::chrono::system_clock::now();
@@ -161,14 +160,21 @@ namespace Pyramid
 
             std::lock_guard<std::mutex> lock(m_mutex);
 
+            // Check levels after acquiring lock to avoid race conditions
+            bool shouldWriteConsole = m_config.enableConsole && level >= m_config.consoleLevel;
+            bool shouldWriteFile = m_config.enableFile && level >= m_config.fileLevel && m_logFile.is_open();
+
+            if (!shouldWriteConsole && !shouldWriteFile)
+                return; // Early exit if nothing to do
+
             // Write to console if enabled and level is sufficient
-            if (m_config.enableConsole && level >= m_config.consoleLevel)
+            if (shouldWriteConsole)
             {
                 WriteToConsole(entry);
             }
 
             // Write to file if enabled and level is sufficient
-            if (m_config.enableFile && level >= m_config.fileLevel && m_logFile.is_open())
+            if (shouldWriteFile)
             {
                 WriteToFile(entry);
             }
@@ -301,62 +307,61 @@ namespace Pyramid
 
         std::string Logger::FormatLogEntry(const LogEntry &entry, bool includeColor)
         {
-            m_buffer.str("");
-            m_buffer.clear();
+            std::ostringstream buffer;
 
             // Add color if requested and supported
             if (includeColor)
             {
-                m_buffer << GetColorCode(entry.level);
+                buffer << GetColorCode(entry.level);
             }
 
             // Add timestamp
             if (m_config.enableTimestamp)
             {
-                m_buffer << "[" << GetTimestamp(entry.timestamp) << "] ";
+                buffer << "[" << GetTimestamp(entry.timestamp) << "] ";
             }
 
             // Add log level
-            m_buffer << "[" << LogLevelToString(entry.level) << "] ";
+            buffer << "[" << LogLevelToString(entry.level) << "] ";
 
             // Add thread ID
             if (m_config.enableThreadId)
             {
-                m_buffer << "[Thread:" << entry.threadId << "] ";
+                buffer << "[Thread:" << entry.threadId << "] ";
             }
 
             // Add source location
             if (m_config.enableSourceLocation)
             {
                 std::filesystem::path filePath(entry.location.file);
-                m_buffer << "[" << filePath.filename().string() << ":" << entry.location.line << "] ";
+                buffer << "[" << filePath.filename().string() << ":" << entry.location.line << "] ";
             }
 
             // Add message
-            m_buffer << entry.message;
+            buffer << entry.message;
 
             // Add structured fields if any
             if (!entry.fields.empty())
             {
-                m_buffer << " {";
+                buffer << " {";
                 bool first = true;
                 for (const auto &field : entry.fields)
                 {
                     if (!first)
-                        m_buffer << ", ";
-                    m_buffer << field.first << "=" << field.second;
+                        buffer << ", ";
+                    buffer << field.first << "=" << field.second;
                     first = false;
                 }
-                m_buffer << "}";
+                buffer << "}";
             }
 
             // Reset color if requested
             if (includeColor)
             {
-                m_buffer << GetResetColorCode();
+                buffer << GetResetColorCode();
             }
 
-            return m_buffer.str();
+            return buffer.str();
         }
 
         std::string Logger::GetTimestamp(const std::chrono::system_clock::time_point &time)

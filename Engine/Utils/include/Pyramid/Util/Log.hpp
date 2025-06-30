@@ -153,9 +153,6 @@ namespace Pyramid
             // File handling
             std::ofstream m_logFile;
             size_t m_currentFileSize = 0;
-
-            // Performance optimization - pre-allocated buffer
-            mutable std::ostringstream m_buffer;
         };
 
         // Helper class for stream-style logging
@@ -185,14 +182,12 @@ namespace Pyramid
             if (level < m_config.consoleLevel && level < m_config.fileLevel)
                 return; // Early exit for performance
 
-            std::lock_guard<std::mutex> lock(m_mutex);
+            // Build message without holding the lock to avoid deadlock
+            std::ostringstream localBuffer;
+            ((localBuffer << args), ...);
 
-            // Use fold expression to build message
-            m_buffer.str("");
-            m_buffer.clear();
-            ((m_buffer << args), ...);
-
-            Log(level, m_buffer.str(), location);
+            // Now call Log with the formatted message
+            Log(level, localBuffer.str(), location);
         }
 
     }

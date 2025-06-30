@@ -59,6 +59,20 @@ BasicGame::BasicGame()
 
 void BasicGame::onCreate()
 {
+    // Configure enhanced logging system
+    Pyramid::Util::LoggerConfig logConfig;
+    logConfig.enableConsole = true;
+    logConfig.enableFile = true;
+    logConfig.consoleLevel = Pyramid::Util::LogLevel::Info;
+    logConfig.fileLevel = Pyramid::Util::LogLevel::Debug;
+    logConfig.logFilePath = "pyramid_game.log";
+    logConfig.enableTimestamp = true;
+    logConfig.enableSourceLocation = true;
+    logConfig.enableThreadId = false; // Keep console output clean
+    PYRAMID_CONFIGURE_LOGGER(logConfig);
+
+    PYRAMID_LOG_INFO("BasicGame starting up with enhanced logging system");
+
     Game::onCreate();
 
     Pyramid::IGraphicsDevice *device = GetGraphicsDevice();
