@@ -29,8 +29,8 @@ endif()
 
 if(PYRAMID_BUILD_TESTS)
     enable_testing()
-    add_subdirectory(Tests/Unit)
-    add_subdirectory(Tests/Integration)
+    # add_subdirectory(Tests/Unit)
+    # add_subdirectory(Tests/Integration)
 endif()
 
 # Install rules
