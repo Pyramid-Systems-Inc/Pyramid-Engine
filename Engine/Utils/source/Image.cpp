@@ -1,4 +1,5 @@
 #include "Pyramid/Util/Image.hpp"
+#include "Pyramid/Util/PNGLoader.hpp"
 #include "Pyramid/Util/Log.hpp"
 #include <fstream>
 #include <vector>
@@ -69,6 +70,7 @@ namespace Pyramid
         // Forward declarations for helper functions
         ImageData LoadTGAFromFile(const std::string &filepath);
         ImageData LoadBMPFromFile(const std::string &filepath);
+        ImageData LoadPNGFromFile(const std::string &filepath);
 
         ImageData Image::Load(const std::string &filepath)
         {
@@ -83,10 +85,14 @@ namespace Pyramid
             {
                 return LoadBMPFromFile(filepath);
             }
+            else if (extension == "png")
+            {
+                return LoadPNGFromFile(filepath);
+            }
             else
             {
                 ImageData result;
-                PYRAMID_LOG_ERROR("Unsupported image format: ", extension, ". Supported formats: TGA, BMP. File: ", filepath);
+                PYRAMID_LOG_ERROR("Unsupported image format: ", extension, ". Supported formats: TGA, BMP, PNG. File: ", filepath);
                 return result;
             }
         }
@@ -300,6 +306,11 @@ namespace Pyramid
 
             PYRAMID_LOG_INFO("Successfully loaded BMP image: ", filepath, " (", result.Width, "x", result.Height, ")");
             return result;
+        }
+
+        ImageData LoadPNGFromFile(const std::string &filepath)
+        {
+            return PNGLoader::LoadFromFile(filepath);
         }
 
         void Image::Free(unsigned char *data)
