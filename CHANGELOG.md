@@ -2,6 +2,59 @@
 
 All notable changes to the Pyramid Game Engine will be documented in this file.
 
+## [0.3.9] - 2025-06-30
+
+### Added
+- **Enhanced Logging System** - Complete rewrite and migration from Core to Utils module
+  - Thread-safe logging with mutex protection and deadlock prevention
+  - Multiple log levels: Trace, Debug, Info, Warn, Error, Critical
+  - File output with automatic rotation and configurable size limits (default 10MB, 5 files)
+  - Configurable console and file logging levels (runtime adjustable)
+  - Source location tracking with file, function, and line number information
+  - Structured logging support with key-value pairs for analytics
+  - Multiple logging interfaces:
+    - C-style variadic logging: `PYRAMID_LOG_INFO("Message: ", value)`
+    - Stream-style logging: `PYRAMID_INFO_STREAM() << "Message: " << value`
+    - Structured logging: `PYRAMID_LOG_STRUCTURED(level, message, fields)`
+  - Enhanced assertion macros with automatic logging integration
+  - Performance optimizations with early exit filtering and local buffers
+  - Configurable timestamp formats with millisecond precision
+  - Color-coded console output for different log levels
+  - Debug-only logging macros for development builds
+
+### Changed
+- **BREAKING**: Logging system moved from `Engine/Core/` to `Engine/Utils/`
+  - Old include: `#include <Pyramid/Core/Log.hpp>` (no longer exists)
+  - New include: `#include <Pyramid/Util/Log.hpp>`
+  - All logging functionality now in `Pyramid::Util` namespace
+- All engine components updated to use new Utils-based logging system
+- Logging macros maintain same interface but now provide enhanced functionality
+- BasicGame example updated to demonstrate new logging configuration options
+
+### Removed
+- Old Core-based logging system completely removed
+- Backward compatibility layer removed after successful migration
+- Legacy `Pyramid::Log` namespace no longer available
+
+### Fixed
+- Thread safety issues in logging system resolved
+- Deadlock prevention in multi-threaded logging scenarios
+- Race conditions in log level checking eliminated
+- Memory management improved with local buffer usage
+
+### Migration Guide
+For users upgrading from previous versions:
+1. Update include statements: `#include <Pyramid/Core/Log.hpp>` → `#include <Pyramid/Util/Log.hpp>`
+2. Existing logging calls continue to work without changes
+3. Optionally configure enhanced features:
+   ```cpp
+   Pyramid::Util::LoggerConfig config;
+   config.enableFile = true;
+   config.logFilePath = "your_game.log";
+   PYRAMID_CONFIGURE_LOGGER(config);
+   ```
+4. Consider using new structured logging for analytics and debugging
+
 ## [0.3.8] - 2025-05-07
 
 ### Added

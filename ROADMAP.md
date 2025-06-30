@@ -39,6 +39,7 @@
   - State management system
 
 - [ ] Core Systems Enhancement
+  - [X] Enhanced logging system - Production-ready logging with thread safety, file rotation, structured logging, and multiple interfaces (moved from Core to Utils)
   - Resource management system
   - Memory management improvements
   - [~] Extended input handling - Game loop message processing fixed, foundational for input.
@@ -86,6 +87,8 @@
   - Performance profiling
   - Memory tracking
   - Scene inspector
+  - Log analysis tools and viewers
+  - Remote logging capabilities
 
 ### 2026 Planning
 

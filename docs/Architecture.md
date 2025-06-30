@@ -6,6 +6,44 @@ Pyramid is a modern, multi-platform game engine designed with flexibility and pe
 
 ## Core Components
 
+### Enhanced Logging System
+
+The Pyramid Engine features a production-ready logging system located in the Utils module:
+
+#### Key Features
+
+- **Thread Safety**: Full mutex protection with deadlock prevention
+- **Multiple Log Levels**: Trace, Debug, Info, Warn, Error, Critical with runtime filtering
+- **File Output**: Automatic rotation with configurable size limits (default 10MB, 5 files)
+- **Source Location**: Automatic tracking of file, function, and line numbers
+- **Structured Logging**: Key-value pair support for analytics and debugging
+- **Multiple Interfaces**: C-style, stream-style, and structured logging APIs
+- **Performance Optimized**: Early exit filtering and local buffer management
+
+#### Architecture
+
+- **Logger Class**: Singleton pattern with thread-safe operations
+- **LoggerConfig**: Runtime configuration for all logging aspects
+- **LogEntry**: Structured representation of log messages with metadata
+- **SourceLocation**: Automatic capture of source code location information
+- **File Rotation**: Automatic log file management with size-based rotation
+
+#### Usage Patterns
+
+```cpp
+// Basic logging
+PYRAMID_LOG_INFO("Game started with version: ", 1.0f);
+
+// Stream-style logging
+PYRAMID_ERROR_STREAM() << "Failed to load: " << filename;
+
+// Structured logging for analytics
+std::unordered_map<std::string, std::string> fields;
+fields["level"] = "forest_1";
+fields["score"] = "1500";
+PYRAMID_LOG_STRUCTURED(LogLevel::Info, "Level completed", fields);
+```
+
 ### Graphics System
 
 The graphics system is built around a flexible abstraction layer that supports multiple graphics APIs:
@@ -18,6 +56,7 @@ The graphics system is built around a flexible abstraction layer that supports m
   - DirectX 12 (planned)
 
 #### Graphics Features
+
 - Multiple graphics API support
 - Version detection and fallback
 - Automatic feature detection
@@ -30,6 +69,7 @@ The graphics system is built around a flexible abstraction layer that supports m
 The window management system provides a platform-independent interface for window creation and management:
 
 #### Components
+
 - **Window**: Abstract window interface
   - Window creation and destruction
   - Event processing
@@ -43,6 +83,7 @@ The window management system provides a platform-independent interface for windo
   - Message processing
 
 #### Features
+
 - Platform-specific window implementations
 - Event handling system
 - Input management
@@ -54,6 +95,7 @@ The window management system provides a platform-independent interface for windo
 ### Game Loop
 
 The main game loop is managed by the `Game` class, which provides:
+
 - Game state management
 - Update and render cycle
 - Event processing
@@ -74,7 +116,7 @@ Pyramid/
 │   │   ├── include/      # Public headers
 │   │   └── source/       # Implementation files
 │   ├── Math/             # Math library
-│   ├── Utils/            # Utility functions
+│   ├── Utils/            # Enhanced logging system & utilities
 │   ├── Renderer/         # Rendering system
 │   ├── Input/            # Input handling
 │   ├── Scene/            # Scene management
@@ -102,6 +144,7 @@ Pyramid/
 ## Build System
 
 The project uses CMake for build configuration:
+
 - Minimum CMake version: 3.16.0
 - Multi-configuration support
 - Proper dependency management
@@ -110,9 +153,11 @@ The project uses CMake for build configuration:
 ## Platform Support
 
 Currently supported platforms:
+
 - Windows 10/11 (primary)
 
 Planned platform support:
+
 - Linux
 - macOS
 
@@ -145,9 +190,28 @@ The graphics pipeline is designed to be API-agnostic:
    - Texture management (planned)
    - Render state management (planned)
 
+## Thread Safety and Performance
+
+### Logging System Thread Safety
+
+The enhanced logging system is designed for multi-threaded game engines:
+
+- **Mutex Protection**: All logging operations are protected by a single mutex
+- **Deadlock Prevention**: Local buffer usage prevents recursive locking
+- **Race Condition Elimination**: Configuration access is properly synchronized
+- **Performance Optimization**: Early exit checks minimize lock contention
+
+### Performance Considerations
+
+- **Early Exit**: Log level filtering occurs before expensive operations
+- **Local Buffers**: Message formatting uses stack-allocated buffers
+- **Minimal Overhead**: Release builds can disable debug/trace logging entirely
+- **File I/O Optimization**: Buffered file writing with configurable flush intervals
+
 ## Future Development
 
 Planned features and improvements:
+
 - Complete math library
 - Physics system
 - Audio system
@@ -156,3 +220,5 @@ Planned features and improvements:
 - Input system
 - Networking
 - Scripting support
+- Remote logging capabilities
+- Log analysis and visualization tools

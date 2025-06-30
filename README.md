@@ -10,6 +10,16 @@ A modern, multi-platform game engine with support for multiple graphics APIs. Cu
   - Clean abstraction layer
   - Automatic version detection
 
+- **Enhanced Logging System**
+  - Thread-safe logging with mutex protection
+  - Multiple log levels (Trace, Debug, Info, Warn, Error, Critical)
+  - File output with automatic rotation and size limits
+  - Configurable console and file logging levels
+  - Source location tracking (file, function, line)
+  - Structured logging with key-value pairs
+  - Stream-style and C-style logging interfaces
+  - Performance optimizations with early exit filtering
+
 - **Modern C++ Design**
   - C++17 features
   - RAII resource management
@@ -70,6 +80,59 @@ cmake --build build --config Debug
 ./build/bin/Debug/BasicGame.exe
 ```
 
+## Usage Examples
+
+### Enhanced Logging System
+
+The Pyramid Engine features a production-ready logging system with multiple interfaces:
+
+```cpp
+#include <Pyramid/Util/Log.hpp>
+
+// Configure the logger (optional - has sensible defaults)
+Pyramid::Util::LoggerConfig config;
+config.enableConsole = true;
+config.enableFile = true;
+config.consoleLevel = Pyramid::Util::LogLevel::Info;
+config.fileLevel = Pyramid::Util::LogLevel::Debug;
+config.logFilePath = "game.log";
+config.maxFileSize = 10 * 1024 * 1024; // 10MB
+config.maxFiles = 5; // Keep 5 rotated files
+PYRAMID_CONFIGURE_LOGGER(config);
+
+// Basic logging with multiple arguments
+PYRAMID_LOG_INFO("Game started with version: ", 1.0f);
+PYRAMID_LOG_WARN("Low memory warning: ", availableMemory, " MB remaining");
+PYRAMID_LOG_ERROR("Failed to load texture: ", filename);
+
+// Stream-style logging
+PYRAMID_INFO_STREAM() << "Player position: " << player.x << ", " << player.y;
+PYRAMID_ERROR_STREAM() << "Critical error in " << __FUNCTION__;
+
+// Structured logging for analytics
+std::unordered_map<std::string, std::string> fields;
+fields["user_id"] = "12345";
+fields["level"] = "forest_1";
+fields["score"] = "1500";
+PYRAMID_LOG_STRUCTURED(Pyramid::Util::LogLevel::Info, "Level completed", fields);
+
+// Enhanced assertions with logging
+PYRAMID_ASSERT(player != nullptr, "Player object should not be null");
+PYRAMID_CORE_ASSERT(device->IsValid(), "Graphics device must be valid");
+```
+
+### Graphics System
+
+```cpp
+// Create and use graphics resources
+auto device = GetGraphicsDevice();
+auto shader = device->CreateShader();
+shader->Compile(vertexSource, fragmentSource);
+
+auto texture = device->CreateTexture2D("assets/player.tga");
+shader->SetUniformInt("u_Texture", 0);
+```
+
 ## Documentation
 
 - [Getting Started Guide](docs/GettingStarted.md)
@@ -85,7 +148,7 @@ Pyramid/
 │   ├── Graphics/          # Graphics abstraction layer
 │   ├── Platform/          # Platform-specific code
 │   ├── Math/              # Math library
-│   ├── Utils/             # Utility functions
+│   ├── Utils/             # Enhanced logging system & utilities
 │   ├── Renderer/          # Rendering system
 │   ├── Input/             # Input handling
 │   ├── Scene/             # Scene management
