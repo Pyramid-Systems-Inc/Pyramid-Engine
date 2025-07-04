@@ -8,6 +8,7 @@ target_sources(PyramidEngine
         source/ZLib.cpp
         source/PNGLoader.cpp
         source/JPEGLoader.cpp
+        source/JPEGHuffmanDecoder.cpp
 )
 
 target_include_directories(PyramidEngine
