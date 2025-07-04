@@ -26,3 +26,18 @@ target_include_directories(TestJPEGSimple
 )
 
 set_target_properties(TestJPEGSimple PROPERTIES FOLDER "Tests")
+
+# JPEG Huffman Test
+add_executable(TestJPEGHuffman TestJPEGHuffman.cpp)
+
+target_link_libraries(TestJPEGHuffman
+    PRIVATE
+        PyramidEngine
+)
+
+target_include_directories(TestJPEGHuffman
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../include
+)
+
+set_target_properties(TestJPEGHuffman PROPERTIES FOLDER "Tests")
