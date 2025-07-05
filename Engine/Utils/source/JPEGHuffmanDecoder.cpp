@@ -164,7 +164,7 @@ namespace Pyramid
         {
             HuffmanNode *current = m_Root.get();
 
-            // Traverse the tree based on the code bits (MSB first)
+            // Traverse the tree based on the code bits (MSB first for JPEG)
             for (int i = codeLength - 1; i >= 0; --i)
             {
                 uint32_t bit = (code >> i) & 1;

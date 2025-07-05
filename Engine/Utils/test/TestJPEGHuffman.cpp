@@ -58,20 +58,23 @@ bool TestJPEGHuffmanDecoding()
     // For a canonical Huffman tree with 2 codes of length 1:
     // Code 0 gets code 0 (binary: 0)
     // Code 1 gets code 1 (binary: 1)
-    // Test data: 0b01 but BitReader reads LSB first, so we need 0b10000000
-    uint8_t testData[] = {0x80}; // 0b10000000 (LSB first: reads as 0, then next bit as 1)
-    BitReader bitReader(testData, 1);
+    // Test data: For 2 codes of length 1, we need 2 separate tests
+    // Test code 0 (bit 0)
+    uint8_t testData1[] = {0x00}; // 0b00000000 - LSB is 0
+    BitReader bitReader1(testData1, 1);
 
-    // Decode first symbol (should be 0 - code 0)
-    int symbol1 = decoder.DecodeSymbol(bitReader);
+    int symbol1 = decoder.DecodeSymbol(bitReader1);
     if (symbol1 != 0)
     {
         std::cout << "ERROR: Expected symbol 0, got " << symbol1 << std::endl;
         return false;
     }
 
-    // Decode second symbol (should be 1 - code 1)
-    int symbol2 = decoder.DecodeSymbol(bitReader);
+    // Test code 1 (bit 1)
+    uint8_t testData2[] = {0x01}; // 0b00000001 - LSB is 1
+    BitReader bitReader2(testData2, 1);
+
+    int symbol2 = decoder.DecodeSymbol(bitReader2);
     if (symbol2 != 1)
     {
         std::cout << "ERROR: Expected symbol 1, got " << symbol2 << std::endl;
@@ -117,9 +120,12 @@ bool TestJPEGCoefficientDecoder()
     JPEGCoefficientDecoder coeffDecoder;
     coeffDecoder.SetHuffmanDecoders(&dcDecoder, &acDecoder);
 
-    // Test data: DC category 1 (1 bit), DC value 1 (1 bit), AC EOB (1 bit)
-    // Binary: 1 1 0 = 0b11000000
-    uint8_t testData[] = {0xC0};
+    // Test data:
+    // DC category 1 (code 1, 1 bit) = bit 1
+    // DC value 1 (1 bit for category 1) = bit 1
+    // AC EOB (code 0, 1 bit) = bit 0
+    // Total: 1 1 0 = LSB order: 0b00000011 (3 bits: 1,1,0)
+    uint8_t testData[] = {0x03};
     BitReader bitReader(testData, 1);
 
     int16_t coefficients[64];
@@ -186,8 +192,11 @@ bool TestDCPrediction()
     // Block 2: DC category 1, DC diff +1, EOB
     // Expected DC values: 1, 2 (cumulative)
 
-    // Test data: 1 1 0 1 1 0 = 0b110110xx
-    uint8_t testData[] = {0xD8}; // 0b11011000
+    // Test data for two blocks (need 6 bits total):
+    // Block 1: DC category 1 (code 1), DC diff +1 (1 bit), EOB (code 0)
+    // Block 2: DC category 1 (code 1), DC diff +1 (1 bit), EOB (code 0)
+    // Pattern: 1 1 0 1 1 0 = LSB order: 0b00110011 (6 bits in one byte)
+    uint8_t testData[] = {0x33}; // 0b00110011
     BitReader bitReader(testData, 1);
 
     int16_t coefficients1[64], coefficients2[64];
@@ -196,17 +205,16 @@ bool TestDCPrediction()
     if (!coeffDecoder.DecodeBlock(bitReader, coefficients1, 0))
     {
         std::cout << "ERROR: Failed to decode first block" << std::endl;
+        std::cout << "Last error: " << coeffDecoder.GetLastError() << std::endl;
         return false;
     }
 
-    // Reset bit reader for second block
-    bitReader = BitReader(testData, 1);
-    bitReader.ReadBits(3); // Skip first block's bits
-
-    // Decode second block
+    // The bit reader should automatically continue to the next block
+    // Decode second block (continuing from the same bit stream)
     if (!coeffDecoder.DecodeBlock(bitReader, coefficients2, 0))
     {
         std::cout << "ERROR: Failed to decode second block" << std::endl;
+        std::cout << "Last error: " << coeffDecoder.GetLastError() << std::endl;
         return false;
     }
 

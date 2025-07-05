@@ -41,3 +41,18 @@ target_include_directories(TestJPEGHuffman
 )
 
 set_target_properties(TestJPEGHuffman PROPERTIES FOLDER "Tests")
+
+# JPEG Huffman Debug Test
+add_executable(TestJPEGHuffmanDebug TestJPEGHuffmanDebug.cpp)
+
+target_link_libraries(TestJPEGHuffmanDebug
+    PRIVATE
+        PyramidEngine
+)
+
+target_include_directories(TestJPEGHuffmanDebug
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../include
+)
+
+set_target_properties(TestJPEGHuffmanDebug PROPERTIES FOLDER "Tests")
