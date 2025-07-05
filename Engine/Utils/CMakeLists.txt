@@ -9,6 +9,7 @@ target_sources(PyramidEngine
         source/PNGLoader.cpp
         source/JPEGLoader.cpp
         source/JPEGHuffmanDecoder.cpp
+        source/JPEGDequantizer.cpp
 )
 
 target_include_directories(PyramidEngine
