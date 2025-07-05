@@ -3,11 +3,12 @@
 #include <Pyramid/Graphics/Buffer/VertexBuffer.hpp>
 #include <Pyramid/Graphics/Buffer/IndexBuffer.hpp>
 #include <Pyramid/Graphics/Buffer/BufferLayout.hpp>
-#include <Pyramid/Graphics/Texture.hpp> // Added
-#include <Pyramid/Util/Log.hpp>         // Updated to use Utils logging system
+#include <Pyramid/Graphics/Texture.hpp>
+#include <Pyramid/Util/Log.hpp>
+#include <Pyramid/Util/Image.hpp> // Include our custom image loader
 #include <vector>
-// #include <iostream> // No longer needed directly
-#include <cmath> // For sinf
+#include <cmath>
+#include <string>
 
 // Updated vertex structure with texture coordinates
 struct Vertex
@@ -91,15 +92,9 @@ void BasicGame::onCreate()
         return;
     }
 
-    // 2. Load Texture using our custom Pyramid image loader
-    // Now supports TGA and BMP formats through our custom implementation
-    m_texture = device->CreateTexture2D("testtexture.tga");
-    if (!m_texture || m_texture->GetRendererID() == 0) // Check if texture loading failed (OpenGLTexture sets ID to 0 on fail)
-    {
-        PYRAMID_LOG_ERROR("Failed to load texture 'testtexture.tga'!");
-        // Continue without texture, or handle error more gracefully
-        m_texture.reset();
-    }
+    // 2. Load multiple textures to showcase our custom Pyramid image loader
+    // Supports TGA, BMP, and PNG formats through our custom implementation
+    LoadTestTextures();
 
     // 3. Define vertex and index data for a triangle (now with UVs)
     // UVs: (0,0) bottom-left, (1,0) bottom-right, (0.5,1) top-center
@@ -133,10 +128,118 @@ void BasicGame::onCreate()
     m_vertexArray->SetIndexBuffer(ibo);
 }
 
+void BasicGame::LoadTestTextures()
+{
+    Pyramid::IGraphicsDevice *device = GetGraphicsDevice();
+    if (!device)
+    {
+        PYRAMID_LOG_ERROR("Graphics device is null in LoadTestTextures!");
+        return;
+    }
+
+    // First, try to create sample textures programmatically
+    CreateSampleTextures();
+
+    // List of test texture files to try loading
+    std::vector<std::string> testFiles = {
+        "test.tga",
+        "test.bmp",
+        "test.png",
+        "sample.tga",
+        "sample.bmp",
+        "sample.png",
+        "texture.tga",
+        "texture.bmp",
+        "texture.png"};
+
+    std::vector<std::string> formats = {
+        "TGA", "BMP", "PNG", "TGA", "BMP", "PNG", "TGA", "BMP", "PNG"};
+
+    // Try to load each test file
+    for (size_t i = 0; i < testFiles.size(); ++i)
+    {
+        auto texture = device->CreateTexture2D(testFiles[i]);
+        if (texture && texture->GetRendererID() != 0)
+        {
+            m_textures.push_back(texture);
+            m_textureNames.push_back(testFiles[i]);
+            m_textureFormats.push_back(formats[i]);
+            PYRAMID_LOG_INFO("Successfully loaded texture: ", testFiles[i], " (", formats[i], ")");
+        }
+        else
+        {
+            PYRAMID_LOG_WARN("Failed to load texture: ", testFiles[i]);
+        }
+    }
+
+    if (m_textures.empty())
+    {
+        PYRAMID_LOG_WARN("No textures loaded! The demo will run without textures.");
+        PYRAMID_LOG_INFO("To see textures, place test.tga, test.bmp, or test.png files in the working directory.");
+    }
+    else
+    {
+        PYRAMID_LOG_INFO("Loaded ", m_textures.size(), " textures successfully!");
+        PYRAMID_LOG_INFO("Textures will cycle every ", m_textureSwapInterval, " seconds.");
+    }
+}
+
+void BasicGame::CreateSampleTextures()
+{
+    // Create simple procedural textures to demonstrate our image loader
+    Pyramid::IGraphicsDevice *device = GetGraphicsDevice();
+    if (!device)
+        return;
+
+    // Create a simple 64x64 checkerboard pattern and save as different formats
+    const int size = 64;
+    std::vector<uint8_t> pixels(size * size * 3);
+
+    // Generate checkerboard pattern
+    for (int y = 0; y < size; ++y)
+    {
+        for (int x = 0; x < size; ++x)
+        {
+            int index = (y * size + x) * 3;
+            bool isWhite = ((x / 8) + (y / 8)) % 2 == 0;
+
+            if (isWhite)
+            {
+                pixels[index] = 255;     // R
+                pixels[index + 1] = 255; // G
+                pixels[index + 2] = 255; // B
+            }
+            else
+            {
+                pixels[index] = 64;      // R
+                pixels[index + 1] = 128; // G
+                pixels[index + 2] = 255; // B
+            }
+        }
+    }
+
+    // Try to save and load the procedural texture
+    // Note: This would require implementing image saving, which we haven't done yet
+    // For now, we'll just log that we tried to create sample textures
+    PYRAMID_LOG_INFO("Generated procedural checkerboard pattern (", size, "x", size, ")");
+    PYRAMID_LOG_INFO("Image saving not yet implemented - place test images manually");
+}
+
 void BasicGame::onUpdate(float deltaTime)
 {
     Game::onUpdate(deltaTime);
     m_time += deltaTime;
+    m_textureSwapTimer += deltaTime;
+
+    // Cycle through textures
+    if (!m_textures.empty() && m_textureSwapTimer >= m_textureSwapInterval)
+    {
+        m_currentTextureIndex = (m_currentTextureIndex + 1) % m_textures.size();
+        m_textureSwapTimer = 0.0f;
+
+        PYRAMID_LOG_INFO("Switched to texture: ", m_textureNames[m_currentTextureIndex],
+                         " (", m_textureFormats[m_currentTextureIndex], ")");
+    }
 }
 
 void BasicGame::onRender()
@@ -151,16 +254,20 @@ void BasicGame::onRender()
         float b = (sinf(m_time * 0.7f + 4.0f) + 1.0f) * 0.5f;
         m_shader->SetUniformFloat3("u_ColorTint", r, g, b);
 
-        // Bind texture and set sampler uniform
-        if (m_texture)
+        // Bind current texture and set sampler uniform
+        if (!m_textures.empty() && m_currentTextureIndex < m_textures.size())
         {
-            m_texture->Bind(0);                      // Bind to texture unit 0
-            m_shader->SetUniformInt("u_Texture", 0); // Tell shader sampler u_Texture uses texture unit 0
+            auto currentTexture = m_textures[m_currentTextureIndex];
+            if (currentTexture)
+            {
+                currentTexture->Bind(0);                 // Bind to texture unit 0
+                m_shader->SetUniformInt("u_Texture", 0); // Tell shader sampler u_Texture uses texture unit 0
+            }
         }
         else
         {
-            // Fallback if texture failed to load: maybe set u_Texture to a default white texture or handle differently
-            // For now, if no texture, it might sample from whatever was on unit 0, or default to black/white based on shader.
+            // No textures loaded - the shader will use default sampling
+            // (Only log this once to avoid spam)
         }
 
         m_vertexArray->Bind();

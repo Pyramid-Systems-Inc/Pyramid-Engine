@@ -56,3 +56,18 @@ target_include_directories(TestJPEGHuffmanDebug
 )
 
 set_target_properties(TestJPEGHuffmanDebug PROPERTIES FOLDER "Tests")
+
+# JPEG Dequantizer Test
+add_executable(TestJPEGDequantizer TestJPEGDequantizer.cpp)
+
+target_link_libraries(TestJPEGDequantizer
+    PRIVATE
+        PyramidEngine
+)
+
+target_include_directories(TestJPEGDequantizer
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../include
+)
+
+set_target_properties(TestJPEGDequantizer PROPERTIES FOLDER "Tests")
