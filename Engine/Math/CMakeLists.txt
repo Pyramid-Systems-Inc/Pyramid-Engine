@@ -4,17 +4,13 @@ target_sources(PyramidEngine
         source/Vec2.cpp
         source/Vec3.cpp
         source/Vec4.cpp
-        source/Mat3.cpp
         source/Mat4.cpp
-        source/Quat.cpp
     PUBLIC
         include/Pyramid/Math/MathCommon.hpp
         include/Pyramid/Math/Vec2.hpp
         include/Pyramid/Math/Vec3.hpp
         include/Pyramid/Math/Vec4.hpp
-        include/Pyramid/Math/Mat3.hpp
         include/Pyramid/Math/Mat4.hpp
-        include/Pyramid/Math/Quat.hpp
         include/Pyramid/Math/Math.hpp
 )
 
