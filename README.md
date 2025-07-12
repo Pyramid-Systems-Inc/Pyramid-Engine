@@ -10,6 +10,22 @@ A modern, multi-platform game engine with support for multiple graphics APIs. Cu
   - Clean abstraction layer
   - Automatic version detection
 
+- **Custom Image Processing Library**
+  - **Zero External Dependencies**: Completely self-contained implementation
+  - **TGA Support**: Uncompressed RGB/RGBA with proper orientation handling
+  - **BMP Support**: Windows Bitmap format with padding and BGR conversion
+  - **PNG Support**: Complete implementation with custom DEFLATE decompression
+    - All PNG filter types (None, Sub, Up, Average, Paeth)
+    - Multiple color types (RGB, RGBA, Grayscale, Indexed)
+    - Custom DEFLATE implementation (RFC 1951 compliant)
+  - **JPEG Support**: Complete baseline DCT implementation
+    - JPEG marker parsing and validation
+    - Custom Huffman decoder for DC/AC coefficients
+    - Dequantization with quantization table support
+    - Inverse DCT (IDCT) implementation
+    - YCbCr to RGB color space conversion
+  - **Production Ready**: Comprehensive error handling and test coverage
+
 - **Enhanced Logging System**
   - Thread-safe logging with mutex protection
   - Multiple log levels (Trace, Debug, Info, Warn, Error, Critical)
@@ -42,7 +58,7 @@ A modern, multi-platform game engine with support for multiple graphics APIs. Cu
   - Resource abstraction:
     - Shader system with GLSL support (via `IGraphicsDevice::CreateShader()`)
     - Uniform variable support in shaders (`IShader::SetUniform*` methods)
-    - Basic 2D Texture loading (PNG, JPG, etc. via stb_image) and rendering (`ITexture2D`)
+    - Advanced 2D Texture loading with custom image loader (TGA, BMP, PNG, JPEG) and rendering (`ITexture2D`)
     - Vertex Array Objects (VAOs) with configurable vertex attribute layouts (`BufferLayout`)
     - Vertex Buffer Objects (VBOs) and Index Buffer Objects (IBOs)
   - VSync support
@@ -60,22 +76,26 @@ A modern, multi-platform game engine with support for multiple graphics APIs. Cu
 ## Quick Start
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/yourusername/Pyramid.git
 cd Pyramid
 ```
 
 2. Generate project files:
+
 ```bash
 cmake -B build -S .
 ```
 
 3. Build the engine:
+
 ```bash
 cmake --build build --config Debug
 ```
 
 4. Run the example game:
+
 ```bash
 ./build/bin/Debug/BasicGame.exe
 ```

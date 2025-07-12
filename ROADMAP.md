@@ -1,8 +1,8 @@
 # Pyramid Game Engine Roadmap
 
-## Current Version: 0.3.8
+## Current Version: 0.4.0
 
-### ✅ Implemented Features (As of May 2025)
+### ✅ Implemented Features (As of July 2025)
 
 - Core Systems
   - Window management system with Unicode support (title usage fixed)
@@ -23,6 +23,26 @@
   - Basic geometry rendering (triangle example working)
   - Vsync support
 
+### Q2 2025 (July) - Major Image Processing Achievement
+
+- [X] **Complete Custom Image Loading Library**
+  - [X] **TGA Support**: Uncompressed RGB/RGBA with proper orientation handling
+  - [X] **BMP Support**: Windows Bitmap format with padding and BGR conversion
+  - [X] **PNG Support**: Complete implementation with custom DEFLATE decompression
+    - [X] All PNG filter types (None, Sub, Up, Average, Paeth)
+    - [X] Multiple color types (RGB, RGBA, Grayscale, Indexed)
+    - [X] Custom DEFLATE implementation (RFC 1951 compliant)
+    - [X] Custom ZLIB wrapper with Adler-32 checksums
+  - [X] **JPEG Support**: Complete baseline DCT implementation
+    - [X] JPEG marker parsing (SOI, SOF0, DQT, DHT, SOS, EOI)
+    - [X] Custom Huffman decoder for DC/AC coefficients
+    - [X] Dequantization with quantization table support
+    - [X] Inverse DCT (IDCT) implementation
+    - [X] YCbCr to RGB color space conversion
+  - [X] **Zero External Dependencies**: Completely self-contained implementation
+  - [X] **Production Ready**: Comprehensive error handling and test coverage
+  - [X] **Real-World Integration**: Successfully integrated with BasicGame example
+
 ### Q1 2025 (March) - Progress Update
 
 - [X] Graphics Enhancement Phase 1
@@ -30,11 +50,11 @@
   - [X] Enhanced shader management - `IGraphicsDevice::CreateShader()` added; shader compilation verified; basic `glUniform*` style support implemented in `IShader` and `OpenGLShader`.
     - [~] Uniform buffer support (Basic `glUniform*` support added; true Uniform Buffer Objects (UBOs) still pending)
     - [ ] Multiple shader programs (Supported by creating multiple IShader instances, advanced management pending)
-  - [X] Texture system implementation (2D texture loading with custom Pyramid image loader supporting TGA/BMP formats and rendering implemented)
-    - [X] Custom Pyramid::Util::Image loader (Phase 1 complete: TGA and BMP support with proper format detection, BGR→RGB conversion, and coordinate system handling)
+  - [X] Texture system implementation (2D texture loading with custom Pyramid image loader supporting all major formats)
+    - [X] Custom Pyramid::Util::Image loader (Complete: TGA, BMP, PNG, and JPEG support)
     - [X] Integration with OpenGL texture pipeline (replaced stb_image dependency)
-    - [ ] PNG support with DEFLATE decompression (Phase 2 planned)
-    - [ ] JPEG support with DCT decompression (Phase 3 planned)
+    - [X] PNG support with DEFLATE decompression (Phase 2 complete: full PNG implementation)
+    - [X] JPEG support with DCT decompression (Phase 3 complete: full JPEG baseline implementation)
   - Material system foundation
   - State management system
 
