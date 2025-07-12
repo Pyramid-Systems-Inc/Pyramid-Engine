@@ -54,7 +54,7 @@ const std::string vertexShaderSrc = R"(
 )";
 
 const std::string fragmentShaderSrc = R"(
-    #version 460 core
+    #version 330 core
     out vec4 FragColor;
 
     in vec3 v_Color;
@@ -143,6 +143,20 @@ void BasicGame::onCreate()
 
     // 2. Setup OpenGL 4.6 Uniform Buffer Objects
     SetupUniformBuffers();
+
+    // 2.1. Bind uniform buffers to shader binding points (CRITICAL: Must be after shader compilation!)
+    if (m_shader && m_sceneUBO && m_materialUBO)
+    {
+        m_shader->Bind();
+        m_shader->BindUniformBuffer("SceneData", m_sceneUBO.get(), 0);
+        m_shader->BindUniformBuffer("MaterialData", m_materialUBO.get(), 1);
+        m_shader->Unbind();
+        PYRAMID_LOG_INFO("Successfully bound uniform buffers to shader binding points");
+    }
+    else
+    {
+        PYRAMID_LOG_ERROR("Failed to bind uniform buffers - shader or UBOs are null");
+    }
 
     // 3. Load multiple textures to showcase our custom Pyramid image loader
     // Supports TGA, BMP, and PNG formats through our custom implementation
@@ -354,16 +368,6 @@ void BasicGame::SetupUniformBuffers()
     PYRAMID_LOG_INFO("Uniform buffers created and initialized successfully!");
     PYRAMID_LOG_INFO("Scene UBO size: ", sizeof(SceneUniforms), " bytes");
     PYRAMID_LOG_INFO("Material UBO size: ", sizeof(MaterialUniforms), " bytes");
-
-    // Bind uniform buffers to shader binding points (this is the missing piece!)
-    if (m_shader)
-    {
-        m_shader->Bind();
-        m_shader->BindUniformBuffer("SceneData", m_sceneUBO.get(), 0);
-        m_shader->BindUniformBuffer("MaterialData", m_materialUBO.get(), 1);
-        m_shader->Unbind();
-        PYRAMID_LOG_INFO("Bound uniform buffers to shader binding points");
-    }
 }
 
 void BasicGame::UpdateUniformBuffers(float deltaTime)
@@ -460,9 +464,10 @@ void BasicGame::onRender()
     {
         m_shader->Bind();
 
-        // Bind uniform buffers to their respective binding points
-        // Note: In a real implementation, we'd use glBindBufferBase or similar
-        // For now, we'll rely on the shader's uniform block bindings
+        // Ensure uniform buffers are bound to their binding points
+        // (This should already be set up, but we can ensure they're active)
+        m_sceneUBO->Bind(0);    // Binding point 0 for SceneData
+        m_materialUBO->Bind(1); // Binding point 1 for MaterialData
 
         // Bind current texture and set sampler uniform
         if (!m_textures.empty() && m_currentTextureIndex < m_textures.size())
