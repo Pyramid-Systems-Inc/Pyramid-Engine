@@ -117,8 +117,8 @@ namespace Pyramid
 
         Vec2 &Vec2::operator/=(const Vec2 &other)
         {
-            x = IsZero(other.x) ? 0.0f : x / other.x;
-            y = IsZero(other.y) ? 0.0f : y / other.y;
+            x = Math::IsZero(other.x) ? 0.0f : x / other.x;
+            y = Math::IsZero(other.y) ? 0.0f : y / other.y;
             return *this;
         }
 
@@ -158,7 +158,7 @@ namespace Pyramid
         Vec2 &Vec2::Normalize()
         {
             f32 length = Length();
-            if (!IsZero(length))
+            if (!Math::IsZero(length))
             {
                 f32 invLength = 1.0f / length;
                 x *= invLength;
@@ -208,7 +208,7 @@ namespace Pyramid
         {
             f32 dot = Dot(other);
             f32 lengths = Length() * other.Length();
-            if (IsZero(lengths))
+            if (Math::IsZero(lengths))
             {
                 return 0.0f;
             }
