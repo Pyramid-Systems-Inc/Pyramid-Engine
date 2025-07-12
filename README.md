@@ -4,8 +4,23 @@ A modern, multi-platform game engine with support for multiple graphics APIs. Cu
 
 ## Features
 
+- **Advanced Math Library with SIMD Optimization**
+  - **SIMD-Accelerated Operations**: SSE/AVX optimized vector and matrix operations
+  - **Comprehensive 3D Math**: Vec2, Vec3, Vec4, Mat3, Mat4, Quaternion classes
+  - **Runtime SIMD Detection**: Automatic CPU feature detection with graceful fallbacks
+  - **Performance Optimizations**: Fast inverse square root, trigonometric approximations
+  - **Production-Ready**: Thread-safe, cache-friendly, and extensively tested
+
+- **Enhanced Rendering System Architecture**
+  - **Command Buffer System**: Efficient GPU command submission and batching
+  - **Render Pass Framework**: Organized rendering stages (forward, deferred, post-processing)
+  - **Modern OpenGL 4.6**: Uniform Buffer Objects, advanced shaders, instanced rendering
+  - **PBR Material System**: Physically-based rendering with metallic-roughness workflow
+  - **Camera System**: Perspective/orthographic projections with frustum culling
+  - **Scene Graph**: Hierarchical transforms with efficient update propagation
+
 - **Multiple Graphics API Support**
-  - OpenGL 3.3 - 4.6 (current)
+  - OpenGL 4.6 (current, fully implemented)
   - DirectX 9/10/11/12 (planned)
   - Clean abstraction layer
   - Automatic version detection
@@ -52,17 +67,16 @@ A modern, multi-platform game engine with support for multiple graphics APIs. Cu
   - Graphics context integration
 
 - **Graphics Features**
-  - Multiple API support (OpenGL current, DirectX planned)
-  - Version detection
-  - Feature management (via `IGraphicsDevice` abstraction)
-  - Resource abstraction:
-    - Shader system with GLSL support (via `IGraphicsDevice::CreateShader()`)
-    - Uniform variable support in shaders (`IShader::SetUniform*` methods)
-    - Advanced 2D Texture loading with custom image loader (TGA, BMP, PNG, JPEG) and rendering (`ITexture2D`)
-    - Vertex Array Objects (VAOs) with configurable vertex attribute layouts (`BufferLayout`)
-    - Vertex Buffer Objects (VBOs) and Index Buffer Objects (IBOs)
-  - VSync support
-  - Modern OpenGL context
+  - **Modern Rendering Pipeline**: Command buffers, render passes, and efficient batching
+  - **OpenGL 4.6 Implementation**: Uniform Buffer Objects, advanced shaders, instanced rendering
+  - **Resource Management**: Smart pointer-based resource lifecycle management
+  - **Shader System**: GLSL support with uniform blocks and binding point management
+  - **Texture System**: Advanced 2D texture loading with custom image loaders
+  - **Vertex Management**: VAOs with configurable layouts, VBOs, and IBOs
+  - **Camera System**: Perspective/orthographic projections with view frustum culling
+  - **Material System**: PBR-ready material framework with texture binding
+  - **VSync Support**: Configurable vertical synchronization
+  - **Multi-API Ready**: Clean abstraction layer for future DirectX support
 
 ## Requirements
 
@@ -139,6 +153,68 @@ PYRAMID_LOG_STRUCTURED(Pyramid::Util::LogLevel::Info, "Level completed", fields)
 // Enhanced assertions with logging
 PYRAMID_ASSERT(player != nullptr, "Player object should not be null");
 PYRAMID_CORE_ASSERT(device->IsValid(), "Graphics device must be valid");
+```
+
+### Enhanced Math Library with SIMD
+
+The Pyramid Engine features a production-ready math library with SIMD optimizations:
+
+```cpp
+#include <Pyramid/Math/Math.hpp>
+
+using namespace Pyramid::Math;
+
+// SIMD-optimized vector operations
+Vec3 position(1.0f, 2.0f, 3.0f);
+Vec3 velocity(0.5f, -1.0f, 0.2f);
+Vec3 newPosition = position + velocity * deltaTime;
+
+// Quaternion rotations with SIMD acceleration
+Quat rotation = Quat::FromEuler(Radians(45.0f), Radians(30.0f), 0.0f);
+Vec3 forward = rotation.RotateVector(Vec3::Forward);
+
+// Matrix transformations with SIMD
+Mat4 transform = Mat4::CreateTranslation(position) *
+                 rotation.ToMatrix4() *
+                 Mat4::CreateScale(Vec3(2.0f));
+
+// Camera matrices
+Mat4 view = Mat4::CreateLookAt(cameraPos, target, Vec3::Up);
+Mat4 projection = Mat4::CreatePerspective(Radians(60.0f), aspectRatio, 0.1f, 100.0f);
+
+// Check SIMD capabilities at runtime
+if (SIMD::IsAvailable()) {
+    PYRAMID_LOG_INFO("SIMD Features: ", SIMD::GetFeatureString());
+    // Use SIMD-optimized batch operations
+    SIMD::Batch::NormalizeVectors(vectors, results, count);
+}
+```
+
+### Enhanced Rendering System
+
+```cpp
+#include <Pyramid/Graphics/Renderer/RenderSystem.hpp>
+#include <Pyramid/Graphics/Camera.hpp>
+#include <Pyramid/Graphics/Scene.hpp>
+
+// Create rendering system
+auto renderSystem = std::make_unique<Renderer::RenderSystem>();
+renderSystem->Initialize(graphicsDevice);
+
+// Setup camera with enhanced math
+Camera camera(Math::Radians(60.0f), 16.0f/9.0f, 0.1f, 1000.0f);
+camera.SetPosition(Math::Vec3(0.0f, 5.0f, 10.0f));
+camera.LookAt(Math::Vec3::Zero);
+
+// Create scene with hierarchical transforms
+auto scene = SceneUtils::CreateTestScene();
+auto cubeNode = scene->CreateNode("Cube");
+cubeNode->SetLocalPosition(Math::Vec3(2.0f, 0.0f, 0.0f));
+
+// Render with command buffers and render passes
+renderSystem->BeginFrame();
+renderSystem->Render(*scene, camera);
+renderSystem->EndFrame();
 ```
 
 ### Graphics System
