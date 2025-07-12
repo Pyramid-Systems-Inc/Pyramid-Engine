@@ -1,3 +1,23 @@
+# Math Library Source Files
+target_sources(PyramidEngine
+    PRIVATE
+        source/Vec2.cpp
+        source/Vec3.cpp
+        source/Vec4.cpp
+        source/Mat3.cpp
+        source/Mat4.cpp
+        source/Quat.cpp
+    PUBLIC
+        include/Pyramid/Math/MathCommon.hpp
+        include/Pyramid/Math/Vec2.hpp
+        include/Pyramid/Math/Vec3.hpp
+        include/Pyramid/Math/Vec4.hpp
+        include/Pyramid/Math/Mat3.hpp
+        include/Pyramid/Math/Mat4.hpp
+        include/Pyramid/Math/Quat.hpp
+        include/Pyramid/Math/Math.hpp
+)
+
 target_include_directories(PyramidEngine
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

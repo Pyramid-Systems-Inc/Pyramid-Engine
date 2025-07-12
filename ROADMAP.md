@@ -1,6 +1,8 @@
 # Pyramid Game Engine Roadmap
 
-## Current Version: 0.4.0
+## Current Version: 0.4.0 (July 2025)
+
+### 🎯 Current Focus: Math Library and Scene Management Foundation
 
 ### ✅ Implemented Features (As of July 2025)
 
@@ -43,86 +45,103 @@
   - [X] **Production Ready**: Comprehensive error handling and test coverage
   - [X] **Real-World Integration**: Successfully integrated with BasicGame example
 
-### Q1 2025 (March) - Progress Update
+### Q1 2025 (March) - COMPLETED ✅
 
-- [X] Graphics Enhancement Phase 1
-  - [X] Vertex Array Objects (VAO) - Enhanced with `BufferLayout` system for attribute definition.
-  - [X] Enhanced shader management - `IGraphicsDevice::CreateShader()` added; shader compilation verified; basic `glUniform*` style support implemented in `IShader` and `OpenGLShader`.
-    - [~] Uniform buffer support (Basic `glUniform*` support added; true Uniform Buffer Objects (UBOs) still pending)
-    - [ ] Multiple shader programs (Supported by creating multiple IShader instances, advanced management pending)
+- [X] **Graphics Enhancement Phase 1** - COMPLETED
+  - [X] Vertex Array Objects (VAO) - Enhanced with `BufferLayout` system for attribute definition
+  - [X] Enhanced shader management - `IGraphicsDevice::CreateShader()` added; shader compilation verified; complete `glUniform*` support implemented in `IShader` and `OpenGLShader`
+    - [X] Uniform support (Complete `glUniform*` support for Int, Float, Vec2/3/4, Mat3/4)
+    - [X] Multiple shader programs (Supported by creating multiple IShader instances with proper management)
   - [X] Texture system implementation (2D texture loading with custom Pyramid image loader supporting all major formats)
     - [X] Custom Pyramid::Util::Image loader (Complete: TGA, BMP, PNG, and JPEG support)
     - [X] Integration with OpenGL texture pipeline (replaced stb_image dependency)
     - [X] PNG support with DEFLATE decompression (Phase 2 complete: full PNG implementation)
     - [X] JPEG support with DCT decompression (Phase 3 complete: full JPEG baseline implementation)
-  - Material system foundation
-  - State management system
+  - [~] Material system foundation (Basic texture binding implemented, advanced material system pending)
+  - [~] State management system (Basic OpenGL state management, comprehensive system pending)
 
-- [ ] Core Systems Enhancement
+- [X] **Core Systems Enhancement** - MOSTLY COMPLETED
   - [X] Enhanced logging system - Production-ready logging with thread safety, file rotation, structured logging, and multiple interfaces (moved from Core to Utils)
-  - Resource management system
-  - Memory management improvements
-  - [~] Extended input handling - Game loop message processing fixed, foundational for input.
-  - [ ] File I/O system
+  - [~] Resource management system (Basic texture resource management implemented, comprehensive system pending)
+  - [~] Memory management improvements (Basic improvements made, advanced optimizations pending)
+  - [X] Extended input handling - Game loop message processing fixed and working
+  - [ ] File I/O system (Not yet implemented)
 
-### Q2 2025 (June)
+### Q3 2025 (September) - CURRENT PRIORITY
 
-- [ ] Graphics Enhancement Phase 2
-  - Multiple render targets
-  - Basic post-processing pipeline
-  - Render state caching
-  - Primitive batching
-  - Basic particle system
+- [ ] **Math Library Foundation** - CRITICAL DEPENDENCY
+  - [ ] Vector math (Vec2, Vec3, Vec4) with comprehensive operations
+  - [ ] Matrix operations (Mat3, Mat4) with transformations
+  - [ ] Quaternions for rotations and interpolation
+  - [ ] Transformation utilities and coordinate system conversions
+  - [ ] Mathematical constants and utility functions
 
-- [ ] Scene Management
-  - Scene graph implementation
-  - Transform hierarchy
-  - Basic camera system
-  - View frustum culling
+- [ ] **Scene Management System** - HIGH PRIORITY
+  - [ ] Scene graph implementation with hierarchical transforms
+  - [ ] Transform hierarchy with parent-child relationships
+  - [ ] Basic camera system (perspective and orthographic)
+  - [ ] View frustum culling for performance optimization
+  - [ ] Scene node management and traversal
 
-### Q3 2025 (September)
+- [ ] **Input System Enhancement** - HIGH PRIORITY
+  - [ ] Keyboard input handling with key state management
+  - [ ] Mouse input handling with button and movement tracking
+  - [ ] Input event system with callbacks
+  - [ ] Input mapping and binding system for customization
 
-- [ ] Physics Integration
-  - Collision detection
-  - Rigid body dynamics
-  - Physics debug rendering
-  - Ray casting
+### Q4 2025 (December) - GRAPHICS ENHANCEMENT
 
-- [ ] Audio Foundation
-  - Audio device abstraction
-  - Basic sound playback
-  - 3D audio positioning
-  - Sound resource management
+- [ ] **Graphics Enhancement Phase 2**
+  - [ ] Multiple render targets for advanced rendering techniques
+  - [ ] Basic post-processing pipeline with shader effects
+  - [ ] Render state caching for performance optimization
+  - [ ] Primitive batching for efficient rendering
+  - [ ] Basic particle system for visual effects
 
-### Q4 2025 (December)
+### Q1 2026 - PHYSICS AND AUDIO
 
-- [ ] Asset Pipeline
-  - Asset importing system
-  - Resource management
-  - Hot reloading support
-  - Asset optimization tools
+- [ ] **Physics Integration**
+  - [ ] Collision detection system with basic shapes
+  - [ ] Rigid body dynamics with mass and velocity
+  - [ ] Physics debug rendering for visualization
+  - [ ] Ray casting for interaction and queries
+  - [ ] Integration with Scene Management system
 
-- [ ] Developer Tools
-  - Debug UI system
-  - Performance profiling
-  - Memory tracking
-  - Scene inspector
-  - Log analysis tools and viewers
-  - Remote logging capabilities
+- [ ] **Audio Foundation**
+  - [ ] Audio device abstraction layer
+  - [ ] Basic sound playback with format support
+  - [ ] 3D audio positioning with spatial audio
+  - [ ] Sound resource management and streaming
 
-### 2026 Planning
+### Q2 2026 - ASSET PIPELINE AND TOOLS
 
-- [ ] Advanced Graphics
-  - PBR materials
-  - Shadow mapping
-  - Particle system
-  - Deferred rendering
+- [ ] **Asset Pipeline**
+  - [ ] Asset importing system for models and animations
+  - [ ] Comprehensive resource management with caching
+  - [ ] Hot reloading support for development workflow
+  - [ ] Asset optimization tools and compression
 
-- [ ] Engine Features
-  - Entity Component System (ECS)
-  - Scripting system
-  - Animation system
-  - Networking foundation
+- [ ] **Developer Tools**
+  - [ ] Debug UI system with ImGui integration
+  - [ ] Performance profiling with frame time analysis
+  - [ ] Memory tracking and leak detection
+  - [ ] Scene inspector for runtime debugging
+  - [ ] Enhanced log analysis tools and viewers
+  - [ ] Remote logging capabilities for deployed builds
+
+### Q3-Q4 2026 - ADVANCED FEATURES
+
+- [ ] **Advanced Graphics**
+  - [ ] PBR (Physically Based Rendering) materials with metallic-roughness workflow
+  - [ ] Shadow mapping with cascaded shadow maps
+  - [ ] Advanced particle system with GPU simulation
+  - [ ] Deferred rendering pipeline for complex lighting
+
+- [ ] **Engine Features**
+  - [ ] Entity Component System (ECS) for flexible game object architecture
+  - [ ] Scripting system with Lua or C# integration
+  - [ ] Animation system with skeletal and keyframe animation
+  - [ ] Networking foundation for multiplayer support
 
 ### Future Considerations
 
