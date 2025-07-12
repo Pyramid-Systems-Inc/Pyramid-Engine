@@ -2,6 +2,7 @@
 #include <Pyramid/Core/Game.hpp>
 #include <Pyramid/Graphics/Shader/Shader.hpp>
 #include <Pyramid/Graphics/Buffer/VertexArray.hpp>
+#include <Pyramid/Graphics/Buffer/UniformBuffer.hpp>
 #include <Pyramid/Graphics/Texture.hpp>
 #include <memory>
 #include <vector>
@@ -21,8 +22,37 @@ protected:
 private:
     void LoadTestTextures();
     void CreateSampleTextures();
+    void SetupUniformBuffers();
+    void UpdateUniformBuffers(float deltaTime);
+
     std::shared_ptr<Pyramid::IShader> m_shader;
     std::shared_ptr<Pyramid::IVertexArray> m_vertexArray;
+
+    // OpenGL 4.6 Uniform Buffer Objects for efficient data transfer
+    std::shared_ptr<Pyramid::IUniformBuffer> m_sceneUBO;
+    std::shared_ptr<Pyramid::IUniformBuffer> m_materialUBO;
+
+    // Scene uniform data structure (std140 layout)
+    struct SceneUniforms
+    {
+        float viewMatrix[16];       // 4x4 matrix
+        float projectionMatrix[16]; // 4x4 matrix
+        float cameraPosition[4];    // Vec4
+        float lightDirection[4];    // Vec4
+        float time;
+        float padding[3]; // Ensure 16-byte alignment
+    };
+
+    // Material uniform data structure (std140 layout)
+    struct MaterialUniforms
+    {
+        float baseColor[4];     // Vec4
+        float emissiveColor[4]; // Vec4
+        float metallic;
+        float roughness;
+        float textureScale;
+        float padding; // Ensure 16-byte alignment
+    };
 
     // Multiple textures to showcase different image formats
     std::vector<std::shared_ptr<Pyramid::ITexture2D>> m_textures;
