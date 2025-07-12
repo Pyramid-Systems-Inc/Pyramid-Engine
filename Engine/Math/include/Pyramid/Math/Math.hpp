@@ -18,11 +18,14 @@
 #include <Pyramid/Math/Vec4.hpp>
 
 // Matrix classes
+#include <Pyramid/Math/Mat3.hpp>
 #include <Pyramid/Math/Mat4.hpp>
 
-// Future includes (to be implemented)
-// #include <Pyramid/Math/Mat3.hpp>
-// #include <Pyramid/Math/Quat.hpp>
+// Quaternion class
+#include <Pyramid/Math/Quat.hpp>
+
+// Performance optimizations (optional)
+#include <Pyramid/Math/MathPerformance.hpp>
 
 namespace Pyramid
 {
@@ -72,7 +75,9 @@ namespace Pyramid
         using Vector2 = Vec2;
         using Vector3 = Vec3;
         using Vector4 = Vec4;
+        using Matrix3 = Mat3;
         using Matrix4 = Mat4;
+        using Quaternion = Quat;
 
         // Common vector constants are available as static members of each class
         // For example: Vec2::Zero, Vec3::Forward, etc.
