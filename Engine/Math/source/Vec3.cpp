@@ -231,7 +231,7 @@ namespace Pyramid
         {
             f32 dot = Dot(other);
             f32 lengths = Length() * other.Length();
-            if (IsZero(lengths))
+            if (Math::IsZero(lengths))
             {
                 return 0.0f;
             }
@@ -254,7 +254,7 @@ namespace Pyramid
         Vec3 Vec3::Project(const Vec3 &other) const
         {
             f32 otherLengthSq = other.LengthSquared();
-            if (IsZero(otherLengthSq))
+            if (Math::IsZero(otherLengthSq))
             {
                 return Vec3::Zero;
             }
