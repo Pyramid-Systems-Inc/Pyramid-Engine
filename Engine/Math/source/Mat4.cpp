@@ -278,7 +278,7 @@ namespace Pyramid
             // For now, return identity if not easily invertible
             // Full inverse calculation is complex and will be implemented later
             f32 det = Determinant();
-            if (IsZero(det))
+            if (Math::IsZero(det))
             {
                 return Mat4::Identity;
             }
@@ -295,7 +295,7 @@ namespace Pyramid
 
         bool Mat4::IsInvertible() const
         {
-            return !IsZero(Determinant());
+            return !Math::IsZero(Determinant());
         }
 
         bool Mat4::IsIdentity() const

@@ -148,10 +148,10 @@ namespace Pyramid
 
         Vec4 &Vec4::operator/=(const Vec4 &other)
         {
-            x = IsZero(other.x) ? 0.0f : x / other.x;
-            y = IsZero(other.y) ? 0.0f : y / other.y;
-            z = IsZero(other.z) ? 0.0f : z / other.z;
-            w = IsZero(other.w) ? 0.0f : w / other.w;
+            x = Math::IsZero(other.x) ? 0.0f : x / other.x;
+            y = Math::IsZero(other.y) ? 0.0f : y / other.y;
+            z = Math::IsZero(other.z) ? 0.0f : z / other.z;
+            w = Math::IsZero(other.w) ? 0.0f : w / other.w;
             return *this;
         }
 
@@ -192,7 +192,7 @@ namespace Pyramid
         Vec4 &Vec4::Normalize()
         {
             f32 length = Length();
-            if (!IsZero(length))
+            if (!Math::IsZero(length))
             {
                 f32 invLength = 1.0f / length;
                 x *= invLength;
@@ -239,7 +239,7 @@ namespace Pyramid
         {
             f32 dot = Dot(other);
             f32 lengths = Length() * other.Length();
-            if (IsZero(lengths))
+            if (Math::IsZero(lengths))
             {
                 return 0.0f;
             }
