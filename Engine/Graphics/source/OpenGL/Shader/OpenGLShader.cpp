@@ -1,4 +1,5 @@
 #include <Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp>
+#include <Pyramid/Graphics/Buffer/UniformBuffer.hpp>
 #include <Pyramid/Util/Log.hpp> // Updated to use Utils logging system
 #include <vector>
 // #include <iostream> // No longer needed directly if using Log macros
@@ -175,6 +176,43 @@ namespace Pyramid
         GLint location = GetUniformLocation(name);
         if (location != -1)
             glUniformMatrix4fv(location, count, transpose ? GL_TRUE : GL_FALSE, matrix_ptr);
+    }
+
+    void OpenGLShader::BindUniformBuffer(const std::string &blockName, IUniformBuffer *buffer, u32 bindingPoint)
+    {
+        if (!buffer)
+        {
+            PYRAMID_LOG_ERROR("Uniform buffer is null");
+            return;
+        }
+
+        // Set the uniform block binding point
+        SetUniformBlockBinding(blockName, bindingPoint);
+
+        // Bind the buffer to the binding point
+        buffer->Bind(bindingPoint);
+    }
+
+    void OpenGLShader::SetUniformBlockBinding(const std::string &blockName, u32 bindingPoint)
+    {
+        if (m_programId == 0)
+        {
+            PYRAMID_LOG_ERROR("Shader program not compiled");
+            return;
+        }
+
+        // Get the uniform block index
+        GLuint blockIndex = glGetUniformBlockIndex(m_programId, blockName.c_str());
+        if (blockIndex == GL_INVALID_INDEX)
+        {
+            PYRAMID_LOG_WARN("Uniform block '", blockName, "' not found in shader program ", m_programId);
+            return;
+        }
+
+        // Set the binding point for the uniform block
+        glUniformBlockBinding(m_programId, blockIndex, bindingPoint);
+
+        PYRAMID_LOG_INFO("Bound uniform block '", blockName, "' to binding point ", bindingPoint);
     }
 
 } // namespace Pyramid

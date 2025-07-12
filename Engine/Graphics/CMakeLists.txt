@@ -5,6 +5,8 @@ target_sources(PyramidEngine
         source/OpenGL/Buffer/OpenGLVertexBuffer.cpp
         source/OpenGL/Buffer/OpenGLIndexBuffer.cpp
         source/OpenGL/Buffer/OpenGLVertexArray.cpp
+        source/OpenGL/Buffer/OpenGLUniformBuffer.cpp
+        source/Buffer/UniformBuffer.cpp
         source/OpenGL/Shader/OpenGLShader.cpp
         source/Texture.cpp # Added
         source/OpenGL/OpenGLTexture.cpp # Added
@@ -13,7 +15,8 @@ target_sources(PyramidEngine
         include/Pyramid/Graphics/Buffer/VertexBuffer.hpp
         include/Pyramid/Graphics/Buffer/IndexBuffer.hpp
         include/Pyramid/Graphics/Buffer/VertexArray.hpp
-        include/Pyramid/Graphics/Buffer/BufferLayout.hpp # Added
+        include/Pyramid/Graphics/Buffer/BufferLayout.hpp
+        include/Pyramid/Graphics/Buffer/UniformBuffer.hpp # Added
         include/Pyramid/Graphics/Shader/Shader.hpp
         include/Pyramid/Graphics/Texture.hpp # Added
         include/Pyramid/Graphics/Geometry/Vertex.hpp

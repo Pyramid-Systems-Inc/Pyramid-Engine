@@ -8,7 +8,7 @@ namespace Pyramid
     // Forward declarations
     class Window;
     class IShader;
-    class ITexture2D; // Added
+    class ITexture2D;            // Added
     struct TextureSpecification; // Added
 
     /**
@@ -87,7 +87,7 @@ namespace Pyramid
          * @param data Optional raw pixel data
          * @return std::shared_ptr<ITexture2D> The created texture
          */
-        virtual std::shared_ptr<ITexture2D> CreateTexture2D(const TextureSpecification& specification, const void* data = nullptr) = 0; // Added
+        virtual std::shared_ptr<ITexture2D> CreateTexture2D(const TextureSpecification &specification, const void *data = nullptr) = 0; // Added
 
         /**
          * @brief Create a 2D Texture from a filepath
@@ -96,15 +96,23 @@ namespace Pyramid
          * @param generateMips Whether to generate mipmaps
          * @return std::shared_ptr<ITexture2D> The created texture
          */
-        virtual std::shared_ptr<ITexture2D> CreateTexture2D(const std::string& filepath, bool srgb = false, bool generateMips = true) = 0; // Added
-        
+        virtual std::shared_ptr<ITexture2D> CreateTexture2D(const std::string &filepath, bool srgb = false, bool generateMips = true) = 0; // Added
+
+        /**
+         * @brief Create a uniform buffer object
+         * @param size Size of the buffer in bytes
+         * @param usage Buffer usage pattern (static, dynamic, stream)
+         * @return std::shared_ptr<IUniformBuffer> The created uniform buffer, or nullptr on failure
+         */
+        virtual std::shared_ptr<class IUniformBuffer> CreateUniformBuffer(size_t size, BufferUsage usage = BufferUsage::Dynamic) = 0;
+
         /**
          * @brief Create a graphics device for the specified API
          * @param api The graphics API to use
          * @param window The window to associate with the graphics device
          * @return std::unique_ptr<IGraphicsDevice> The created graphics device
          */
-        static std::unique_ptr<IGraphicsDevice> Create(GraphicsAPI api, Window* window); // Changed
+        static std::unique_ptr<IGraphicsDevice> Create(GraphicsAPI api, Window *window); // Changed
     };
 
 } // namespace Pyramid

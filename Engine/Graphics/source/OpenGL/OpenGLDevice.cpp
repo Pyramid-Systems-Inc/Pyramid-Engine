@@ -2,6 +2,7 @@
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexBuffer.hpp>
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLIndexBuffer.hpp>
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexArray.hpp>
+#include <Pyramid/Graphics/OpenGL/Buffer/OpenGLUniformBuffer.hpp>
 #include <Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp>
 #include <Pyramid/Graphics/Texture.hpp> // Added for ITexture2D factory methods
 #include <glad/glad.h>
@@ -9,8 +10,8 @@
 namespace Pyramid
 {
 
-    OpenGLDevice::OpenGLDevice(Window* window) // Changed
-        : m_window(window) // Changed
+    OpenGLDevice::OpenGLDevice(Window *window) // Changed
+        : m_window(window)                     // Changed
     {
     }
 
@@ -77,14 +78,24 @@ namespace Pyramid
         return std::make_shared<OpenGLShader>();
     }
 
-    std::shared_ptr<ITexture2D> OpenGLDevice::CreateTexture2D(const TextureSpecification& specification, const void* data)
+    std::shared_ptr<ITexture2D> OpenGLDevice::CreateTexture2D(const TextureSpecification &specification, const void *data)
     {
         return ITexture2D::Create(specification, data);
     }
 
-    std::shared_ptr<ITexture2D> OpenGLDevice::CreateTexture2D(const std::string& filepath, bool srgb, bool generateMips)
+    std::shared_ptr<ITexture2D> OpenGLDevice::CreateTexture2D(const std::string &filepath, bool srgb, bool generateMips)
     {
         return ITexture2D::Create(filepath, srgb, generateMips);
+    }
+
+    std::shared_ptr<IUniformBuffer> OpenGLDevice::CreateUniformBuffer(size_t size, BufferUsage usage)
+    {
+        auto buffer = std::make_shared<OpenGLUniformBuffer>();
+        if (buffer->Initialize(size, usage))
+        {
+            return buffer;
+        }
+        return nullptr;
     }
 
 } // namespace Pyramid

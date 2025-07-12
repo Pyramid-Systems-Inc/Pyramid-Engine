@@ -15,7 +15,7 @@ namespace Pyramid
     class OpenGLDevice : public IGraphicsDevice
     {
     public:
-        explicit OpenGLDevice(Window* window); // Changed
+        explicit OpenGLDevice(Window *window); // Changed
         ~OpenGLDevice() override;
 
         bool Initialize() override;
@@ -30,17 +30,18 @@ namespace Pyramid
         std::shared_ptr<IIndexBuffer> CreateIndexBuffer() override;
         std::shared_ptr<IVertexArray> CreateVertexArray() override;
         std::shared_ptr<IShader> CreateShader() override;
-        std::shared_ptr<ITexture2D> CreateTexture2D(const TextureSpecification& specification, const void* data = nullptr) override; // Added
-        std::shared_ptr<ITexture2D> CreateTexture2D(const std::string& filepath, bool srgb = false, bool generateMips = true) override; // Added
+        std::shared_ptr<ITexture2D> CreateTexture2D(const TextureSpecification &specification, const void *data = nullptr) override;    // Added
+        std::shared_ptr<ITexture2D> CreateTexture2D(const std::string &filepath, bool srgb = false, bool generateMips = true) override; // Added
+        std::shared_ptr<class IUniformBuffer> CreateUniformBuffer(size_t size, BufferUsage usage = BufferUsage::Dynamic) override;
 
         /**
          * @brief Get the window associated with this device
          * @return Window* The window instance
          */
-        Window* GetWindow() const { return m_window; } // Changed
+        Window *GetWindow() const { return m_window; } // Changed
 
     private:
-        Window* m_window; // Changed
+        Window *m_window; // Changed
     };
 
 } // namespace Pyramid
