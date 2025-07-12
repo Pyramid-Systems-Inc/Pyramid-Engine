@@ -7,6 +7,7 @@ target_sources(PyramidEngine
         source/Mat3.cpp
         source/Mat4.cpp
         source/Quat.cpp
+        source/MathSIMD.cpp
     PUBLIC
         include/Pyramid/Math/MathCommon.hpp
         include/Pyramid/Math/Vec2.hpp
@@ -16,6 +17,7 @@ target_sources(PyramidEngine
         include/Pyramid/Math/Mat4.hpp
         include/Pyramid/Math/Quat.hpp
         include/Pyramid/Math/MathPerformance.hpp
+        include/Pyramid/Math/MathSIMD.hpp
         include/Pyramid/Math/Math.hpp
 )
 

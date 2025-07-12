@@ -27,6 +27,9 @@
 // Performance optimizations (optional)
 #include <Pyramid/Math/MathPerformance.hpp>
 
+// SIMD optimizations (optional, auto-detected)
+#include <Pyramid/Math/MathSIMD.hpp>
+
 namespace Pyramid
 {
     namespace Math
