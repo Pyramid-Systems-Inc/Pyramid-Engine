@@ -10,6 +10,8 @@ target_sources(PyramidEngine
         source/JPEGLoader.cpp
         source/JPEGHuffmanDecoder.cpp
         source/JPEGDequantizer.cpp
+        source/JPEGIDCT.cpp
+        source/JPEGColorConverter.cpp
 )
 
 target_include_directories(PyramidEngine

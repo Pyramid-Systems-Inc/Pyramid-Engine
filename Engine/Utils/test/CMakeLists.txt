@@ -71,3 +71,18 @@ target_include_directories(TestJPEGDequantizer
 )
 
 set_target_properties(TestJPEGDequantizer PROPERTIES FOLDER "Tests")
+
+# JPEG IDCT Test
+add_executable(TestJPEGIDCT TestJPEGIDCT.cpp)
+
+target_link_libraries(TestJPEGIDCT
+    PRIVATE
+        PyramidEngine
+)
+
+target_include_directories(TestJPEGIDCT
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../include
+)
+
+set_target_properties(TestJPEGIDCT PROPERTIES FOLDER "Tests")
