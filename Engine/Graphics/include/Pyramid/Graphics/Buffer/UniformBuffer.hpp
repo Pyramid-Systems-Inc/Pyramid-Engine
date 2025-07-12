@@ -8,7 +8,13 @@
 // Forward declaration for BufferUsage
 namespace Pyramid
 {
-    enum class BufferUsage;
+    // BufferUsage enum definition (needed for default parameters)
+    enum class BufferUsage
+    {
+        Static,  // Data is set once and used many times
+        Dynamic, // Data is changed frequently
+        Stream   // Data is changed every frame
+    };
 }
 
 namespace Pyramid

@@ -1,4 +1,5 @@
 #include <Pyramid/Graphics/OpenGL/OpenGLDevice.hpp>
+#include <Pyramid/Graphics/Buffer/UniformBuffer.hpp> // For BufferUsage enum
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexBuffer.hpp>
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLIndexBuffer.hpp>
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexArray.hpp>

@@ -11,13 +11,8 @@ namespace Pyramid
     class ITexture2D;            // Added
     struct TextureSpecification; // Added
 
-    // Include for BufferUsage enum (needed for default parameter)
-    enum class BufferUsage
-    {
-        Static,  // Data is set once and used many times
-        Dynamic, // Data is changed frequently
-        Stream   // Data is changed every frame
-    };
+    // Forward declaration for BufferUsage
+    enum class BufferUsage;
 
     /**
      * @brief Interface for graphics device implementations
