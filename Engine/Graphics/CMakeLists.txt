@@ -10,6 +10,9 @@ target_sources(PyramidEngine
         source/OpenGL/Shader/OpenGLShader.cpp
         source/Texture.cpp # Added
         source/OpenGL/OpenGLTexture.cpp # Added
+        source/Renderer/RenderSystem.cpp
+        source/Camera.cpp
+        source/Scene.cpp
     PUBLIC
         include/Pyramid/Graphics/GraphicsDevice.hpp
         include/Pyramid/Graphics/Buffer/VertexBuffer.hpp
@@ -20,6 +23,10 @@ target_sources(PyramidEngine
         include/Pyramid/Graphics/Shader/Shader.hpp
         include/Pyramid/Graphics/Texture.hpp # Added
         include/Pyramid/Graphics/Geometry/Vertex.hpp
+        include/Pyramid/Graphics/Renderer/RenderSystem.hpp
+        include/Pyramid/Graphics/Renderer/RenderPasses.hpp
+        include/Pyramid/Graphics/Camera.hpp
+        include/Pyramid/Graphics/Scene.hpp
         include/Pyramid/Graphics/OpenGL/OpenGLDevice.hpp
         include/Pyramid/Graphics/OpenGL/Buffer/OpenGLIndexBuffer.hpp
         include/Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexArray.hpp
