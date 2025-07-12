@@ -24,6 +24,7 @@ target_sources(PyramidEngine
         include/Pyramid/Graphics/OpenGL/Buffer/OpenGLIndexBuffer.hpp
         include/Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexArray.hpp
         include/Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexBuffer.hpp
+        include/Pyramid/Graphics/OpenGL/Buffer/OpenGLUniformBuffer.hpp
         include/Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp
         include/Pyramid/Graphics/OpenGL/OpenGLTexture.hpp # Added
 )
