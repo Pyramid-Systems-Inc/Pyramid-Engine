@@ -68,6 +68,55 @@ namespace Pyramid
             return FromEuler(euler.x, euler.y, euler.z);
         }
 
+        Quat Quat::FromMatrix(const Mat3 &matrix)
+        {
+            f32 trace = matrix.Get(0, 0) + matrix.Get(1, 1) + matrix.Get(2, 2);
+
+            if (trace > 0.0f)
+            {
+                f32 s = SafeSqrt(trace + 1.0f) * 2.0f;
+                return Quat(
+                    (matrix.Get(2, 1) - matrix.Get(1, 2)) / s,
+                    (matrix.Get(0, 2) - matrix.Get(2, 0)) / s,
+                    (matrix.Get(1, 0) - matrix.Get(0, 1)) / s,
+                    0.25f * s);
+            }
+            else if (matrix.Get(0, 0) > matrix.Get(1, 1) && matrix.Get(0, 0) > matrix.Get(2, 2))
+            {
+                f32 s = SafeSqrt(1.0f + matrix.Get(0, 0) - matrix.Get(1, 1) - matrix.Get(2, 2)) * 2.0f;
+                return Quat(
+                    0.25f * s,
+                    (matrix.Get(0, 1) + matrix.Get(1, 0)) / s,
+                    (matrix.Get(0, 2) + matrix.Get(2, 0)) / s,
+                    (matrix.Get(2, 1) - matrix.Get(1, 2)) / s);
+            }
+            else if (matrix.Get(1, 1) > matrix.Get(2, 2))
+            {
+                f32 s = SafeSqrt(1.0f + matrix.Get(1, 1) - matrix.Get(0, 0) - matrix.Get(2, 2)) * 2.0f;
+                return Quat(
+                    (matrix.Get(0, 1) + matrix.Get(1, 0)) / s,
+                    0.25f * s,
+                    (matrix.Get(1, 2) + matrix.Get(2, 1)) / s,
+                    (matrix.Get(0, 2) - matrix.Get(2, 0)) / s);
+            }
+            else
+            {
+                f32 s = SafeSqrt(1.0f + matrix.Get(2, 2) - matrix.Get(0, 0) - matrix.Get(1, 1)) * 2.0f;
+                return Quat(
+                    (matrix.Get(0, 2) + matrix.Get(2, 0)) / s,
+                    (matrix.Get(1, 2) + matrix.Get(2, 1)) / s,
+                    0.25f * s,
+                    (matrix.Get(1, 0) - matrix.Get(0, 1)) / s);
+            }
+        }
+
+        Quat Quat::FromMatrix(const Mat4 &matrix)
+        {
+            // Extract the upper-left 3x3 and convert
+            Mat3 rotationMatrix(matrix);
+            return FromMatrix(rotationMatrix);
+        }
+
         Quat Quat::FromToRotation(const Vec3 &from, const Vec3 &to)
         {
             Vec3 fromNorm = from.Normalized();
@@ -368,6 +417,16 @@ namespace Pyramid
             f32 yaw = Atan2(siny_cosp, cosy_cosp);
 
             return Vec3(pitch, yaw, roll);
+        }
+
+        Mat3 Quat::ToMatrix3() const
+        {
+            return Mat3::CreateRotation(*this);
+        }
+
+        Mat4 Quat::ToMatrix4() const
+        {
+            return ToMatrix3().ToMat4();
         }
 
         Vec3 Quat::RotateVector(const Vec3 &vector) const
