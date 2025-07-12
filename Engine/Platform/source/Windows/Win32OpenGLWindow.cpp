@@ -1,4 +1,5 @@
 #include <Pyramid/Platform/Windows/Win32OpenGLWindow.hpp>
+#include <Pyramid/Util/Log.hpp> // For logging OpenGL context creation
 #include <glad/glad.h>
 #include <glad/glad_wgl.h>
 #include <string> // For strlen
@@ -8,211 +9,284 @@
 // It's usually pulled in by glad_wgl.h or other Windows-specific headers.
 // If not, it would need to be explicitly included, but that's unlikely here.
 
-namespace Pyramid {
-
-LRESULT CALLBACK Win32OpenGLWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+namespace Pyramid
 {
-    Win32OpenGLWindow* window = nullptr;
-    if (msg == WM_CREATE)
+
+    LRESULT CALLBACK Win32OpenGLWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
-        CREATESTRUCT* createStruct = reinterpret_cast<CREATESTRUCT*>(lParam);
-        window = reinterpret_cast<Win32OpenGLWindow*>(createStruct->lpCreateParams);
-        SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
-    }
-    else
-    {
-        window = reinterpret_cast<Win32OpenGLWindow*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
-    }
-
-    switch (msg)
-    {
-    case WM_CLOSE:
-        if (window)
-            window->m_shouldClose = true;
-        return 0;
-
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        return 0;
-    }
-
-    return DefWindowProcW(hwnd, msg, wParam, lParam);
-}
-
-Win32OpenGLWindow::Win32OpenGLWindow()
-    : m_hwnd(nullptr)
-    , m_hdc(nullptr)
-    , m_hglrc(nullptr)
-    , m_width(800)
-    , m_height(600)
-    , m_shouldClose(false)
-{
-}
-
-Win32OpenGLWindow::~Win32OpenGLWindow()
-{
-    if (m_hglrc)
-    {
-        wglMakeCurrent(nullptr, nullptr);
-        wglDeleteContext(m_hglrc);
-    }
-
-    if (m_hdc)
-        ReleaseDC(m_hwnd, m_hdc);
-
-    if (m_hwnd)
-        DestroyWindow(m_hwnd);
-}
-
-bool Win32OpenGLWindow::Initialize(const char* title, int width, int height)
-{
-    m_width = width;
-    m_height = height;
-
-    if (!RegisterWindowClass())
-        return false;
-
-    // Create the window
-    RECT windowRect = { 0, 0, width, height };
-    AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
-
-    // Convert title to wide string
-    std::wstring wTitle;
-    if (title) {
-        int titleLen = static_cast<int>(strlen(title));
-        if (titleLen > 0) {
-            int wideLen = MultiByteToWideChar(CP_UTF8, 0, title, titleLen, nullptr, 0);
-            if (wideLen > 0) {
-                std::vector<wchar_t> wideBuf(wideLen);
-                MultiByteToWideChar(CP_UTF8, 0, title, titleLen, wideBuf.data(), wideLen);
-                wTitle.assign(wideBuf.data(), wideLen);
-            }
+        Win32OpenGLWindow *window = nullptr;
+        if (msg == WM_CREATE)
+        {
+            CREATESTRUCT *createStruct = reinterpret_cast<CREATESTRUCT *>(lParam);
+            window = reinterpret_cast<Win32OpenGLWindow *>(createStruct->lpCreateParams);
+            SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
         }
+        else
+        {
+            window = reinterpret_cast<Win32OpenGLWindow *>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+        }
+
+        switch (msg)
+        {
+        case WM_CLOSE:
+            if (window)
+                window->m_shouldClose = true;
+            return 0;
+
+        case WM_DESTROY:
+            PostQuitMessage(0);
+            return 0;
+        }
+
+        return DefWindowProcW(hwnd, msg, wParam, lParam);
     }
-    if (wTitle.empty()) {
-        wTitle = L"Pyramid Game"; // Default title if conversion fails or input is null/empty
-    }
 
-    m_hwnd = CreateWindowExW(
-        0,                              // Extended style
-        L"PyramidWindowClass",          // Class name
-        wTitle.c_str(),                 // Window title (Changed)
-        WS_OVERLAPPEDWINDOW,            // Style
-        CW_USEDEFAULT,                  // X position
-        CW_USEDEFAULT,                  // Y position
-        windowRect.right - windowRect.left,  // Width
-        windowRect.bottom - windowRect.top,  // Height
-        nullptr,                        // Parent window
-        nullptr,                        // Menu
-        GetModuleHandle(nullptr),       // Instance handle
-        this                           // Additional application data
-    );
-
-    if (!m_hwnd)
-        return false;
-
-    // Get the device context
-    m_hdc = GetDC(m_hwnd);
-    if (!m_hdc)
-        return false;
-
-    // Create OpenGL context
-    if (!CreateOpenGLContext())
-        return false;
-
-    // Show the window
-    ShowWindow(m_hwnd, SW_SHOW);
-    UpdateWindow(m_hwnd);
-
-    return true;
-}
-
-bool Win32OpenGLWindow::RegisterWindowClass()
-{
-    WNDCLASSEXW wc = {};
-    wc.cbSize = sizeof(WNDCLASSEXW);
-    wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
-    wc.lpfnWndProc = Win32OpenGLWindow::WndProc;
-    wc.hInstance = GetModuleHandle(nullptr);
-    wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
-    wc.lpszClassName = L"PyramidWindowClass";
-
-    return RegisterClassExW(&wc) != 0;
-}
-
-bool Win32OpenGLWindow::CreateOpenGLContext()
-{
-    PIXELFORMATDESCRIPTOR pfd = {
-        sizeof(PIXELFORMATDESCRIPTOR),  // Size of this struct
-        1,                              // Version
-        PFD_DRAW_TO_WINDOW |           // Support window
-        PFD_SUPPORT_OPENGL |           // Support OpenGL
-        PFD_DOUBLEBUFFER,              // Double buffered
-        PFD_TYPE_RGBA,                 // RGBA type
-        32,                            // 32-bit color depth
-        0, 0, 0, 0, 0, 0,             // Color bits ignored
-        0,                             // No alpha buffer
-        0,                             // Shift bit ignored
-        0,                             // No accumulation buffer
-        0, 0, 0, 0,                    // Accumulation bits ignored
-        24,                            // 24-bit z-buffer
-        8,                             // 8-bit stencil buffer
-        0,                             // No auxiliary buffer
-        PFD_MAIN_PLANE,                // Main drawing layer
-        0,                             // Reserved
-        0, 0, 0                        // Layer masks ignored
-    };
-
-    int pixelFormat = ChoosePixelFormat(m_hdc, &pfd);
-    if (!pixelFormat)
-        return false;
-
-    if (!SetPixelFormat(m_hdc, pixelFormat, &pfd))
-        return false;
-
-    m_hglrc = wglCreateContext(m_hdc);
-    if (!m_hglrc)
-        return false;
-
-    if (!wglMakeCurrent(m_hdc, m_hglrc))
-        return false;
-
-    // Initialize GLAD
-    if (!gladLoadWGL(m_hdc) || !gladLoadGL())
-        return false;
-
-    return true;
-}
-
-void Win32OpenGLWindow::Present(bool vsync)
-{
-    if (vsync)
-        wglSwapIntervalEXT(1);
-    else
-        wglSwapIntervalEXT(0);
-
-    SwapBuffers(m_hdc);
-}
-
-void Win32OpenGLWindow::MakeContextCurrent()
-{
-    if (m_hdc && m_hglrc)
-        wglMakeCurrent(m_hdc, m_hglrc);
-}
-
-bool Win32OpenGLWindow::ProcessMessages()
-{
-    MSG msg = {};
-    while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+    Win32OpenGLWindow::Win32OpenGLWindow()
+        : m_hwnd(nullptr), m_hdc(nullptr), m_hglrc(nullptr), m_width(800), m_height(600), m_shouldClose(false)
     {
-        if (msg.message == WM_QUIT)
+    }
+
+    Win32OpenGLWindow::~Win32OpenGLWindow()
+    {
+        if (m_hglrc)
+        {
+            wglMakeCurrent(nullptr, nullptr);
+            wglDeleteContext(m_hglrc);
+        }
+
+        if (m_hdc)
+            ReleaseDC(m_hwnd, m_hdc);
+
+        if (m_hwnd)
+            DestroyWindow(m_hwnd);
+    }
+
+    bool Win32OpenGLWindow::Initialize(const char *title, int width, int height)
+    {
+        m_width = width;
+        m_height = height;
+
+        if (!RegisterWindowClass())
             return false;
 
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
+        // Create the window
+        RECT windowRect = {0, 0, width, height};
+        AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
+
+        // Convert title to wide string
+        std::wstring wTitle;
+        if (title)
+        {
+            int titleLen = static_cast<int>(strlen(title));
+            if (titleLen > 0)
+            {
+                int wideLen = MultiByteToWideChar(CP_UTF8, 0, title, titleLen, nullptr, 0);
+                if (wideLen > 0)
+                {
+                    std::vector<wchar_t> wideBuf(wideLen);
+                    MultiByteToWideChar(CP_UTF8, 0, title, titleLen, wideBuf.data(), wideLen);
+                    wTitle.assign(wideBuf.data(), wideLen);
+                }
+            }
+        }
+        if (wTitle.empty())
+        {
+            wTitle = L"Pyramid Game"; // Default title if conversion fails or input is null/empty
+        }
+
+        m_hwnd = CreateWindowExW(
+            0,                                  // Extended style
+            L"PyramidWindowClass",              // Class name
+            wTitle.c_str(),                     // Window title (Changed)
+            WS_OVERLAPPEDWINDOW,                // Style
+            CW_USEDEFAULT,                      // X position
+            CW_USEDEFAULT,                      // Y position
+            windowRect.right - windowRect.left, // Width
+            windowRect.bottom - windowRect.top, // Height
+            nullptr,                            // Parent window
+            nullptr,                            // Menu
+            GetModuleHandle(nullptr),           // Instance handle
+            this                                // Additional application data
+        );
+
+        if (!m_hwnd)
+            return false;
+
+        // Get the device context
+        m_hdc = GetDC(m_hwnd);
+        if (!m_hdc)
+            return false;
+
+        // Create OpenGL context
+        if (!CreateOpenGLContext())
+            return false;
+
+        // Show the window
+        ShowWindow(m_hwnd, SW_SHOW);
+        UpdateWindow(m_hwnd);
+
+        return true;
     }
 
-    return !m_shouldClose;
-}
+    bool Win32OpenGLWindow::RegisterWindowClass()
+    {
+        WNDCLASSEXW wc = {};
+        wc.cbSize = sizeof(WNDCLASSEXW);
+        wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+        wc.lpfnWndProc = Win32OpenGLWindow::WndProc;
+        wc.hInstance = GetModuleHandle(nullptr);
+        wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+        wc.lpszClassName = L"PyramidWindowClass";
+
+        return RegisterClassExW(&wc) != 0;
+    }
+
+    bool Win32OpenGLWindow::CreateOpenGLContext()
+    {
+        // First create a temporary context to get WGL extensions
+        PIXELFORMATDESCRIPTOR pfd = {
+            sizeof(PIXELFORMATDESCRIPTOR), // Size of this struct
+            1,                             // Version
+            PFD_DRAW_TO_WINDOW |           // Support window
+                PFD_SUPPORT_OPENGL |       // Support OpenGL
+                PFD_DOUBLEBUFFER,          // Double buffered
+            PFD_TYPE_RGBA,                 // RGBA type
+            32,                            // 32-bit color depth
+            0, 0, 0, 0, 0, 0,              // Color bits ignored
+            0,                             // No alpha buffer
+            0,                             // Shift bit ignored
+            0,                             // No accumulation buffer
+            0, 0, 0, 0,                    // Accumulation bits ignored
+            24,                            // 24-bit z-buffer
+            8,                             // 8-bit stencil buffer
+            0,                             // No auxiliary buffer
+            PFD_MAIN_PLANE,                // Main drawing layer
+            0,                             // Reserved
+            0, 0, 0                        // Layer masks ignored
+        };
+
+        int pixelFormat = ChoosePixelFormat(m_hdc, &pfd);
+        if (!pixelFormat)
+            return false;
+
+        if (!SetPixelFormat(m_hdc, pixelFormat, &pfd))
+            return false;
+
+        // Create temporary context
+        HGLRC tempContext = wglCreateContext(m_hdc);
+        if (!tempContext)
+            return false;
+
+        if (!wglMakeCurrent(m_hdc, tempContext))
+        {
+            wglDeleteContext(tempContext);
+            return false;
+        }
+
+        // Initialize GLAD to get WGL extensions
+        if (!gladLoadWGL(m_hdc))
+        {
+            wglMakeCurrent(nullptr, nullptr);
+            wglDeleteContext(tempContext);
+            return false;
+        }
+
+        // Now create the actual OpenGL 4.6 context using WGL_ARB_create_context
+        if (wglCreateContextAttribsARB)
+        {
+            // Try OpenGL 4.6 first, then fallback to lower versions
+            const int versions[][2] = {
+                {4, 6}, {4, 5}, {4, 4}, {4, 3}, {4, 2}, {4, 1}, {4, 0}, {3, 3}};
+
+            for (const auto &version : versions)
+            {
+                const int contextAttribs[] = {
+                    WGL_CONTEXT_MAJOR_VERSION_ARB, version[0],
+                    WGL_CONTEXT_MINOR_VERSION_ARB, version[1],
+                    WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+                    WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+                    0};
+
+                m_hglrc = wglCreateContextAttribsARB(m_hdc, nullptr, contextAttribs);
+                if (m_hglrc)
+                {
+                    // Success! Clean up temporary context
+                    wglMakeCurrent(nullptr, nullptr);
+                    wglDeleteContext(tempContext);
+
+                    // Make the new context current
+                    if (!wglMakeCurrent(m_hdc, m_hglrc))
+                    {
+                        wglDeleteContext(m_hglrc);
+                        m_hglrc = nullptr;
+                        return false;
+                    }
+
+                    // Initialize GLAD with the new context
+                    if (!gladLoadGL())
+                    {
+                        wglMakeCurrent(nullptr, nullptr);
+                        wglDeleteContext(m_hglrc);
+                        m_hglrc = nullptr;
+                        return false;
+                    }
+
+                    // Log the OpenGL version we got
+                    const char *version_str = reinterpret_cast<const char *>(glGetString(GL_VERSION));
+                    const char *renderer = reinterpret_cast<const char *>(glGetString(GL_RENDERER));
+                    PYRAMID_LOG_INFO("OpenGL Context Created - Version: ", version_str, ", Renderer: ", renderer);
+
+                    return true;
+                }
+            }
+        }
+
+        // Fallback to the temporary context if modern context creation failed
+        m_hglrc = tempContext;
+
+        if (!gladLoadGL())
+        {
+            wglMakeCurrent(nullptr, nullptr);
+            wglDeleteContext(m_hglrc);
+            m_hglrc = nullptr;
+            return false;
+        }
+
+        const char *version_str = reinterpret_cast<const char *>(glGetString(GL_VERSION));
+        PYRAMID_LOG_WARN("Using fallback OpenGL context - Version: ", version_str);
+
+        return true;
+    }
+
+    void Win32OpenGLWindow::Present(bool vsync)
+    {
+        if (vsync)
+            wglSwapIntervalEXT(1);
+        else
+            wglSwapIntervalEXT(0);
+
+        SwapBuffers(m_hdc);
+    }
+
+    void Win32OpenGLWindow::MakeContextCurrent()
+    {
+        if (m_hdc && m_hglrc)
+            wglMakeCurrent(m_hdc, m_hglrc);
+    }
+
+    bool Win32OpenGLWindow::ProcessMessages()
+    {
+        MSG msg = {};
+        while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+        {
+            if (msg.message == WM_QUIT)
+                return false;
+
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+
+        return !m_shouldClose;
+    }
 
 } // namespace Pyramid
