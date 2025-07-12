@@ -7,6 +7,7 @@
 #include <Pyramid/Graphics/Texture.hpp>
 #include <Pyramid/Util/Log.hpp>
 #include <Pyramid/Util/Image.hpp> // Include our custom image loader
+#include <Pyramid/Math/Math.hpp>  // Include enhanced math library
 #include <vector>
 #include <cmath>
 #include <string>
@@ -120,6 +121,11 @@ void BasicGame::onCreate()
     PYRAMID_CONFIGURE_LOGGER(logConfig);
 
     PYRAMID_LOG_INFO("BasicGame starting up with enhanced logging system");
+
+    // Initialize and test SIMD math library
+    PYRAMID_LOG_INFO("Math Library SIMD Features: ", Pyramid::Math::SIMD::GetFeatureString());
+    PYRAMID_LOG_INFO("SIMD Available: ", Pyramid::Math::SIMD::IsAvailable() ? "Yes" : "No");
+    PYRAMID_LOG_INFO("SIMD Enabled: ", Pyramid::Math::SIMD::IsEnabled() ? "Yes" : "No");
 
     Game::onCreate();
 
@@ -318,45 +324,21 @@ void BasicGame::SetupUniformBuffers()
         return;
     }
 
-    // Initialize uniform buffer data
+    // Initialize uniform buffer data using enhanced math library
     SceneUniforms sceneData = {};
 
-    // Identity matrix for view
-    memset(sceneData.viewMatrix, 0, sizeof(sceneData.viewMatrix));
-    sceneData.viewMatrix[0] = sceneData.viewMatrix[5] = sceneData.viewMatrix[10] = sceneData.viewMatrix[15] = 1.0f;
+    using namespace Pyramid::Math;
 
-    // Simple perspective projection matrix
-    memset(sceneData.projectionMatrix, 0, sizeof(sceneData.projectionMatrix));
-    float fov = 45.0f * 3.14159f / 180.0f;
-    float aspect = 800.0f / 600.0f;
-    float near = 0.1f, far = 100.0f;
-    float f = 1.0f / tanf(fov * 0.5f);
-    sceneData.projectionMatrix[0] = f / aspect;
-    sceneData.projectionMatrix[5] = f;
-    sceneData.projectionMatrix[10] = (far + near) / (near - far);
-    sceneData.projectionMatrix[11] = -1.0f;
-    sceneData.projectionMatrix[14] = (2.0f * far * near) / (near - far);
-
-    // Camera position
-    sceneData.cameraPosition[0] = 0.0f;
-    sceneData.cameraPosition[1] = 0.0f;
-    sceneData.cameraPosition[2] = 3.0f;
-    sceneData.cameraPosition[3] = 1.0f;
-
-    // Light direction
-    sceneData.lightDirection[0] = 0.5f;
-    sceneData.lightDirection[1] = -1.0f;
-    sceneData.lightDirection[2] = 0.5f;
-    sceneData.lightDirection[3] = 0.0f;
-
+    // Use proper math library functions
+    sceneData.viewMatrix = Mat4::Identity;
+    sceneData.projectionMatrix = Mat4::CreatePerspective(Radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+    sceneData.cameraPosition = Vec4(0.0f, 0.0f, 3.0f, 1.0f);
+    sceneData.lightDirection = Vec4(0.5f, -1.0f, 0.5f, 0.0f);
     sceneData.time = 0.0f;
 
     MaterialUniforms materialData = {};
-    materialData.baseColor[0] = materialData.baseColor[1] = materialData.baseColor[2] = materialData.baseColor[3] = 1.0f;
-    materialData.emissiveColor[0] = 0.2f;
-    materialData.emissiveColor[1] = 0.4f;
-    materialData.emissiveColor[2] = 0.8f;
-    materialData.emissiveColor[3] = 1.0f;
+    materialData.baseColor = Vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    materialData.emissiveColor = Vec4(0.2f, 0.4f, 0.8f, 1.0f);
     materialData.metallic = 0.0f;
     materialData.roughness = 0.5f;
     materialData.textureScale = 1.0f;
@@ -375,59 +357,52 @@ void BasicGame::UpdateUniformBuffers(float deltaTime)
     if (!m_sceneUBO || !m_materialUBO)
         return;
 
-    // Update scene data with animated values
+    using namespace Pyramid::Math;
+
+    // Update scene data with animated values using enhanced math library
     SceneUniforms sceneData = {};
 
-    // Create animated camera position
+    // Create animated camera position using SIMD-optimized operations
     float radius = 2.0f;
     float cameraX = radius * cosf(m_time * 0.3f);
     float cameraZ = radius * sinf(m_time * 0.3f);
 
-    // Simple look-at matrix (simplified for demo)
-    memset(sceneData.viewMatrix, 0, sizeof(sceneData.viewMatrix));
-    sceneData.viewMatrix[0] = 1.0f;
-    sceneData.viewMatrix[5] = 1.0f;
-    sceneData.viewMatrix[10] = 1.0f;
-    sceneData.viewMatrix[15] = 1.0f;
-    sceneData.viewMatrix[14] = -3.0f; // Move camera back
+    // Use proper math library for view matrix
+    Vec3 cameraPos(cameraX, 0.5f, cameraZ);
+    Vec3 target = Vec3::Zero;
+    Vec3 up = Vec3::Up;
+    sceneData.viewMatrix = Mat4::CreateLookAt(cameraPos, target, up);
 
-    // Keep the same projection matrix
-    memset(sceneData.projectionMatrix, 0, sizeof(sceneData.projectionMatrix));
-    float fov = 45.0f * 3.14159f / 180.0f;
-    float aspect = 800.0f / 600.0f;
-    float near = 0.1f, far = 100.0f;
-    float f = 1.0f / tanf(fov * 0.5f);
-    sceneData.projectionMatrix[0] = f / aspect;
-    sceneData.projectionMatrix[5] = f;
-    sceneData.projectionMatrix[10] = (far + near) / (near - far);
-    sceneData.projectionMatrix[11] = -1.0f;
-    sceneData.projectionMatrix[14] = (2.0f * far * near) / (near - far);
+    // Use math library for projection matrix
+    sceneData.projectionMatrix = Mat4::CreatePerspective(Radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
 
-    // Update camera position
-    sceneData.cameraPosition[0] = cameraX;
-    sceneData.cameraPosition[1] = 0.5f;
-    sceneData.cameraPosition[2] = cameraZ;
-    sceneData.cameraPosition[3] = 1.0f;
+    // Update camera position using Vec4
+    sceneData.cameraPosition = Vec4(cameraPos, 1.0f);
 
-    // Animate light direction
-    sceneData.lightDirection[0] = sinf(m_time * 0.5f);
-    sceneData.lightDirection[1] = -0.8f;
-    sceneData.lightDirection[2] = cosf(m_time * 0.5f);
-    sceneData.lightDirection[3] = 0.0f;
+    // Animate light direction using SIMD operations when available
+    Vec3 lightDir(sinf(m_time * 0.5f), -0.8f, cosf(m_time * 0.5f));
+    lightDir = lightDir.Normalized(); // Use SIMD-optimized normalization
+    sceneData.lightDirection = Vec4(lightDir, 0.0f);
 
     sceneData.time = m_time;
 
-    // Update material data with animated values
+    // Update material data with animated values using Vec4 operations
     MaterialUniforms materialData = {};
-    materialData.baseColor[0] = 0.8f + 0.2f * sinf(m_time * 0.7f);
-    materialData.baseColor[1] = 0.8f + 0.2f * sinf(m_time * 0.9f + 2.0f);
-    materialData.baseColor[2] = 0.8f + 0.2f * sinf(m_time * 1.1f + 4.0f);
-    materialData.baseColor[3] = 1.0f;
 
-    materialData.emissiveColor[0] = 0.1f + 0.1f * sinf(m_time * 2.0f);
-    materialData.emissiveColor[1] = 0.2f + 0.2f * sinf(m_time * 1.5f + 1.0f);
-    materialData.emissiveColor[2] = 0.4f + 0.4f * sinf(m_time * 1.8f + 3.0f);
-    materialData.emissiveColor[3] = 1.0f;
+    // Use SIMD-optimized vector operations for color animation
+    Vec4 baseColorAnim(
+        0.8f + 0.2f * sinf(m_time * 0.7f),
+        0.8f + 0.2f * sinf(m_time * 0.9f + 2.0f),
+        0.8f + 0.2f * sinf(m_time * 1.1f + 4.0f),
+        1.0f);
+    materialData.baseColor = baseColorAnim;
+
+    Vec4 emissiveColorAnim(
+        0.1f + 0.1f * sinf(m_time * 2.0f),
+        0.2f + 0.2f * sinf(m_time * 1.5f + 1.0f),
+        0.4f + 0.4f * sinf(m_time * 1.8f + 3.0f),
+        1.0f);
+    materialData.emissiveColor = emissiveColorAnim;
 
     materialData.metallic = 0.5f + 0.5f * sinf(m_time * 0.4f);
     materialData.roughness = 0.3f + 0.4f * sinf(m_time * 0.6f + 1.5f);

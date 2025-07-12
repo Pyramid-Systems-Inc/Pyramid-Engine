@@ -342,7 +342,7 @@ namespace Pyramid
                 {
                     if (!IsEnabled())
                     {
-                        return m.Transposed(); // Fallback to scalar
+                        return m.Transpose(); // Fallback to scalar
                     }
 
                     __m128 row0 = _mm_load_ps(&m.m[0]);

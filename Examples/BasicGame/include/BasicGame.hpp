@@ -4,6 +4,7 @@
 #include <Pyramid/Graphics/Buffer/VertexArray.hpp>
 #include <Pyramid/Graphics/Buffer/UniformBuffer.hpp>
 #include <Pyramid/Graphics/Texture.hpp>
+#include <Pyramid/Math/Math.hpp>
 #include <memory>
 #include <vector>
 #include <string>
@@ -35,10 +36,10 @@ private:
     // Scene uniform data structure (std140 layout)
     struct SceneUniforms
     {
-        float viewMatrix[16];       // 4x4 matrix
-        float projectionMatrix[16]; // 4x4 matrix
-        float cameraPosition[4];    // Vec4
-        float lightDirection[4];    // Vec4
+        Pyramid::Math::Mat4 viewMatrix;
+        Pyramid::Math::Mat4 projectionMatrix;
+        Pyramid::Math::Vec4 cameraPosition;
+        Pyramid::Math::Vec4 lightDirection;
         float time;
         float padding[3]; // Ensure 16-byte alignment
     };
@@ -46,8 +47,8 @@ private:
     // Material uniform data structure (std140 layout)
     struct MaterialUniforms
     {
-        float baseColor[4];     // Vec4
-        float emissiveColor[4]; // Vec4
+        Pyramid::Math::Vec4 baseColor;
+        Pyramid::Math::Vec4 emissiveColor;
         float metallic;
         float roughness;
         float textureScale;
