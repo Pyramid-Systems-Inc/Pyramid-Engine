@@ -86,3 +86,33 @@ target_include_directories(TestJPEGIDCT
 )
 
 set_target_properties(TestJPEGIDCT PROPERTIES FOLDER "Tests")
+
+# JPEG Color Converter Test
+add_executable(TestJPEGColorConverter TestJPEGColorConverter.cpp)
+
+target_link_libraries(TestJPEGColorConverter
+    PRIVATE
+        PyramidEngine
+)
+
+target_include_directories(TestJPEGColorConverter
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../include
+)
+
+set_target_properties(TestJPEGColorConverter PROPERTIES FOLDER "Tests")
+
+# JPEG Integration Test
+add_executable(TestJPEGIntegration TestJPEGIntegration.cpp)
+
+target_link_libraries(TestJPEGIntegration
+    PRIVATE
+        PyramidEngine
+)
+
+target_include_directories(TestJPEGIntegration
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../include
+)
+
+set_target_properties(TestJPEGIntegration PROPERTIES FOLDER "Tests")
