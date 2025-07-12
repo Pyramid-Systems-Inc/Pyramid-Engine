@@ -3,6 +3,12 @@
 #include <memory>
 #include <string> // Added for std::string
 
+// Forward declaration to avoid circular dependency
+namespace Pyramid
+{
+    enum class BufferUsage;
+}
+
 namespace Pyramid
 {
     // Forward declarations
@@ -10,9 +16,6 @@ namespace Pyramid
     class IShader;
     class ITexture2D;            // Added
     struct TextureSpecification; // Added
-
-    // Forward declaration for BufferUsage
-    enum class BufferUsage;
 
     /**
      * @brief Interface for graphics device implementations
@@ -107,7 +110,14 @@ namespace Pyramid
          * @param usage Buffer usage pattern (static, dynamic, stream)
          * @return std::shared_ptr<IUniformBuffer> The created uniform buffer, or nullptr on failure
          */
-        virtual std::shared_ptr<class IUniformBuffer> CreateUniformBuffer(size_t size, BufferUsage usage = BufferUsage::Dynamic) = 0;
+        virtual std::shared_ptr<class IUniformBuffer> CreateUniformBuffer(size_t size, BufferUsage usage) = 0;
+
+        /**
+         * @brief Create a uniform buffer object with dynamic usage (convenience overload)
+         * @param size Size of the buffer in bytes
+         * @return std::shared_ptr<IUniformBuffer> The created uniform buffer, or nullptr on failure
+         */
+        std::shared_ptr<class IUniformBuffer> CreateUniformBuffer(size_t size);
 
         /**
          * @brief Create a graphics device for the specified API

@@ -17,4 +17,9 @@ namespace Pyramid
         }
     }
 
+    std::shared_ptr<IUniformBuffer> IGraphicsDevice::CreateUniformBuffer(size_t size)
+    {
+        return CreateUniformBuffer(size, BufferUsage::Dynamic);
+    }
+
 } // namespace Pyramid
