@@ -158,8 +158,8 @@ void BasicGame::onCreate()
     PYRAMID_LOG_INFO("SIMD Available: ", Pyramid::Math::SIMD::IsAvailable() ? "Yes" : "No");
     PYRAMID_LOG_INFO("SIMD Enabled: ", Pyramid::Math::SIMD::IsEnabled() ? "Yes" : "No");
 
-    // Demonstrate SIMD operations
-    DemonstrateSIMDOperations();
+    // Demonstrate SIMD operations (disabled for now)
+    // DemonstrateSIMDOperations();
 
     // Demonstrate new systems
     DemonstrateSceneManagement();
@@ -211,12 +211,14 @@ void BasicGame::onCreate()
 
     // Create a simple 3D cube to demonstrate all advanced systems
     // Each vertex has: Position[3], Normal[3], TexCoord[2], Color[3]
+    // Make the cube bigger and more visible
+    float size = 1.0f; // Increased from 0.5f
     Vertex vertices[] = {
-        // Front face (Z+)
-        {{-0.5f, -0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.2f, 0.2f}}, // Red
-        {{0.5f, -0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {1.0f, 0.2f, 0.2f}},
-        {{0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.2f, 0.2f}},
-        {{-0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {1.0f, 0.2f, 0.2f}},
+        // Front face (Z+) - Bright Red
+        {{-size, -size, size}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}, // Bright Red
+        {{size, -size, size}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+        {{size, size, size}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
+        {{-size, size, size}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
 
         // Back face (Z-)
         {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}, {0.2f, 1.0f, 0.2f}}, // Green
@@ -466,6 +468,17 @@ void BasicGame::UpdateUniformBuffers(float deltaTime)
         sceneData.cameraDirection = Vec4(m_camera->GetForward(), 0.0f);
         sceneData.nearPlane = m_camera->GetNearPlane();
         sceneData.farPlane = m_camera->GetFarPlane();
+
+        // Debug output for camera data
+        static float lastDebugTime = 0.0f;
+        if (m_time - lastDebugTime > 2.0f) // Debug every 2 seconds
+        {
+            Vec3 pos = m_camera->GetPosition();
+            Vec3 forward = m_camera->GetForward();
+            PYRAMID_LOG_INFO("Camera Debug - Position: (", pos.x, ", ", pos.y, ", ", pos.z, ")");
+            PYRAMID_LOG_INFO("Camera Debug - Forward: (", forward.x, ", ", forward.y, ", ", forward.z, ")");
+            lastDebugTime = m_time;
+        }
     }
     else
     {
@@ -536,8 +549,8 @@ void BasicGame::onUpdate(float deltaTime)
     UpdateScene(deltaTime);
     UpdateUniformBuffers(deltaTime);
 
-    // Demonstrate all advanced systems
-    DemonstrateSIMDOperations();
+    // Demonstrate all advanced systems (SIMD disabled for now)
+    // DemonstrateSIMDOperations();
     DemonstrateSceneGraph();
     DemonstrateFrustumCulling();
 
@@ -567,8 +580,32 @@ void BasicGame::onUpdate(float deltaTime)
 
 void BasicGame::onRender()
 {
+    auto device = GetGraphicsDevice();
+    if (!device)
+        return;
+
+    // Set clear color to dark blue instead of green
+    device->SetClearColor(0.1f, 0.1f, 0.2f, 1.0f);
+
+    // Debug viewport info
+    static bool viewportLogged = false;
+    if (!viewportLogged)
+    {
+        // Get window size for debugging
+        auto window = GetWindow();
+        if (window)
+        {
+            PYRAMID_LOG_INFO("Window size: ", window->GetWidth(), "x", window->GetHeight());
+        }
+        viewportLogged = true;
+    }
+
     if (m_shader && m_vertexArray && m_sceneUBO && m_materialUBO)
     {
+        // Enable depth testing
+        device->EnableDepthTest(true);
+        device->SetDepthFunc(GL_LESS);
+
         m_shader->Bind();
 
         // Ensure uniform buffers are bound to their binding points
@@ -579,9 +616,24 @@ void BasicGame::onRender()
 
         // Render the basic 3D cube
         m_vertexArray->Bind();
-        GetGraphicsDevice()->DrawIndexed(m_vertexArray->GetIndexBuffer()->GetCount());
+        device->DrawIndexed(m_vertexArray->GetIndexBuffer()->GetCount());
         m_vertexArray->Unbind();
         m_shader->Unbind();
+
+        // Debug output every few seconds
+        static float lastRenderDebugTime = 0.0f;
+        if (m_time - lastRenderDebugTime > 3.0f)
+        {
+            PYRAMID_LOG_INFO("Rendering cube with ", m_vertexArray->GetIndexBuffer()->GetCount(), " indices");
+            lastRenderDebugTime = m_time;
+        }
+    }
+    else
+    {
+        PYRAMID_LOG_ERROR("Missing rendering components: shader=", (m_shader ? "OK" : "NULL"),
+                          " VAO=", (m_vertexArray ? "OK" : "NULL"),
+                          " sceneUBO=", (m_sceneUBO ? "OK" : "NULL"),
+                          " materialUBO=", (m_materialUBO ? "OK" : "NULL"));
     }
 
     // Demonstrate OpenGL 4.6 advanced rendering features
@@ -791,8 +843,16 @@ void BasicGame::UpdateCamera(float deltaTime)
     if (!m_camera)
         return;
 
-    // Simple camera animation
+    // Fixed camera position for debugging - disable animation temporarily
     using namespace Pyramid::Math;
+
+    // Static camera position to see the cube clearly
+    Vec3 position(0.0f, 0.0f, 3.0f); // Simple position in front of cube
+    m_camera->SetPosition(position);
+    m_camera->LookAt(Vec3::Zero, Vec3::Up);
+
+    // Uncomment for animated camera:
+    /*
     float radius = 5.0f;
     Vec3 position(
         cos(m_time * 0.5f) * radius,
@@ -801,6 +861,7 @@ void BasicGame::UpdateCamera(float deltaTime)
 
     m_camera->SetPosition(position);
     m_camera->LookAt(Vec3::Zero, Vec3::Up);
+    */
 }
 
 void BasicGame::UpdateScene(float deltaTime)
