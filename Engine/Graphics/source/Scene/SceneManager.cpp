@@ -1,13 +1,13 @@
 #include <Pyramid/Graphics/Scene/SceneManager.hpp>
 #include <Pyramid/Graphics/Scene/Octree.hpp>
 #include <Pyramid/Graphics/Camera.hpp>
-#include <Pyramid/Utils/Logger.hpp>
+// TODO: Add proper logging when available
 #include <fstream>
 #include <chrono>
 
 namespace Pyramid
 {
-    namespace Scene
+    namespace SceneManagement
     {
 
         SceneManager::SceneManager()

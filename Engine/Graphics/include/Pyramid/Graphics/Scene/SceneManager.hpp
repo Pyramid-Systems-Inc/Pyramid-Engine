@@ -216,5 +216,5 @@ namespace Pyramid
             void OptimizeScene(std::shared_ptr<Pyramid::Scene> scene);
         }
 
-    } // namespace Scene
+    } // namespace SceneManagement
 } // namespace Pyramid

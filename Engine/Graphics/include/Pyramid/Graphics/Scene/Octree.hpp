@@ -10,7 +10,7 @@
 
 namespace Pyramid
 {
-    namespace Scene
+    namespace SceneManagement
     {
 
         /**
