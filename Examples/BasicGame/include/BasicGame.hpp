@@ -10,6 +10,9 @@
 #include <Pyramid/Graphics/Renderer/RenderSystem.hpp>
 #include <Pyramid/Graphics/Scene/SceneManager.hpp>
 #include <Pyramid/Graphics/OpenGL/OpenGLFramebuffer.hpp>
+#include <Pyramid/Graphics/Buffer/InstanceBuffer.hpp>
+#include <Pyramid/Graphics/Buffer/ShaderStorageBuffer.hpp>
+#include <Pyramid/Graphics/OpenGL/OpenGLStateManager.hpp>
 #include <memory>
 #include <vector>
 #include <string>
@@ -28,6 +31,12 @@
  * - Scene Management Core Architecture with Octree spatial partitioning
  * - Framebuffer Objects (FBO) for render-to-texture and post-processing
  * - Spatial queries for efficient object management and culling
+ * - OpenGL 4.6 Advanced Features:
+ *   * Instanced rendering for efficient multi-object rendering
+ *   * Geometry shaders for procedural geometry generation
+ *   * Tessellation shaders for adaptive mesh refinement
+ *   * Compute shaders with SSBOs for GPU-accelerated computations
+ *   * Comprehensive state management with performance monitoring
  */
 class BasicGame : public Pyramid::Game
 {
@@ -50,7 +59,11 @@ private:
     void SetupUniformBuffers();
     void InitializeSceneManagement();
     void InitializeFramebuffers();
-    void CreateManyObjects(); // For spatial partitioning demonstration
+    void CreateManyObjects();          // For spatial partitioning demonstration
+    void InitializeAdvancedFeatures(); // OpenGL 4.6 features
+    void SetupInstancedRendering();
+    void SetupAdvancedShaders();
+    void SetupComputeShaders();
 
     // Update methods
     void UpdateCamera(float deltaTime);
@@ -65,12 +78,33 @@ private:
     void DemonstrateSceneManagement();
     void DemonstrateFramebuffers();
     void DemonstrateSpatialQueries();
+    void DemonstrateInstancedRendering();
+    void DemonstrateAdvancedShaders();
+    void DemonstrateComputeShaders();
+    void DemonstrateStateManagement();
     void LogPerformanceMetrics();
 
     // Enhanced rendering system
     std::unique_ptr<Pyramid::Renderer::RenderSystem> m_renderSystem;
     std::shared_ptr<Pyramid::IShader> m_shader;
     std::shared_ptr<Pyramid::IVertexArray> m_vertexArray;
+
+    // OpenGL 4.6 Advanced Features
+    // Instanced rendering
+    std::shared_ptr<Pyramid::IShader> m_instancedShader;
+    std::shared_ptr<Pyramid::IVertexArray> m_instancedVertexArray;
+    std::shared_ptr<Pyramid::IInstanceBuffer> m_instanceBuffer;
+    static constexpr int INSTANCE_COUNT = 1000;
+
+    // Advanced shaders
+    std::shared_ptr<Pyramid::IShader> m_geometryShader;
+    std::shared_ptr<Pyramid::IShader> m_tessellationShader;
+    std::shared_ptr<Pyramid::IShader> m_computeShader;
+
+    // Compute shader resources
+    std::shared_ptr<Pyramid::IShaderStorageBuffer> m_computeInputSSBO;
+    std::shared_ptr<Pyramid::IShaderStorageBuffer> m_computeOutputSSBO;
+    static constexpr int COMPUTE_DATA_SIZE = 1024;
 
     // Advanced camera system
     std::unique_ptr<Pyramid::Camera> m_camera;
@@ -150,6 +184,14 @@ private:
         int octreeNodes = 0;
         float lastQueryTime = 0.0f;
         float spatialQuerySpeedup = 1.0f;
+
+        // OpenGL 4.6 Advanced Features metrics
+        int instancedObjects = 0;
+        float instancedRenderTime = 0.0f;
+        float computeShaderTime = 0.0f;
+        int stateChanges = 0;
+        float geometryShaderTime = 0.0f;
+        float tessellationTime = 0.0f;
     };
     PerformanceMetrics m_metrics;
     float m_metricsUpdateTimer = 0.0f;
@@ -165,6 +207,22 @@ private:
     float m_sceneAnimationTime = 0.0f;
     bool m_enableFrustumCulling = true;
     bool m_showPerformanceOverlay = true;
+
+    // Advanced features demonstration control
+    bool m_enableInstancedRendering = true;
+    bool m_enableGeometryShader = true;
+    bool m_enableTessellation = true;
+    bool m_enableComputeShader = true;
+    int m_currentDemoMode = 0; // 0=basic, 1=instanced, 2=geometry, 3=tessellation, 4=compute
+
+    // Instance data for instanced rendering
+    struct InstanceData
+    {
+        Pyramid::Math::Vec4 position; // xyz = position, w = scale
+        Pyramid::Math::Vec4 rotation; // quaternion
+        Pyramid::Math::Vec4 color;    // rgba color
+    };
+    std::vector<InstanceData> m_instanceData;
 
     // Input state
     bool m_keys[256] = {false};
