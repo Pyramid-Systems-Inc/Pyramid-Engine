@@ -10,6 +10,7 @@ target_sources(PyramidEngine
         source/OpenGL/Shader/OpenGLShader.cpp
         source/Texture.cpp # Added
         source/OpenGL/OpenGLTexture.cpp # Added
+        source/OpenGL/OpenGLFramebuffer.cpp # Added - FBO Implementation
         source/Renderer/RenderSystem.cpp
         source/Camera.cpp
         source/Scene.cpp
@@ -38,6 +39,7 @@ target_sources(PyramidEngine
         include/Pyramid/Graphics/OpenGL/Buffer/OpenGLUniformBuffer.hpp
         include/Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp
         include/Pyramid/Graphics/OpenGL/OpenGLTexture.hpp # Added
+        include/Pyramid/Graphics/OpenGL/OpenGLFramebuffer.hpp # Added - FBO Implementation
 )
 
 target_include_directories(PyramidEngine
