@@ -3,6 +3,7 @@
 #include "Pyramid/Graphics/Buffer/VertexBuffer.hpp"
 #include "Pyramid/Graphics/Buffer/IndexBuffer.hpp"
 #include "Pyramid/Graphics/Buffer/BufferLayout.hpp" // Added
+#include <Pyramid/Util/Log.hpp>                     // Added for logging
 #include <glad/glad.h>
 
 namespace Pyramid
@@ -13,26 +14,37 @@ namespace Pyramid
     {
         switch (type)
         {
-            case ShaderDataType::Float:    return GL_FLOAT;
-            case ShaderDataType::Float2:   return GL_FLOAT;
-            case ShaderDataType::Float3:   return GL_FLOAT;
-            case ShaderDataType::Float4:   return GL_FLOAT;
-            case ShaderDataType::Mat3:     return GL_FLOAT;
-            case ShaderDataType::Mat4:     return GL_FLOAT;
-            case ShaderDataType::Int:      return GL_INT;
-            case ShaderDataType::Int2:     return GL_INT;
-            case ShaderDataType::Int3:     return GL_INT;
-            case ShaderDataType::Int4:     return GL_INT;
-            case ShaderDataType::Bool:     return GL_BOOL;
-            default: break;
+        case ShaderDataType::Float:
+            return GL_FLOAT;
+        case ShaderDataType::Float2:
+            return GL_FLOAT;
+        case ShaderDataType::Float3:
+            return GL_FLOAT;
+        case ShaderDataType::Float4:
+            return GL_FLOAT;
+        case ShaderDataType::Mat3:
+            return GL_FLOAT;
+        case ShaderDataType::Mat4:
+            return GL_FLOAT;
+        case ShaderDataType::Int:
+            return GL_INT;
+        case ShaderDataType::Int2:
+            return GL_INT;
+        case ShaderDataType::Int3:
+            return GL_INT;
+        case ShaderDataType::Int4:
+            return GL_INT;
+        case ShaderDataType::Bool:
+            return GL_BOOL;
+        default:
+            break;
         }
         // PYRAMID_CORE_ASSERT(false, "Unknown ShaderDataType!");
         return 0;
     }
 
-
     OpenGLVertexArray::OpenGLVertexArray()
-        : m_rendererID(0)
+        : m_rendererID(0), m_nextAttributeIndex(0)
     {
         glGenVertexArrays(1, &m_rendererID);
     }
@@ -53,7 +65,7 @@ namespace Pyramid
         glBindVertexArray(0);
     }
 
-    void OpenGLVertexArray::AddVertexBuffer(const std::shared_ptr<IVertexBuffer>& vertexBuffer, const BufferLayout& layout)
+    void OpenGLVertexArray::AddVertexBuffer(const std::shared_ptr<IVertexBuffer> &vertexBuffer, const BufferLayout &layout)
     {
         if (layout.GetElements().empty())
         {
@@ -64,9 +76,8 @@ namespace Pyramid
         glBindVertexArray(m_rendererID);
         vertexBuffer->Bind();
 
-        u32 attributeIndex = 0; // Assuming attribute indices start from 0 and are contiguous for this VBO
-                               // More complex scenarios might need explicit location binding in shaders.
-        for (const auto& element : layout)
+        u32 attributeIndex = m_nextAttributeIndex; // Use next available attribute index
+        for (const auto &element : layout)
         {
             glEnableVertexAttribArray(attributeIndex);
             glVertexAttribPointer(
@@ -75,18 +86,65 @@ namespace Pyramid
                 ShaderDataTypeToOpenGLBaseType(element.Type),
                 element.Normalized ? GL_TRUE : GL_FALSE,
                 layout.GetStride(),
-                (const void*)(intptr_t)element.Offset // Cast to intptr_t then to const void* for offset
+                (const void *)(intptr_t)element.Offset // Cast to intptr_t then to const void* for offset
             );
             attributeIndex++;
         }
+        m_nextAttributeIndex = attributeIndex; // Update next available index
         m_vertexBuffers.push_back(vertexBuffer);
     }
 
-    void OpenGLVertexArray::SetIndexBuffer(const std::shared_ptr<IIndexBuffer>& indexBuffer)
+    void OpenGLVertexArray::SetIndexBuffer(const std::shared_ptr<IIndexBuffer> &indexBuffer)
     {
         glBindVertexArray(m_rendererID);
         indexBuffer->Bind();
         m_indexBuffer = indexBuffer;
+    }
+
+    void OpenGLVertexArray::AddInstanceBuffer(const std::shared_ptr<IInstanceBuffer> &instanceBuffer, const BufferLayout &layout, u32 startingAttributeIndex)
+    {
+        if (layout.GetElements().empty())
+        {
+            PYRAMID_LOG_WARN("Instance buffer has no layout!");
+            return;
+        }
+
+        glBindVertexArray(m_rendererID);
+        instanceBuffer->Bind();
+
+        u32 attributeIndex = startingAttributeIndex;
+        for (const auto &element : layout)
+        {
+            glEnableVertexAttribArray(attributeIndex);
+            glVertexAttribPointer(
+                attributeIndex,
+                ShaderDataTypeComponentCount(element.Type),
+                ShaderDataTypeToOpenGLBaseType(element.Type),
+                element.Normalized ? GL_TRUE : GL_FALSE,
+                layout.GetStride(),
+                (const void *)(intptr_t)element.Offset);
+
+            // Set the attribute divisor to 1 for per-instance data
+            glVertexAttribDivisor(attributeIndex, 1);
+            attributeIndex++;
+        }
+
+        m_instanceBuffer = instanceBuffer;
+        PYRAMID_LOG_DEBUG("Added instance buffer with ", layout.GetElements().size(), " attributes starting at index ", startingAttributeIndex);
+    }
+
+    void OpenGLVertexArray::RemoveInstanceBuffer()
+    {
+        if (!m_instanceBuffer)
+        {
+            PYRAMID_LOG_WARN("No instance buffer to remove");
+            return;
+        }
+
+        // We would need to track which attributes were used for instancing to disable them properly
+        // For now, we'll just clear the instance buffer reference
+        m_instanceBuffer.reset();
+        PYRAMID_LOG_DEBUG("Removed instance buffer");
     }
 
 } // namespace Pyramid

@@ -90,6 +90,19 @@ namespace Pyramid
                     GLbitfield mask = GL_COLOR_BUFFER_BIT,
                     GLenum filter = GL_LINEAR) const;
 
+        // Multisampled resolve operations
+        void ResolveMultisampleTo(const OpenGLFramebuffer &target) const;
+        void ResolveMultisampleTo(const OpenGLFramebuffer &target, u32 colorAttachment) const;
+
+        // Advanced blitting with specific attachments
+        void BlitColorAttachmentTo(const OpenGLFramebuffer &target, u32 srcAttachment, u32 dstAttachment,
+                                   u32 srcX0, u32 srcY0, u32 srcX1, u32 srcY1,
+                                   u32 dstX0, u32 dstY0, u32 dstX1, u32 dstY1,
+                                   GLenum filter = GL_LINEAR) const;
+        void BlitDepthTo(const OpenGLFramebuffer &target,
+                         u32 srcX0, u32 srcY0, u32 srcX1, u32 srcY1,
+                         u32 dstX0, u32 dstY0, u32 dstX1, u32 dstY1) const;
+
         // State queries
         bool IsComplete() const;
         bool IsMultisampled() const { return m_spec.samples > 1; }
@@ -104,6 +117,13 @@ namespace Pyramid
         // Utility methods
         void SaveColorAttachmentToFile(u32 attachmentIndex, const std::string &filepath) const;
         std::vector<u8> ReadColorAttachmentPixels(u32 attachmentIndex) const;
+        void SaveDepthAttachmentToFile(const std::string &filepath) const;
+        std::vector<f32> ReadDepthAttachmentPixels() const;
+
+        // Performance and debugging utilities
+        void GenerateMipmaps(u32 colorAttachment = 0) const;
+        void SetDebugLabel(const std::string &label) const;
+        std::string GetDebugInfo() const;
 
     private:
         void CreateAttachments();

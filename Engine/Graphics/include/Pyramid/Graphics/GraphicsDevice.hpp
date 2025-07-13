@@ -55,6 +55,21 @@ namespace Pyramid
         virtual void DrawIndexed(u32 count) = 0;
 
         /**
+         * @brief Draw indexed primitives with instancing
+         * @param indexCount The number of indices to draw per instance
+         * @param instanceCount The number of instances to draw
+         */
+        virtual void DrawIndexedInstanced(u32 indexCount, u32 instanceCount) = 0;
+
+        /**
+         * @brief Draw arrays with instancing
+         * @param vertexCount The number of vertices to draw per instance
+         * @param instanceCount The number of instances to draw
+         * @param firstVertex The first vertex to start drawing from
+         */
+        virtual void DrawArraysInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex = 0) = 0;
+
+        /**
          * @brief Set the viewport dimensions
          * @param x The x-coordinate of the viewport
          * @param y The y-coordinate of the viewport

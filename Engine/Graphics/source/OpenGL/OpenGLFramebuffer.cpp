@@ -323,6 +323,72 @@ namespace Pyramid
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
+    void OpenGLFramebuffer::ResolveMultisampleTo(const OpenGLFramebuffer &target) const
+    {
+        if (!IsMultisampled())
+        {
+            PYRAMID_LOG_WARN("Source framebuffer is not multisampled, using regular blit");
+        }
+
+        BlitTo(target, 0, 0, m_spec.width, m_spec.height,
+               0, 0, target.GetWidth(), target.GetHeight(),
+               GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT,
+               GL_NEAREST);
+    }
+
+    void OpenGLFramebuffer::ResolveMultisampleTo(const OpenGLFramebuffer &target, u32 colorAttachment) const
+    {
+        if (!IsMultisampled())
+        {
+            PYRAMID_LOG_WARN("Source framebuffer is not multisampled, using regular blit");
+        }
+
+        // Set specific read and draw buffers for the color attachment
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, m_framebufferID);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target.GetFramebufferID());
+
+        glReadBuffer(GetColorAttachmentEnum(colorAttachment));
+        glDrawBuffer(GetColorAttachmentEnum(colorAttachment));
+
+        glBlitFramebuffer(0, 0, m_spec.width, m_spec.height,
+                          0, 0, target.GetWidth(), target.GetHeight(),
+                          GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    void OpenGLFramebuffer::BlitColorAttachmentTo(const OpenGLFramebuffer &target, u32 srcAttachment, u32 dstAttachment,
+                                                  u32 srcX0, u32 srcY0, u32 srcX1, u32 srcY1,
+                                                  u32 dstX0, u32 dstY0, u32 dstX1, u32 dstY1,
+                                                  GLenum filter) const
+    {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, m_framebufferID);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target.GetFramebufferID());
+
+        glReadBuffer(GetColorAttachmentEnum(srcAttachment));
+        glDrawBuffer(GetColorAttachmentEnum(dstAttachment));
+
+        glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1,
+                          dstX0, dstY0, dstX1, dstY1,
+                          GL_COLOR_BUFFER_BIT, filter);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    void OpenGLFramebuffer::BlitDepthTo(const OpenGLFramebuffer &target,
+                                        u32 srcX0, u32 srcY0, u32 srcX1, u32 srcY1,
+                                        u32 dstX0, u32 dstY0, u32 dstX1, u32 dstY1) const
+    {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, m_framebufferID);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target.GetFramebufferID());
+
+        glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1,
+                          dstX0, dstY0, dstX1, dstY1,
+                          GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
     bool OpenGLFramebuffer::IsComplete() const
     {
         if (m_spec.swapChainTarget)
@@ -861,5 +927,100 @@ namespace Pyramid
         }
 
     } // namespace FramebufferUtils
+
+    // Additional utility method implementations
+    void OpenGLFramebuffer::SaveDepthAttachmentToFile(const std::string &filepath) const
+    {
+        if (m_depthAttachmentTexture == 0 && m_depthStencilAttachmentTexture == 0)
+        {
+            PYRAMID_LOG_ERROR("No depth attachment to save");
+            return;
+        }
+
+        auto pixels = ReadDepthAttachmentPixels();
+        if (pixels.empty())
+        {
+            PYRAMID_LOG_ERROR("Failed to read depth attachment pixels");
+            return;
+        }
+
+        // Convert depth values to 8-bit grayscale for saving
+        std::vector<u8> grayscalePixels;
+        grayscalePixels.reserve(pixels.size());
+
+        for (f32 depth : pixels)
+        {
+            grayscalePixels.push_back(static_cast<u8>(depth * 255.0f));
+        }
+
+        // Save as simple grayscale format (this is a basic implementation)
+        std::ofstream file(filepath, std::ios::binary);
+        if (file.is_open())
+        {
+            // Write simple header for raw grayscale
+            file.write(reinterpret_cast<const char *>(grayscalePixels.data()), grayscalePixels.size());
+            file.close();
+            PYRAMID_LOG_INFO("Depth attachment saved to: ", filepath);
+        }
+        else
+        {
+            PYRAMID_LOG_ERROR("Failed to open file for writing: ", filepath);
+        }
+    }
+
+    std::vector<f32> OpenGLFramebuffer::ReadDepthAttachmentPixels() const
+    {
+        if (m_depthAttachmentTexture == 0 && m_depthStencilAttachmentTexture == 0)
+        {
+            PYRAMID_LOG_ERROR("No depth attachment to read");
+            return {};
+        }
+
+        Bind();
+
+        std::vector<f32> pixels(m_spec.width * m_spec.height);
+        glReadBuffer(GL_NONE);
+        glReadPixels(0, 0, m_spec.width, m_spec.height, GL_DEPTH_COMPONENT, GL_FLOAT, pixels.data());
+
+        Unbind();
+        return pixels;
+    }
+
+    void OpenGLFramebuffer::GenerateMipmaps(u32 colorAttachment) const
+    {
+        if (colorAttachment >= m_colorAttachmentTextures.size() || m_colorAttachmentTextures[colorAttachment] == 0)
+        {
+            PYRAMID_LOG_ERROR("Invalid color attachment index for mipmap generation: ", colorAttachment);
+            return;
+        }
+
+        GLuint texture = m_colorAttachmentTextures[colorAttachment];
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        PYRAMID_LOG_DEBUG("Generated mipmaps for color attachment ", colorAttachment);
+    }
+
+    void OpenGLFramebuffer::SetDebugLabel(const std::string &label) const
+    {
+        if (m_framebufferID != 0)
+        {
+            glObjectLabel(GL_FRAMEBUFFER, m_framebufferID, static_cast<GLsizei>(label.length()), label.c_str());
+        }
+    }
+
+    std::string OpenGLFramebuffer::GetDebugInfo() const
+    {
+        std::string info = "Framebuffer Debug Info:\n";
+        info += "  ID: " + std::to_string(m_framebufferID) + "\n";
+        info += "  Size: " + std::to_string(m_spec.width) + "x" + std::to_string(m_spec.height) + "\n";
+        info += "  Samples: " + std::to_string(m_spec.samples) + "\n";
+        info += "  Attachments: " + std::to_string(m_spec.attachments.size()) + "\n";
+        info += "  Color Attachments: " + std::to_string(m_colorAttachmentTextures.size()) + "\n";
+        info += "  Has Depth: " + std::string((m_depthAttachmentTexture != 0 || m_depthStencilAttachmentTexture != 0) ? "Yes" : "No") + "\n";
+        info += "  Complete: " + std::string(IsComplete() ? "Yes" : "No") + "\n";
+        return info;
+    }
 
 } // namespace Pyramid
