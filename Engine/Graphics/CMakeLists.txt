@@ -13,6 +13,8 @@ target_sources(PyramidEngine
         source/Renderer/RenderSystem.cpp
         source/Camera.cpp
         source/Scene.cpp
+        source/Scene/SceneManager.cpp
+        source/Scene/Octree.cpp
     PUBLIC
         include/Pyramid/Graphics/GraphicsDevice.hpp
         include/Pyramid/Graphics/Buffer/VertexBuffer.hpp
@@ -27,6 +29,8 @@ target_sources(PyramidEngine
         include/Pyramid/Graphics/Renderer/RenderPasses.hpp
         include/Pyramid/Graphics/Camera.hpp
         include/Pyramid/Graphics/Scene.hpp
+        include/Pyramid/Graphics/Scene/SceneManager.hpp
+        include/Pyramid/Graphics/Scene/Octree.hpp
         include/Pyramid/Graphics/OpenGL/OpenGLDevice.hpp
         include/Pyramid/Graphics/OpenGL/Buffer/OpenGLIndexBuffer.hpp
         include/Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexArray.hpp

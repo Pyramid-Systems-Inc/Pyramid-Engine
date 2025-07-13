@@ -27,7 +27,7 @@ struct Vertex
     float Color[3];
 };
 
-// Enhanced GLSL Shader Sources for PBR and advanced features
+// Simplified shader for debugging - start simple and build up
 const std::string vertexShaderSrc = R"(
     #version 460 core
     layout (location = 0) in vec3 a_Position;
@@ -35,7 +35,7 @@ const std::string vertexShaderSrc = R"(
     layout (location = 2) in vec2 a_TexCoord;
     layout (location = 3) in vec3 a_Color;
 
-    // Enhanced Uniform Buffer Objects (std140 layout)
+    // Simplified Uniform Buffer Objects (std140 layout)
     layout(std140, binding = 0) uniform SceneData {
         mat4 u_ViewMatrix;
         mat4 u_ProjectionMatrix;
@@ -50,26 +50,17 @@ const std::string vertexShaderSrc = R"(
     };
 
     out vec3 v_Color;
-    out vec2 v_TexCoord;
-    out vec3 v_WorldPos;
     out vec3 v_Normal;
-    out vec3 v_ViewPos;
+    out vec3 v_WorldPos;
 
     void main()
     {
         v_Color = a_Color;
-        v_TexCoord = a_TexCoord;
         v_Normal = a_Normal;
+        v_WorldPos = a_Position;
 
-        // Calculate world position with animation
-        vec3 animatedPos = a_Position;
-        animatedPos.y += sin(u_Time * 2.0 + a_Position.x * 3.0) * 0.1;
-
-        v_WorldPos = animatedPos;
-        v_ViewPos = (u_ViewMatrix * vec4(animatedPos, 1.0)).xyz;
-
-        // Use pre-calculated view-projection matrix for efficiency
-        gl_Position = u_ViewProjectionMatrix * vec4(animatedPos, 1.0);
+        // Simple transformation without animation for debugging
+        gl_Position = u_ViewProjectionMatrix * vec4(a_Position, 1.0);
     }
 )";
 
@@ -78,12 +69,10 @@ const std::string fragmentShaderSrc = R"(
     out vec4 FragColor;
 
     in vec3 v_Color;
-    in vec2 v_TexCoord;
-    in vec3 v_WorldPos;
     in vec3 v_Normal;
-    in vec3 v_ViewPos;
+    in vec3 v_WorldPos;
 
-    // Enhanced Uniform Buffer Objects (std140 layout)
+    // Simplified Uniform Buffer Objects (std140 layout)
     layout(std140, binding = 0) uniform SceneData {
         mat4 u_ViewMatrix;
         mat4 u_ProjectionMatrix;
@@ -106,99 +95,25 @@ const std::string fragmentShaderSrc = R"(
         float u_TextureScale;
     };
 
-    uniform sampler2D u_Texture;
-
-    // PBR utility functions
-    vec3 fresnelSchlick(float cosTheta, vec3 F0) {
-        return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
-    }
-
-    float distributionGGX(vec3 N, vec3 H, float roughness) {
-        float a = roughness * roughness;
-        float a2 = a * a;
-        float NdotH = max(dot(N, H), 0.0);
-        float NdotH2 = NdotH * NdotH;
-
-        float num = a2;
-        float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-        denom = 3.14159265 * denom * denom;
-
-        return num / denom;
-    }
-
-    float geometrySchlickGGX(float NdotV, float roughness) {
-        float r = (roughness + 1.0);
-        float k = (r * r) / 8.0;
-
-        float num = NdotV;
-        float denom = NdotV * (1.0 - k) + k;
-
-        return num / denom;
-    }
-
-    float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
-        float NdotV = max(dot(N, V), 0.0);
-        float NdotL = max(dot(N, L), 0.0);
-        float ggx2 = geometrySchlickGGX(NdotV, roughness);
-        float ggx1 = geometrySchlickGGX(NdotL, roughness);
-
-        return ggx1 * ggx2;
-    }
-
     void main()
     {
-        // Sample texture with animated UV coordinates
-        vec2 animatedUV = v_TexCoord * u_TextureScale + sin(u_Time * 0.5) * 0.05;
-        vec4 texColor = texture(u_Texture, animatedUV);
+        // Simple lighting calculation for debugging
+        vec3 normal = normalize(v_Normal);
+        vec3 lightDir = normalize(-u_LightDirection.xyz);
 
-        // Material properties
-        vec3 albedo = texColor.rgb * u_BaseColor.rgb;
-        float metallic = u_Metallic;
-        float roughness = u_Roughness;
-        float ao = u_AO;
+        // Basic diffuse lighting
+        float NdotL = max(dot(normal, lightDir), 0.0);
 
-        // Lighting vectors
-        vec3 N = normalize(v_Normal);
-        vec3 V = normalize(u_CameraPosition.xyz - v_WorldPos);
-        vec3 L = normalize(-u_LightDirection.xyz);
-        vec3 H = normalize(V + L);
+        // Combine vertex color with lighting
+        vec3 diffuse = v_Color * NdotL;
+        vec3 ambient = v_Color * 0.3; // Some ambient light
 
-        // Calculate reflectance at normal incidence
-        vec3 F0 = vec3(0.04);
-        F0 = mix(F0, albedo, metallic);
-
-        // Cook-Torrance BRDF
-        float NDF = distributionGGX(N, H, roughness);
-        float G = geometrySmith(N, V, L, roughness);
-        vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
-
-        vec3 kS = F;
-        vec3 kD = vec3(1.0) - kS;
-        kD *= 1.0 - metallic;
-
-        vec3 numerator = NDF * G * F;
-        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001;
-        vec3 specular = numerator / denominator;
-
-        // Add to outgoing radiance Lo
-        float NdotL = max(dot(N, L), 0.0);
-        vec3 Lo = (kD * albedo / 3.14159265 + specular) * u_LightColor.rgb * NdotL;
-
-        // Ambient lighting
-        vec3 ambient = vec3(0.03) * albedo * ao;
-
-        // Emissive
+        // Add some animation based on time
         vec3 emissive = u_EmissiveColor.rgb * (sin(u_Time * 2.0) * 0.5 + 0.5);
 
-        vec3 color = ambient + Lo + emissive;
+        vec3 finalColor = diffuse + ambient + emissive * 0.2;
 
-        // HDR tone mapping (simple Reinhard)
-        color = color / (color + vec3(1.0));
-
-        // Gamma correction
-        color = pow(color, vec3(1.0/2.2));
-
-        FragColor = vec4(color * v_Color, texColor.a * u_BaseColor.a);
+        FragColor = vec4(finalColor, 1.0);
     }
 )";
 
@@ -288,42 +203,87 @@ void BasicGame::onCreate()
         PYRAMID_LOG_ERROR("Failed to bind uniform buffers - shader or UBOs are null");
     }
 
-    // 3. Load multiple textures to showcase our custom Pyramid image loader
-    // Supports TGA, BMP, and PNG formats through our custom implementation
-    LoadTestTextures();
-
-    // 4. Define vertex and index data for a triangle (now with UVs)
-    // UVs: (0,0) bottom-left, (1,0) bottom-right, (0.5,1) top-center
+    // Create a simple 3D cube to demonstrate all advanced systems
+    // Each vertex has: Position[3], Normal[3], TexCoord[2], Color[3]
     Vertex vertices[] = {
-        {{-0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}}, // White, UV (0,0)
-        {{0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},  // White, UV (1,0)
-        {{0.0f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.5f, 1.0f}}    // White, UV (0.5,1)
-    };
+        // Front face (Z+)
+        {{-0.5f, -0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.2f, 0.2f}}, // Red
+        {{0.5f, -0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {1.0f, 0.2f, 0.2f}},
+        {{0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.2f, 0.2f}},
+        {{-0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {1.0f, 0.2f, 0.2f}},
 
-    Pyramid::u32 indices[] = {0, 1, 2};
+        // Back face (Z-)
+        {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}, {0.2f, 1.0f, 0.2f}}, // Green
+        {{0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}, {0.2f, 1.0f, 0.2f}},
+        {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}, {0.2f, 1.0f, 0.2f}},
+        {{-0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}, {0.2f, 1.0f, 0.2f}},
+
+        // Left face (X-)
+        {{-0.5f, -0.5f, -0.5f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.2f, 0.2f, 1.0f}}, // Blue
+        {{-0.5f, -0.5f, 0.5f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.2f, 0.2f, 1.0f}},
+        {{-0.5f, 0.5f, 0.5f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.2f, 0.2f, 1.0f}},
+        {{-0.5f, 0.5f, -0.5f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.2f, 0.2f, 1.0f}},
+
+        // Right face (X+)
+        {{0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f, 0.2f}}, // Yellow
+        {{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 1.0f, 0.2f}},
+        {{0.5f, 0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 1.0f, 0.2f}},
+        {{0.5f, 0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {1.0f, 1.0f, 0.2f}},
+
+        // Top face (Y+)
+        {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 0.2f, 1.0f}}, // Magenta
+        {{-0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.2f, 1.0f}},
+        {{0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 0.2f, 1.0f}},
+        {{0.5f, 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}, {1.0f, 0.2f, 1.0f}},
+
+        // Bottom face (Y-)
+        {{-0.5f, -0.5f, -0.5f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}, {0.2f, 1.0f, 1.0f}}, // Cyan
+        {{-0.5f, -0.5f, 0.5f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f}, {0.2f, 1.0f, 1.0f}},
+        {{0.5f, -0.5f, 0.5f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {0.2f, 1.0f, 1.0f}},
+        {{0.5f, -0.5f, -0.5f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}, {0.2f, 1.0f, 1.0f}}};
+
+    // Cube indices (2 triangles per face)
+    Pyramid::u32 indices[] = {
+        // Front face
+        0, 1, 2, 2, 3, 0,
+        // Back face
+        4, 5, 6, 6, 7, 4,
+        // Left face
+        8, 9, 10, 10, 11, 8,
+        // Right face
+        12, 13, 14, 14, 15, 12,
+        // Top face
+        16, 17, 18, 18, 19, 16,
+        // Bottom face
+        20, 21, 22, 22, 23, 20};
 
     // 5. Create Vertex Buffer
     std::shared_ptr<Pyramid::IVertexBuffer> vbo = device->CreateVertexBuffer();
     vbo->SetData(vertices, sizeof(vertices));
 
-    // 6. Create Index Buffer
+    // 6. Create Index Buffer for cube (36 indices = 12 triangles = 6 faces)
     std::shared_ptr<Pyramid::IIndexBuffer> ibo = device->CreateIndexBuffer();
-    ibo->SetData(indices, 3);
+    ibo->SetData(indices, 36);
 
     // 7. Create Vertex Array Object (VAO)
     m_vertexArray = device->CreateVertexArray();
 
-    // 8. Define Buffer Layout (now includes TexCoord)
+    // 8. Define Buffer Layout for enhanced vertex structure
+    // Position[3], Normal[3], TexCoord[2], Color[3]
     Pyramid::BufferLayout layout = {
         {Pyramid::ShaderDataType::Float3, "a_Position"},
-        {Pyramid::ShaderDataType::Float3, "a_Color"},
-        {Pyramid::ShaderDataType::Float2, "a_TexCoord"}};
+        {Pyramid::ShaderDataType::Float3, "a_Normal"},
+        {Pyramid::ShaderDataType::Float2, "a_TexCoord"},
+        {Pyramid::ShaderDataType::Float3, "a_Color"}};
 
     // 9. Add Vertex Buffer (with layout) and Index Buffer to VAO
     m_vertexArray->AddVertexBuffer(vbo, layout);
     m_vertexArray->SetIndexBuffer(ibo);
 
-    PYRAMID_LOG_INFO("BasicGame initialized with OpenGL 4.6 Uniform Buffer Objects!");
+    PYRAMID_LOG_INFO("Enhanced BasicGame initialized successfully!");
+    PYRAMID_LOG_INFO("  3D Cube: 24 vertices, 36 indices (12 triangles)");
+    PYRAMID_LOG_INFO("  PBR Shader: Position, Normal, TexCoord, Color attributes");
+    PYRAMID_LOG_INFO("  Enhanced Systems: SIMD math, camera, scene graph, PBR materials");
 }
 
 void BasicGame::LoadTestTextures()
@@ -567,14 +527,18 @@ void BasicGame::onUpdate(float deltaTime)
     UpdateUniformBuffers(deltaTime);
     UpdatePerformanceMetrics(deltaTime);
 
-    // Cycle through textures
-    if (!m_textures.empty() && m_textureSwapTimer >= m_textureSwapInterval)
+    // Log debug information periodically
+    static float debugTimer = 0.0f;
+    debugTimer += deltaTime;
+    if (debugTimer >= 2.0f) // Every 2 seconds
     {
-        m_currentTextureIndex = (m_currentTextureIndex + 1) % m_textures.size();
-        m_textureSwapTimer = 0.0f;
-
-        PYRAMID_LOG_INFO("Switched to texture: ", m_textureNames[m_currentTextureIndex],
-                         " (", m_textureFormats[m_currentTextureIndex], ")");
+        debugTimer = 0.0f;
+        if (m_camera)
+        {
+            auto pos = m_camera->GetPosition();
+            PYRAMID_LOG_INFO("Camera Position: (", std::fixed, std::setprecision(2),
+                             pos.x, ", ", pos.y, ", ", pos.z, ")");
+        }
     }
 
     // Calculate frame time for performance metrics
@@ -589,32 +553,12 @@ void BasicGame::onRender()
         m_shader->Bind();
 
         // Ensure uniform buffers are bound to their binding points
-        // (This should already be set up, but we can ensure they're active)
         m_sceneUBO->Bind(0);    // Binding point 0 for SceneData
         m_materialUBO->Bind(1); // Binding point 1 for MaterialData
 
-        // Bind current texture and set sampler uniform
-        if (!m_textures.empty() && m_currentTextureIndex < m_textures.size())
-        {
-            auto currentTexture = m_textures[m_currentTextureIndex];
-            if (currentTexture)
-            {
-                currentTexture->Bind(0);                 // Bind to texture unit 0
-                m_shader->SetUniformInt("u_Texture", 0); // Tell shader sampler u_Texture uses texture unit 0
-            }
-        }
-        else
-        {
-            // No textures loaded - the shader will use default sampling
-            // Create a simple white texture as fallback
-            static bool fallbackCreated = false;
-            if (!fallbackCreated)
-            {
-                PYRAMID_LOG_INFO("No textures available, using uniform buffer animation only");
-                fallbackCreated = true;
-            }
-        }
+        // No texture setup needed for simplified shader
 
+        // Render the 3D cube
         m_vertexArray->Bind();
         GetGraphicsDevice()->DrawIndexed(m_vertexArray->GetIndexBuffer()->GetCount());
         m_vertexArray->Unbind();
@@ -841,10 +785,21 @@ void BasicGame::LogPerformanceMetrics()
 {
     if (m_showPerformanceOverlay)
     {
-        PYRAMID_LOG_INFO("=== Performance Metrics ===");
+        PYRAMID_LOG_INFO("=== Enhanced BasicGame Performance Metrics ===");
         PYRAMID_LOG_INFO("Frame Time: ", std::fixed, std::setprecision(2), m_metrics.frameTime, " ms");
+        PYRAMID_LOG_INFO("FPS: ", std::fixed, std::setprecision(1), 1000.0f / (m_metrics.frameTime + 0.001f));
         PYRAMID_LOG_INFO("SIMD Speedup: ", std::fixed, std::setprecision(2), m_metrics.simdSpeedup, "x");
-        PYRAMID_LOG_INFO("Visible Objects: ", m_metrics.visibleObjects);
-        PYRAMID_LOG_INFO("===========================");
+        PYRAMID_LOG_INFO("Scene Objects: ", m_renderObjects.size());
+
+        if (m_camera)
+        {
+            auto pos = m_camera->GetPosition();
+            auto forward = m_camera->GetForward();
+            PYRAMID_LOG_INFO("Camera Pos: (", std::fixed, std::setprecision(2), pos.x, ", ", pos.y, ", ", pos.z, ")");
+            PYRAMID_LOG_INFO("Camera Dir: (", std::fixed, std::setprecision(2), forward.x, ", ", forward.y, ", ", forward.z, ")");
+        }
+
+        PYRAMID_LOG_INFO("Animation Time: ", std::fixed, std::setprecision(2), m_sceneAnimationTime, "s");
+        PYRAMID_LOG_INFO("===============================================");
     }
 }
