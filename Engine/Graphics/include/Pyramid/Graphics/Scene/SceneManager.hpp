@@ -15,7 +15,7 @@ namespace Pyramid
     class Camera;
     class Octree;
 
-    namespace Scene
+    namespace SceneManagement
     {
 
         /**
@@ -23,11 +23,11 @@ namespace Pyramid
          */
         enum class QueryType
         {
-            Point,          // Point-in-space queries
-            Sphere,         // Sphere intersection queries
-            Box,            // Axis-aligned bounding box queries
-            Frustum,        // Camera frustum queries
-            Ray             // Ray intersection queries
+            Point,   // Point-in-space queries
+            Sphere,  // Sphere intersection queries
+            Box,     // Axis-aligned bounding box queries
+            Frustum, // Camera frustum queries
+            Ray      // Ray intersection queries
         };
 
         /**
@@ -89,9 +89,9 @@ namespace Pyramid
          */
         enum class SerializationFormat
         {
-            Binary,         // Fast binary format
-            JSON,           // Human-readable JSON
-            XML             // Structured XML format
+            Binary, // Fast binary format
+            JSON,   // Human-readable JSON
+            XML     // Structured XML format
         };
 
         /**
@@ -104,9 +104,9 @@ namespace Pyramid
             ~SceneManager();
 
             // Scene management
-            std::shared_ptr<Pyramid::Scene> CreateScene(const std::string& name);
-            bool LoadScene(const std::string& filePath, SerializationFormat format = SerializationFormat::JSON);
-            bool SaveScene(const std::string& filePath, SerializationFormat format = SerializationFormat::JSON);
+            std::shared_ptr<Pyramid::Scene> CreateScene(const std::string &name);
+            bool LoadScene(const std::string &filePath, SerializationFormat format = SerializationFormat::JSON);
+            bool SaveScene(const std::string &filePath, SerializationFormat format = SerializationFormat::JSON);
             void SetActiveScene(std::shared_ptr<Pyramid::Scene> scene);
             std::shared_ptr<Pyramid::Scene> GetActiveScene() const { return m_activeScene; }
 
@@ -114,30 +114,30 @@ namespace Pyramid
             void EnableSpatialPartitioning(bool enable) { m_spatialPartitioningEnabled = enable; }
             bool IsSpatialPartitioningEnabled() const { return m_spatialPartitioningEnabled; }
             void SetOctreeDepth(u32 depth) { m_octreeMaxDepth = depth; }
-            void SetOctreeSize(const Math::Vec3& size) { m_octreeSize = size; }
+            void SetOctreeSize(const Math::Vec3 &size) { m_octreeSize = size; }
             void RebuildSpatialPartition();
 
             // Scene queries
-            QueryResult QueryScene(const QueryParams& params);
-            std::vector<std::shared_ptr<RenderObject>> GetVisibleObjects(const Camera& camera);
-            std::vector<std::shared_ptr<RenderObject>> GetObjectsInRadius(const Math::Vec3& center, f32 radius);
-            std::vector<std::shared_ptr<RenderObject>> GetObjectsInBox(const Math::Vec3& min, const Math::Vec3& max);
-            std::shared_ptr<RenderObject> GetNearestObject(const Math::Vec3& position);
+            QueryResult QueryScene(const QueryParams &params);
+            std::vector<std::shared_ptr<RenderObject>> GetVisibleObjects(const Camera &camera);
+            std::vector<std::shared_ptr<RenderObject>> GetObjectsInRadius(const Math::Vec3 &center, f32 radius);
+            std::vector<std::shared_ptr<RenderObject>> GetObjectsInBox(const Math::Vec3 &min, const Math::Vec3 &max);
+            std::shared_ptr<RenderObject> GetNearestObject(const Math::Vec3 &position);
 
             // Scene updates
             void Update(f32 deltaTime, UpdateFlags flags = UpdateFlags::All);
             void UpdateTransforms();
-            void UpdateVisibility(const Camera& camera);
+            void UpdateVisibility(const Camera &camera);
             void UpdateSpatialPartition();
 
             // Performance monitoring
-            const SceneStats& GetStats() const { return m_stats; }
+            const SceneStats &GetStats() const { return m_stats; }
             void ResetStats();
 
             // Event system
-            using SceneEventCallback = std::function<void(const std::string&, std::shared_ptr<SceneNode>)>;
-            void RegisterEventCallback(const std::string& eventType, SceneEventCallback callback);
-            void TriggerEvent(const std::string& eventType, std::shared_ptr<SceneNode> node);
+            using SceneEventCallback = std::function<void(const std::string &, std::shared_ptr<SceneNode>)>;
+            void RegisterEventCallback(const std::string &eventType, SceneEventCallback callback);
+            void TriggerEvent(const std::string &eventType, std::shared_ptr<SceneNode> node);
 
             // Advanced features
             void SetLODEnabled(bool enabled) { m_lodEnabled = enabled; }
@@ -152,15 +152,15 @@ namespace Pyramid
             // Internal scene management
             void InitializeOctree();
             void UpdateOctree();
-            void SerializeSceneBinary(const std::string& filePath);
-            void SerializeSceneJSON(const std::string& filePath);
-            void DeserializeSceneBinary(const std::string& filePath);
-            void DeserializeSceneJSON(const std::string& filePath);
+            void SerializeSceneBinary(const std::string &filePath);
+            void SerializeSceneJSON(const std::string &filePath);
+            void DeserializeSceneBinary(const std::string &filePath);
+            void DeserializeSceneJSON(const std::string &filePath);
 
             // Culling algorithms
-            bool FrustumCull(const std::shared_ptr<RenderObject>& object, const Camera& camera);
-            bool OcclusionCull(const std::shared_ptr<RenderObject>& object, const Camera& camera);
-            f32 CalculateLOD(const std::shared_ptr<RenderObject>& object, const Camera& camera);
+            bool FrustumCull(const std::shared_ptr<RenderObject> &object, const Camera &camera);
+            bool OcclusionCull(const std::shared_ptr<RenderObject> &object, const Camera &camera);
+            f32 CalculateLOD(const std::shared_ptr<RenderObject> &object, const Camera &camera);
 
             // Scene data
             std::shared_ptr<Pyramid::Scene> m_activeScene;
@@ -208,7 +208,7 @@ namespace Pyramid
             /**
              * @brief Validate scene integrity
              */
-            bool ValidateScene(const std::shared_ptr<Pyramid::Scene>& scene);
+            bool ValidateScene(const std::shared_ptr<Pyramid::Scene> &scene);
 
             /**
              * @brief Optimize scene for rendering performance
