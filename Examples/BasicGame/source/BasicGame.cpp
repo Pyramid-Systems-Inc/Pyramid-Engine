@@ -1443,3 +1443,565 @@ void BasicGame::DemonstrateFramebuffers()
     PYRAMID_LOG_DEBUG("Framebuffer demonstration - FBO features active");
     // Framebuffer demonstration is already integrated into the existing rendering system
 }
+
+// Enhanced 3D Scene Implementation
+BasicGame::MeshData BasicGame::GenerateSphere(float radius, int segments, int rings)
+{
+    MeshData mesh;
+
+    // Generate vertices
+    for (int ring = 0; ring <= rings; ++ring)
+    {
+        float phi = static_cast<float>(ring) / rings * Pyramid::Math::PI;
+        float y = radius * std::cos(phi);
+        float ringRadius = radius * std::sin(phi);
+
+        for (int segment = 0; segment <= segments; ++segment)
+        {
+            float theta = static_cast<float>(segment) / segments * 2.0f * Pyramid::Math::PI;
+            float x = ringRadius * std::cos(theta);
+            float z = ringRadius * std::sin(theta);
+
+            Vertex vertex;
+            vertex.position = {x, y, z};
+            vertex.normal = {x / radius, y / radius, z / radius}; // Normalized position for sphere
+            vertex.texCoord = {static_cast<float>(segment) / segments, static_cast<float>(ring) / rings};
+
+            // Color based on position for visual variety
+            vertex.color = {
+                0.5f + 0.5f * vertex.normal.x,
+                0.5f + 0.5f * vertex.normal.y,
+                0.5f + 0.5f * vertex.normal.z};
+
+            mesh.vertices.push_back(vertex);
+        }
+    }
+
+    // Generate indices
+    for (int ring = 0; ring < rings; ++ring)
+    {
+        for (int segment = 0; segment < segments; ++segment)
+        {
+            int current = ring * (segments + 1) + segment;
+            int next = current + segments + 1;
+
+            // First triangle
+            mesh.indices.push_back(current);
+            mesh.indices.push_back(next);
+            mesh.indices.push_back(current + 1);
+
+            // Second triangle
+            mesh.indices.push_back(current + 1);
+            mesh.indices.push_back(next);
+            mesh.indices.push_back(next + 1);
+        }
+    }
+
+    return mesh;
+}
+
+BasicGame::MeshData BasicGame::GenerateCylinder(float radius, float height, int segments)
+{
+    MeshData mesh;
+    float halfHeight = height * 0.5f;
+
+    // Generate side vertices
+    for (int i = 0; i <= segments; ++i)
+    {
+        float theta = static_cast<float>(i) / segments * 2.0f * Pyramid::Math::PI;
+        float x = radius * std::cos(theta);
+        float z = radius * std::sin(theta);
+
+        // Bottom vertex
+        Vertex bottomVertex;
+        bottomVertex.position = {x, -halfHeight, z};
+        bottomVertex.normal = {x / radius, 0.0f, z / radius};
+        bottomVertex.texCoord = {static_cast<float>(i) / segments, 0.0f};
+        bottomVertex.color = {0.8f, 0.4f, 0.2f}; // Orange-ish
+        mesh.vertices.push_back(bottomVertex);
+
+        // Top vertex
+        Vertex topVertex;
+        topVertex.position = {x, halfHeight, z};
+        topVertex.normal = {x / radius, 0.0f, z / radius};
+        topVertex.texCoord = {static_cast<float>(i) / segments, 1.0f};
+        topVertex.color = {0.8f, 0.6f, 0.2f}; // Lighter orange
+        mesh.vertices.push_back(topVertex);
+    }
+
+    // Generate side indices
+    for (int i = 0; i < segments; ++i)
+    {
+        int bottom1 = i * 2;
+        int top1 = i * 2 + 1;
+        int bottom2 = (i + 1) * 2;
+        int top2 = (i + 1) * 2 + 1;
+
+        // First triangle
+        mesh.indices.push_back(bottom1);
+        mesh.indices.push_back(top1);
+        mesh.indices.push_back(bottom2);
+
+        // Second triangle
+        mesh.indices.push_back(bottom2);
+        mesh.indices.push_back(top1);
+        mesh.indices.push_back(top2);
+    }
+
+    // Add center vertices for caps
+    int centerBottom = mesh.vertices.size();
+    Vertex centerBottomVertex;
+    centerBottomVertex.position = {0.0f, -halfHeight, 0.0f};
+    centerBottomVertex.normal = {0.0f, -1.0f, 0.0f};
+    centerBottomVertex.texCoord = {0.5f, 0.5f};
+    centerBottomVertex.color = {0.6f, 0.3f, 0.1f};
+    mesh.vertices.push_back(centerBottomVertex);
+
+    int centerTop = mesh.vertices.size();
+    Vertex centerTopVertex;
+    centerTopVertex.position = {0.0f, halfHeight, 0.0f};
+    centerTopVertex.normal = {0.0f, 1.0f, 0.0f};
+    centerTopVertex.texCoord = {0.5f, 0.5f};
+    centerTopVertex.color = {0.9f, 0.7f, 0.3f};
+    mesh.vertices.push_back(centerTopVertex);
+
+    // Generate cap indices
+    for (int i = 0; i < segments; ++i)
+    {
+        int bottom1 = i * 2;
+        int bottom2 = ((i + 1) % segments) * 2;
+        int top1 = i * 2 + 1;
+        int top2 = ((i + 1) % segments) * 2 + 1;
+
+        // Bottom cap
+        mesh.indices.push_back(centerBottom);
+        mesh.indices.push_back(bottom2);
+        mesh.indices.push_back(bottom1);
+
+        // Top cap
+        mesh.indices.push_back(centerTop);
+        mesh.indices.push_back(top1);
+        mesh.indices.push_back(top2);
+    }
+
+    return mesh;
+}
+
+BasicGame::MeshData BasicGame::GeneratePlane(float width, float height, int subdivisions)
+{
+    MeshData mesh;
+    float halfWidth = width * 0.5f;
+    float halfHeight = height * 0.5f;
+
+    // Generate vertices
+    for (int y = 0; y <= subdivisions; ++y)
+    {
+        for (int x = 0; x <= subdivisions; ++x)
+        {
+            float u = static_cast<float>(x) / subdivisions;
+            float v = static_cast<float>(y) / subdivisions;
+
+            Vertex vertex;
+            vertex.position = {
+                (u - 0.5f) * width,
+                0.0f,
+                (v - 0.5f) * height};
+            vertex.normal = {0.0f, 1.0f, 0.0f};
+            vertex.texCoord = {u, v};
+            vertex.color = {0.2f, 0.8f, 0.3f}; // Green
+
+            mesh.vertices.push_back(vertex);
+        }
+    }
+
+    // Generate indices
+    for (int y = 0; y < subdivisions; ++y)
+    {
+        for (int x = 0; x < subdivisions; ++x)
+        {
+            int topLeft = y * (subdivisions + 1) + x;
+            int topRight = topLeft + 1;
+            int bottomLeft = (y + 1) * (subdivisions + 1) + x;
+            int bottomRight = bottomLeft + 1;
+
+            // First triangle
+            mesh.indices.push_back(topLeft);
+            mesh.indices.push_back(bottomLeft);
+            mesh.indices.push_back(topRight);
+
+            // Second triangle
+            mesh.indices.push_back(topRight);
+            mesh.indices.push_back(bottomLeft);
+            mesh.indices.push_back(bottomRight);
+        }
+    }
+
+    return mesh;
+}
+
+BasicGame::MeshData BasicGame::GenerateTorus(float majorRadius, float minorRadius, int majorSegments, int minorSegments)
+{
+    MeshData mesh;
+
+    // Generate vertices
+    for (int i = 0; i <= majorSegments; ++i)
+    {
+        float u = static_cast<float>(i) / majorSegments * 2.0f * Pyramid::Math::PI;
+        float cosU = std::cos(u);
+        float sinU = std::sin(u);
+
+        for (int j = 0; j <= minorSegments; ++j)
+        {
+            float v = static_cast<float>(j) / minorSegments * 2.0f * Pyramid::Math::PI;
+            float cosV = std::cos(v);
+            float sinV = std::sin(v);
+
+            Vertex vertex;
+            vertex.position = {
+                (majorRadius + minorRadius * cosV) * cosU,
+                minorRadius * sinV,
+                (majorRadius + minorRadius * cosV) * sinU};
+
+            // Calculate normal
+            Pyramid::Math::Vec3 center = {majorRadius * cosU, 0.0f, majorRadius * sinU};
+            vertex.normal = (vertex.position - center).Normalized();
+
+            vertex.texCoord = {static_cast<float>(i) / majorSegments, static_cast<float>(j) / minorSegments};
+            vertex.color = {0.8f, 0.2f, 0.8f}; // Magenta
+
+            mesh.vertices.push_back(vertex);
+        }
+    }
+
+    // Generate indices
+    for (int i = 0; i < majorSegments; ++i)
+    {
+        for (int j = 0; j < minorSegments; ++j)
+        {
+            int current = i * (minorSegments + 1) + j;
+            int next = current + minorSegments + 1;
+
+            // First triangle
+            mesh.indices.push_back(current);
+            mesh.indices.push_back(next);
+            mesh.indices.push_back(current + 1);
+
+            // Second triangle
+            mesh.indices.push_back(current + 1);
+            mesh.indices.push_back(next);
+            mesh.indices.push_back(next + 1);
+        }
+    }
+
+    return mesh;
+}
+
+BasicGame::MeshData BasicGame::GenerateIcosphere(float radius, int subdivisions)
+{
+    MeshData mesh;
+
+    // Start with icosahedron vertices
+    const float t = (1.0f + std::sqrt(5.0f)) / 2.0f; // Golden ratio
+
+    std::vector<Pyramid::Math::Vec3> vertices = {
+        {-1, t, 0}, {1, t, 0}, {-1, -t, 0}, {1, -t, 0}, {0, -1, t}, {0, 1, t}, {0, -1, -t}, {0, 1, -t}, {t, 0, -1}, {t, 0, 1}, {-t, 0, -1}, {-t, 0, 1}};
+
+    // Normalize vertices to unit sphere
+    for (auto &v : vertices)
+    {
+        v = v.Normalized();
+    }
+
+    // Create initial icosahedron faces
+    std::vector<std::array<int, 3>> faces = {
+        {0, 11, 5}, {0, 5, 1}, {0, 1, 7}, {0, 7, 10}, {0, 10, 11}, {1, 5, 9}, {5, 11, 4}, {11, 10, 2}, {10, 7, 6}, {7, 1, 8}, {3, 9, 4}, {3, 4, 2}, {3, 2, 6}, {3, 6, 8}, {3, 8, 9}, {4, 9, 5}, {2, 4, 11}, {6, 2, 10}, {8, 6, 7}, {9, 8, 1}};
+
+    // Subdivide faces
+    for (int sub = 0; sub < subdivisions; ++sub)
+    {
+        std::vector<std::array<int, 3>> newFaces;
+        std::map<std::pair<int, int>, int> midpointCache;
+
+        auto getMidpoint = [&](int i1, int i2) -> int
+        {
+            std::pair<int, int> key = {std::min(i1, i2), std::max(i1, i2)};
+            auto it = midpointCache.find(key);
+            if (it != midpointCache.end())
+                return it->second;
+
+            Pyramid::Math::Vec3 mid = ((vertices[i1] + vertices[i2]) * 0.5f).Normalized();
+            vertices.push_back(mid);
+            int index = vertices.size() - 1;
+            midpointCache[key] = index;
+            return index;
+        };
+
+        for (const auto &face : faces)
+        {
+            int a = getMidpoint(face[0], face[1]);
+            int b = getMidpoint(face[1], face[2]);
+            int c = getMidpoint(face[2], face[0]);
+
+            newFaces.push_back({face[0], a, c});
+            newFaces.push_back({face[1], b, a});
+            newFaces.push_back({face[2], c, b});
+            newFaces.push_back({a, b, c});
+        }
+
+        faces = newFaces;
+    }
+
+    // Convert to mesh format
+    for (size_t i = 0; i < vertices.size(); ++i)
+    {
+        Vertex vertex;
+        vertex.position = vertices[i] * radius;
+        vertex.normal = vertices[i]; // For sphere, normal is normalized position
+
+        // Spherical texture coordinates
+        float theta = std::atan2(vertices[i].z, vertices[i].x);
+        float phi = std::acos(vertices[i].y);
+        vertex.texCoord = {
+            (theta + Pyramid::Math::PI) / (2.0f * Pyramid::Math::PI),
+            phi / Pyramid::Math::PI};
+
+        vertex.color = {0.2f, 0.6f, 0.9f}; // Light blue
+        mesh.vertices.push_back(vertex);
+    }
+
+    // Add indices
+    for (const auto &face : faces)
+    {
+        mesh.indices.push_back(face[0]);
+        mesh.indices.push_back(face[1]);
+        mesh.indices.push_back(face[2]);
+    }
+
+    return mesh;
+}
+
+void BasicGame::CreateEnhancedScene()
+{
+    PYRAMID_LOG_INFO("=== Creating Enhanced 3D Scene ===");
+
+    auto device = GetGraphicsDevice();
+    if (!device)
+    {
+        PYRAMID_LOG_ERROR("Graphics device is null in CreateEnhancedScene!");
+        return;
+    }
+
+    m_sceneObjects.clear();
+
+    // Define the scene layout with foreground, midground, and background elements
+    struct ObjectDef
+    {
+        std::string name;
+        std::function<MeshData()> generator;
+        Pyramid::Math::Vec3 position;
+        Pyramid::Math::Vec3 rotation;
+        Pyramid::Math::Vec3 scale;
+        Pyramid::Math::Vec4 baseColor;
+        float metallic;
+        float roughness;
+        float animationSpeed;
+        float animationOffset;
+    };
+
+    std::vector<ObjectDef> objectDefs = {
+        // Foreground objects (closest to camera)
+        {"Central Sphere", [this]()
+         { return GenerateIcosphere(1.0f, 2); },
+         {0.0f, 1.0f, 0.0f},
+         {0.0f, 0.0f, 0.0f},
+         {1.2f, 1.2f, 1.2f},
+         {0.8f, 0.2f, 0.2f, 1.0f},
+         0.1f,
+         0.3f,
+         1.0f,
+         0.0f},
+
+        {"Left Torus", [this]()
+         { return GenerateTorus(1.2f, 0.4f, 24, 16); },
+         {-3.0f, 0.5f, 1.0f},
+         {0.0f, 0.0f, 0.0f},
+         {0.8f, 0.8f, 0.8f},
+         {0.2f, 0.8f, 0.2f, 1.0f},
+         0.8f,
+         0.2f,
+         0.8f,
+         1.0f},
+
+        {"Right Cylinder", [this]()
+         { return GenerateCylinder(0.6f, 2.0f, 16); },
+         {3.0f, 1.0f, 0.5f},
+         {0.0f, 0.0f, 0.2f},
+         {1.0f, 1.0f, 1.0f},
+         {0.2f, 0.2f, 0.8f, 1.0f},
+         0.9f,
+         0.1f,
+         0.6f,
+         2.0f},
+
+        // Midground objects
+        {"Back Left Sphere", [this]()
+         { return GenerateSphere(0.8f, 20, 12); },
+         {-4.0f, 0.8f, -3.0f},
+         {0.0f, 0.0f, 0.0f},
+         {1.0f, 1.0f, 1.0f},
+         {0.8f, 0.8f, 0.2f, 1.0f},
+         0.0f,
+         0.8f,
+         0.4f,
+         3.0f},
+
+        {"Back Right Torus", [this]()
+         { return GenerateTorus(0.8f, 0.3f, 20, 12); },
+         {4.0f, 0.3f, -2.5f},
+         {1.5f, 0.0f, 0.0f},
+         {0.9f, 0.9f, 0.9f},
+         {0.8f, 0.2f, 0.8f, 1.0f},
+         0.7f,
+         0.3f,
+         0.7f,
+         4.0f},
+
+        {"Center Back Cylinder", [this]()
+         { return GenerateCylinder(0.4f, 1.5f, 12); },
+         {0.0f, 0.75f, -4.0f},
+         {0.0f, 0.0f, 0.0f},
+         {1.1f, 1.1f, 1.1f},
+         {0.6f, 0.4f, 0.2f, 1.0f},
+         0.5f,
+         0.6f,
+         0.5f,
+         5.0f},
+
+        // Background objects (furthest from camera)
+        {"Far Left Icosphere", [this]()
+         { return GenerateIcosphere(0.6f, 1); },
+         {-6.0f, 0.6f, -6.0f},
+         {0.0f, 0.0f, 0.0f},
+         {1.0f, 1.0f, 1.0f},
+         {0.4f, 0.6f, 0.8f, 1.0f},
+         0.2f,
+         0.7f,
+         0.3f,
+         6.0f},
+
+        {"Far Right Sphere", [this]()
+         { return GenerateSphere(0.7f, 16, 10); },
+         {6.0f, 0.7f, -5.5f},
+         {0.0f, 0.0f, 0.0f},
+         {1.0f, 1.0f, 1.0f},
+         {0.7f, 0.3f, 0.5f, 1.0f},
+         0.6f,
+         0.4f,
+         0.2f,
+         7.0f},
+
+        // Ground plane
+        {"Ground Plane", [this]()
+         { return GeneratePlane(20.0f, 20.0f, 4); },
+         {0.0f, -1.0f, 0.0f},
+         {0.0f, 0.0f, 0.0f},
+         {1.0f, 1.0f, 1.0f},
+         {0.3f, 0.3f, 0.3f, 1.0f},
+         0.1f,
+         0.9f,
+         0.0f,
+         0.0f},
+
+        // Additional decorative objects
+        {"Small Torus 1", [this]()
+         { return GenerateTorus(0.5f, 0.2f, 16, 8); },
+         {-1.5f, 0.2f, 2.0f},
+         {0.5f, 0.0f, 0.0f},
+         {0.6f, 0.6f, 0.6f},
+         {0.9f, 0.5f, 0.1f, 1.0f},
+         0.8f,
+         0.2f,
+         1.2f,
+         8.0f},
+
+        {"Small Cylinder 1", [this]()
+         { return GenerateCylinder(0.3f, 1.0f, 8); },
+         {1.5f, 0.5f, 2.5f},
+         {0.0f, 0.3f, 0.0f},
+         {0.7f, 0.7f, 0.7f},
+         {0.1f, 0.9f, 0.5f, 1.0f},
+         0.3f,
+         0.7f,
+         1.5f,
+         9.0f},
+
+        {"Small Sphere 1", [this]()
+         { return GenerateSphere(0.4f, 12, 8); },
+         {-2.0f, 0.4f, -1.0f},
+         {0.0f, 0.0f, 0.0f},
+         {0.8f, 0.8f, 0.8f},
+         {0.5f, 0.1f, 0.9f, 1.0f},
+         0.4f,
+         0.5f,
+         1.8f,
+         10.0f},
+
+        {"Small Icosphere 1", [this]()
+         { return GenerateIcosphere(0.35f, 1); },
+         {2.2f, 0.35f, -1.5f},
+         {0.0f, 0.0f, 0.0f},
+         {0.9f, 0.9f, 0.9f},
+         {0.8f, 0.8f, 0.1f, 1.0f},
+         0.9f,
+         0.1f,
+         2.0f,
+         11.0f}};
+
+    PYRAMID_LOG_INFO("Generating ", objectDefs.size(), " diverse 3D objects...");
+
+    // Create scene objects
+    for (const auto &def : objectDefs)
+    {
+        SceneObject obj;
+        obj.name = def.name;
+        obj.mesh = def.generator();
+        obj.position = def.position;
+        obj.rotation = def.rotation;
+        obj.scale = def.scale;
+        obj.baseColor = def.baseColor;
+        obj.metallic = def.metallic;
+        obj.roughness = def.roughness;
+        obj.animationSpeed = def.animationSpeed;
+        obj.animationOffset = def.animationOffset;
+
+        // Create vertex array for this object
+        obj.vertexArray = device->CreateVertexArray();
+
+        // Create and set up vertex buffer
+        auto vbo = device->CreateVertexBuffer();
+        vbo->SetData(obj.mesh.vertices.data(), obj.mesh.vertices.size() * sizeof(Vertex));
+
+        // Create and set up index buffer
+        auto ibo = device->CreateIndexBuffer();
+        ibo->SetData(obj.mesh.indices.data(), obj.mesh.indices.size());
+
+        // Set up vertex array with layout
+        Pyramid::BufferLayout layout = {
+            {Pyramid::ShaderDataType::Float3, "a_Position"},
+            {Pyramid::ShaderDataType::Float3, "a_Normal"},
+            {Pyramid::ShaderDataType::Float2, "a_TexCoord"},
+            {Pyramid::ShaderDataType::Float3, "a_Color"}};
+
+        obj.vertexArray->AddVertexBuffer(vbo, layout);
+        obj.vertexArray->SetIndexBuffer(ibo);
+
+        m_sceneObjects.push_back(std::move(obj));
+
+        PYRAMID_LOG_DEBUG("Created object: ", def.name, " with ", obj.mesh.vertices.size(), " vertices, ", obj.mesh.indices.size(), " indices");
+    }
+
+    PYRAMID_LOG_INFO("Enhanced 3D scene created successfully!");
+    PYRAMID_LOG_INFO("  Total objects: ", m_sceneObjects.size());
+    PYRAMID_LOG_INFO("  Scene layout: Foreground (3), Midground (3), Background (2), Ground (1), Decorative (4)");
+    PYRAMID_LOG_INFO("  Geometric variety: Spheres, Icospheres, Tori, Cylinders, Planes");
+}

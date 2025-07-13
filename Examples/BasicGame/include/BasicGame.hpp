@@ -229,4 +229,76 @@ private:
     float m_lastMouseX = 0.0f;
     float m_lastMouseY = 0.0f;
     bool m_firstMouse = true;
+
+    // Enhanced 3D Scene Methods
+    void CreateEnhancedScene();
+    void LoadSceneTextures();
+    void SetupAdvancedMaterials();
+    void SetupDynamicLighting();
+    void UpdateSceneAnimations(float deltaTime);
+    void RenderEnhancedScene();
+
+    // Geometric Primitive Generation
+    struct MeshData
+    {
+        std::vector<Vertex> vertices;
+        std::vector<Pyramid::u32> indices;
+    };
+
+    MeshData GenerateSphere(float radius = 1.0f, int segments = 32, int rings = 16);
+    MeshData GenerateCylinder(float radius = 1.0f, float height = 2.0f, int segments = 32);
+    MeshData GeneratePlane(float width = 2.0f, float height = 2.0f, int subdivisions = 1);
+    MeshData GenerateTorus(float majorRadius = 1.0f, float minorRadius = 0.3f, int majorSegments = 32, int minorSegments = 16);
+    MeshData GenerateIcosphere(float radius = 1.0f, int subdivisions = 2);
+
+    // Enhanced Scene Objects
+    struct SceneObject
+    {
+        std::string name;
+        MeshData mesh;
+        std::shared_ptr<Pyramid::IVertexArray> vertexArray;
+        std::shared_ptr<Pyramid::ITexture2D> diffuseTexture;
+        std::shared_ptr<Pyramid::ITexture2D> normalTexture;
+        std::shared_ptr<Pyramid::ITexture2D> metallicRoughnessTexture;
+        Pyramid::Math::Vec3 position;
+        Pyramid::Math::Vec3 rotation;
+        Pyramid::Math::Vec3 scale;
+        Pyramid::Math::Vec4 baseColor;
+        float metallic;
+        float roughness;
+        float animationSpeed;
+        float animationOffset;
+    };
+
+    std::vector<SceneObject> m_sceneObjects;
+
+    // Enhanced lighting system
+    struct Light
+    {
+        Pyramid::Math::Vec3 position;
+        Pyramid::Math::Vec3 direction;
+        Pyramid::Math::Vec3 color;
+        float intensity;
+        int type; // 0=directional, 1=point, 2=spot
+        float range;
+        float innerCone;
+        float outerCone;
+    };
+
+    std::vector<Light> m_lights;
+
+    // Camera enhancement
+    enum class CameraMode
+    {
+        Static,
+        Orbital,
+        Cinematic,
+        FreeRoam
+    };
+
+    CameraMode m_cameraMode = CameraMode::Orbital;
+    float m_cameraOrbitRadius = 8.0f;
+    float m_cameraOrbitSpeed = 0.3f;
+    float m_cameraHeight = 2.0f;
+    Pyramid::Math::Vec3 m_cameraTarget = Pyramid::Math::Vec3::Zero;
 };
