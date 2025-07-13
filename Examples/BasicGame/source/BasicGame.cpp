@@ -161,6 +161,10 @@ void BasicGame::onCreate()
     // Demonstrate SIMD operations
     DemonstrateSIMDOperations();
 
+    // Demonstrate new systems
+    DemonstrateSceneManagement();
+    DemonstrateFramebuffers();
+
     Game::onCreate();
 
     Pyramid::IGraphicsDevice *device = GetGraphicsDevice();
@@ -174,6 +178,8 @@ void BasicGame::onCreate()
     InitializeRenderSystem();
     InitializeCamera();
     InitializeScene();
+    InitializeSceneManagement();
+    InitializeFramebuffers();
 
     // Create and compile enhanced PBR shader
     m_shader = device->CreateShader();

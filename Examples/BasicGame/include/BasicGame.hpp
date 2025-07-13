@@ -8,6 +8,8 @@
 #include <Pyramid/Graphics/Camera.hpp>
 #include <Pyramid/Graphics/Scene.hpp>
 #include <Pyramid/Graphics/Renderer/RenderSystem.hpp>
+#include <Pyramid/Graphics/Scene/SceneManager.hpp>
+#include <Pyramid/Graphics/OpenGL/OpenGLFramebuffer.hpp>
 #include <memory>
 #include <vector>
 #include <string>
@@ -23,6 +25,9 @@
  * - Scene graph with hierarchical transforms and multiple objects
  * - PBR material system with proper lighting calculations
  * - Performance monitoring showing SIMD acceleration benefits
+ * - Scene Management Core Architecture with Octree spatial partitioning
+ * - Framebuffer Objects (FBO) for render-to-texture and post-processing
+ * - Spatial queries for efficient object management and culling
  */
 class BasicGame : public Pyramid::Game
 {
@@ -43,6 +48,9 @@ private:
     void LoadTestTextures();
     void CreateSampleTextures();
     void SetupUniformBuffers();
+    void InitializeSceneManagement();
+    void InitializeFramebuffers();
+    void CreateManyObjects(); // For spatial partitioning demonstration
 
     // Update methods
     void UpdateCamera(float deltaTime);
@@ -54,6 +62,9 @@ private:
     void DemonstrateSIMDOperations();
     void DemonstrateSceneGraph();
     void DemonstrateFrustumCulling();
+    void DemonstrateSceneManagement();
+    void DemonstrateFramebuffers();
+    void DemonstrateSpatialQueries();
     void LogPerformanceMetrics();
 
     // Enhanced rendering system
@@ -71,6 +82,15 @@ private:
     std::shared_ptr<Pyramid::Scene> m_scene;
     std::vector<std::shared_ptr<Pyramid::SceneNode>> m_sceneNodes;
     std::vector<std::shared_ptr<Pyramid::RenderObject>> m_renderObjects;
+
+    // Scene Management Core Architecture
+    std::unique_ptr<Pyramid::SceneManagement::SceneManager> m_sceneManager;
+    std::shared_ptr<Pyramid::Scene> m_managedScene;
+
+    // Framebuffer Objects for render-to-texture
+    std::unique_ptr<Pyramid::OpenGLFramebuffer> m_mainFBO;
+    std::unique_ptr<Pyramid::OpenGLFramebuffer> m_postProcessFBO;
+    std::unique_ptr<Pyramid::OpenGLFramebuffer> m_shadowMapFBO;
 
     // OpenGL 4.6 Uniform Buffer Objects for efficient data transfer
     std::shared_ptr<Pyramid::IUniformBuffer> m_sceneUBO;
@@ -124,6 +144,12 @@ private:
         int visibleObjects = 0;
         int culledObjects = 0;
         float simdSpeedup = 1.0f;
+
+        // Scene Management metrics
+        int totalObjects = 0;
+        int octreeNodes = 0;
+        float lastQueryTime = 0.0f;
+        float spatialQuerySpeedup = 1.0f;
     };
     PerformanceMetrics m_metrics;
     float m_metricsUpdateTimer = 0.0f;
