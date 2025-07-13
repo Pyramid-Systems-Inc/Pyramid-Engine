@@ -135,6 +135,12 @@ namespace Pyramid
         std::shared_ptr<class IUniformBuffer> CreateUniformBuffer(size_t size);
 
         /**
+         * @brief Create an instance buffer object for instanced rendering
+         * @return std::shared_ptr<IInstanceBuffer> The created instance buffer, or nullptr on failure
+         */
+        virtual std::shared_ptr<class IInstanceBuffer> CreateInstanceBuffer() = 0;
+
+        /**
          * @brief Create a graphics device for the specified API
          * @param api The graphics API to use
          * @param window The window to associate with the graphics device

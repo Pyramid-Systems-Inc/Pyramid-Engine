@@ -23,6 +23,8 @@ namespace Pyramid
         void Clear(const Color &color) override;
         void Present(bool vsync) override;
         void DrawIndexed(u32 count) override;
+        void DrawIndexedInstanced(u32 indexCount, u32 instanceCount) override;
+        void DrawArraysInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex = 0) override;
         void SetViewport(u32 x, u32 y, u32 width, u32 height) override;
 
         // Add factory method implementations
@@ -33,6 +35,7 @@ namespace Pyramid
         std::shared_ptr<ITexture2D> CreateTexture2D(const TextureSpecification &specification, const void *data = nullptr) override;    // Added
         std::shared_ptr<ITexture2D> CreateTexture2D(const std::string &filepath, bool srgb = false, bool generateMips = true) override; // Added
         std::shared_ptr<class IUniformBuffer> CreateUniformBuffer(size_t size, BufferUsage usage) override;
+        std::shared_ptr<class IInstanceBuffer> CreateInstanceBuffer() override;
 
         /**
          * @brief Get the window associated with this device

@@ -4,6 +4,7 @@
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLIndexBuffer.hpp>
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexArray.hpp>
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLUniformBuffer.hpp>
+#include <Pyramid/Graphics/OpenGL/Buffer/OpenGLInstanceBuffer.hpp>
 #include <Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp>
 #include <Pyramid/Graphics/Texture.hpp> // Added for ITexture2D factory methods
 #include <glad/glad.h>
@@ -54,6 +55,16 @@ namespace Pyramid
         glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
     }
 
+    void OpenGLDevice::DrawIndexedInstanced(u32 indexCount, u32 instanceCount)
+    {
+        glDrawElementsInstanced(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, nullptr, instanceCount);
+    }
+
+    void OpenGLDevice::DrawArraysInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex)
+    {
+        glDrawArraysInstanced(GL_TRIANGLES, firstVertex, vertexCount, instanceCount);
+    }
+
     void OpenGLDevice::SetViewport(u32 x, u32 y, u32 width, u32 height)
     {
         glViewport(x, y, width, height);
@@ -97,6 +108,11 @@ namespace Pyramid
             return buffer;
         }
         return nullptr;
+    }
+
+    std::shared_ptr<IInstanceBuffer> OpenGLDevice::CreateInstanceBuffer()
+    {
+        return std::make_shared<OpenGLInstanceBuffer>();
     }
 
 } // namespace Pyramid
