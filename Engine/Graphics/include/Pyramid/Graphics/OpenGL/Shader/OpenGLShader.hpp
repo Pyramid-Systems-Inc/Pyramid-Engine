@@ -19,6 +19,12 @@ namespace Pyramid
         void Bind() override;
         void Unbind() override;
         bool Compile(const std::string &vertexSrc, const std::string &fragmentSrc) override;
+        bool CompileWithGeometry(const std::string &vertexSrc, const std::string &geometrySrc, const std::string &fragmentSrc) override;
+        bool CompileWithTessellation(const std::string &vertexSrc, const std::string &tessControlSrc,
+                                     const std::string &tessEvalSrc, const std::string &fragmentSrc) override;
+        bool CompileAdvanced(const std::string &vertexSrc, const std::string &tessControlSrc,
+                             const std::string &tessEvalSrc, const std::string &geometrySrc,
+                             const std::string &fragmentSrc) override;
 
         // Uniform setters
         void SetUniformInt(const std::string &name, int value) override;
@@ -35,6 +41,11 @@ namespace Pyramid
 
     private:
         GLint GetUniformLocation(const std::string &name); // Not const as it modifies cache
+
+        // Helper methods for shader compilation
+        GLuint CompileShader(GLenum type, const std::string &source);
+        bool LinkProgram(GLuint program);
+        void DeleteShader(GLuint shader);
 
         GLuint m_programId;
         std::unordered_map<std::string, GLint> m_uniformLocationCache;

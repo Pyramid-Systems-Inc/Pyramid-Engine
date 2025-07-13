@@ -109,6 +109,86 @@ namespace Pyramid
         return true;
     }
 
+    GLuint OpenGLShader::CompileShader(GLenum type, const std::string &source)
+    {
+        GLuint shader = glCreateShader(type);
+        const char *src = source.c_str();
+        glShaderSource(shader, 1, &src, nullptr);
+        glCompileShader(shader);
+
+        // Check compilation status
+        GLint isCompiled = 0;
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &isCompiled);
+        if (!isCompiled)
+        {
+            GLint maxLength = 0;
+            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
+
+            std::vector<GLchar> infoLog(maxLength);
+            glGetShaderInfoLog(shader, maxLength, &maxLength, &infoLog[0]);
+
+            glDeleteShader(shader);
+
+            const char *shaderTypeName = "Unknown";
+            switch (type)
+            {
+            case GL_VERTEX_SHADER:
+                shaderTypeName = "Vertex";
+                break;
+            case GL_FRAGMENT_SHADER:
+                shaderTypeName = "Fragment";
+                break;
+            case GL_GEOMETRY_SHADER:
+                shaderTypeName = "Geometry";
+                break;
+            case GL_TESS_CONTROL_SHADER:
+                shaderTypeName = "Tessellation Control";
+                break;
+            case GL_TESS_EVALUATION_SHADER:
+                shaderTypeName = "Tessellation Evaluation";
+                break;
+            case GL_COMPUTE_SHADER:
+                shaderTypeName = "Compute";
+                break;
+            }
+
+            PYRAMID_LOG_ERROR(shaderTypeName, " shader compilation failed:\n", infoLog.data());
+            return 0;
+        }
+
+        return shader;
+    }
+
+    bool OpenGLShader::LinkProgram(GLuint program)
+    {
+        glLinkProgram(program);
+
+        // Check linking status
+        GLint isLinked = 0;
+        glGetProgramiv(program, GL_LINK_STATUS, &isLinked);
+        if (!isLinked)
+        {
+            GLint maxLength = 0;
+            glGetProgramiv(program, GL_INFO_LOG_LENGTH, &maxLength);
+
+            std::vector<GLchar> infoLog(maxLength);
+            glGetProgramInfoLog(program, maxLength, &maxLength, &infoLog[0]);
+
+            PYRAMID_LOG_ERROR("Shader program linking failed:\n", infoLog.data());
+            return false;
+        }
+
+        return true;
+    }
+
+    void OpenGLShader::DeleteShader(GLuint shader)
+    {
+        if (shader != 0)
+        {
+            glDeleteShader(shader);
+        }
+    }
+
     GLint OpenGLShader::GetUniformLocation(const std::string &name)
     {
         if (m_uniformLocationCache.find(name) != m_uniformLocationCache.end())
@@ -213,6 +293,229 @@ namespace Pyramid
         glUniformBlockBinding(m_programId, blockIndex, bindingPoint);
 
         PYRAMID_LOG_INFO("Bound uniform block '", blockName, "' to binding point ", bindingPoint);
+    }
+
+    bool OpenGLShader::CompileWithGeometry(const std::string &vertexSrc, const std::string &geometrySrc, const std::string &fragmentSrc)
+    {
+        // Delete existing program if it exists
+        if (m_programId != 0)
+        {
+            glDeleteProgram(m_programId);
+            m_uniformLocationCache.clear();
+        }
+
+        // Compile shaders
+        GLuint vertexShader = CompileShader(GL_VERTEX_SHADER, vertexSrc);
+        if (vertexShader == 0)
+            return false;
+
+        GLuint geometryShader = CompileShader(GL_GEOMETRY_SHADER, geometrySrc);
+        if (geometryShader == 0)
+        {
+            DeleteShader(vertexShader);
+            return false;
+        }
+
+        GLuint fragmentShader = CompileShader(GL_FRAGMENT_SHADER, fragmentSrc);
+        if (fragmentShader == 0)
+        {
+            DeleteShader(vertexShader);
+            DeleteShader(geometryShader);
+            return false;
+        }
+
+        // Create and link program
+        m_programId = glCreateProgram();
+        glAttachShader(m_programId, vertexShader);
+        glAttachShader(m_programId, geometryShader);
+        glAttachShader(m_programId, fragmentShader);
+
+        bool linkSuccess = LinkProgram(m_programId);
+
+        // Cleanup shaders
+        glDetachShader(m_programId, vertexShader);
+        glDetachShader(m_programId, geometryShader);
+        glDetachShader(m_programId, fragmentShader);
+        DeleteShader(vertexShader);
+        DeleteShader(geometryShader);
+        DeleteShader(fragmentShader);
+
+        if (!linkSuccess)
+        {
+            glDeleteProgram(m_programId);
+            m_programId = 0;
+            return false;
+        }
+
+        PYRAMID_LOG_INFO("Shader program with geometry shader compiled successfully");
+        return true;
+    }
+
+    bool OpenGLShader::CompileWithTessellation(const std::string &vertexSrc, const std::string &tessControlSrc,
+                                               const std::string &tessEvalSrc, const std::string &fragmentSrc)
+    {
+        // Delete existing program if it exists
+        if (m_programId != 0)
+        {
+            glDeleteProgram(m_programId);
+            m_uniformLocationCache.clear();
+        }
+
+        // Compile shaders
+        GLuint vertexShader = CompileShader(GL_VERTEX_SHADER, vertexSrc);
+        if (vertexShader == 0)
+            return false;
+
+        GLuint tessControlShader = CompileShader(GL_TESS_CONTROL_SHADER, tessControlSrc);
+        if (tessControlShader == 0)
+        {
+            DeleteShader(vertexShader);
+            return false;
+        }
+
+        GLuint tessEvalShader = CompileShader(GL_TESS_EVALUATION_SHADER, tessEvalSrc);
+        if (tessEvalShader == 0)
+        {
+            DeleteShader(vertexShader);
+            DeleteShader(tessControlShader);
+            return false;
+        }
+
+        GLuint fragmentShader = CompileShader(GL_FRAGMENT_SHADER, fragmentSrc);
+        if (fragmentShader == 0)
+        {
+            DeleteShader(vertexShader);
+            DeleteShader(tessControlShader);
+            DeleteShader(tessEvalShader);
+            return false;
+        }
+
+        // Create and link program
+        m_programId = glCreateProgram();
+        glAttachShader(m_programId, vertexShader);
+        glAttachShader(m_programId, tessControlShader);
+        glAttachShader(m_programId, tessEvalShader);
+        glAttachShader(m_programId, fragmentShader);
+
+        bool linkSuccess = LinkProgram(m_programId);
+
+        // Cleanup shaders
+        glDetachShader(m_programId, vertexShader);
+        glDetachShader(m_programId, tessControlShader);
+        glDetachShader(m_programId, tessEvalShader);
+        glDetachShader(m_programId, fragmentShader);
+        DeleteShader(vertexShader);
+        DeleteShader(tessControlShader);
+        DeleteShader(tessEvalShader);
+        DeleteShader(fragmentShader);
+
+        if (!linkSuccess)
+        {
+            glDeleteProgram(m_programId);
+            m_programId = 0;
+            return false;
+        }
+
+        PYRAMID_LOG_INFO("Shader program with tessellation shaders compiled successfully");
+        return true;
+    }
+
+    bool OpenGLShader::CompileAdvanced(const std::string &vertexSrc, const std::string &tessControlSrc,
+                                       const std::string &tessEvalSrc, const std::string &geometrySrc,
+                                       const std::string &fragmentSrc)
+    {
+        // Delete existing program if it exists
+        if (m_programId != 0)
+        {
+            glDeleteProgram(m_programId);
+            m_uniformLocationCache.clear();
+        }
+
+        std::vector<GLuint> shaders;
+
+        // Compile vertex shader (required)
+        GLuint vertexShader = CompileShader(GL_VERTEX_SHADER, vertexSrc);
+        if (vertexShader == 0)
+            return false;
+        shaders.push_back(vertexShader);
+
+        // Compile tessellation control shader (optional)
+        GLuint tessControlShader = 0;
+        if (!tessControlSrc.empty())
+        {
+            tessControlShader = CompileShader(GL_TESS_CONTROL_SHADER, tessControlSrc);
+            if (tessControlShader == 0)
+            {
+                for (GLuint shader : shaders)
+                    DeleteShader(shader);
+                return false;
+            }
+            shaders.push_back(tessControlShader);
+        }
+
+        // Compile tessellation evaluation shader (optional)
+        GLuint tessEvalShader = 0;
+        if (!tessEvalSrc.empty())
+        {
+            tessEvalShader = CompileShader(GL_TESS_EVALUATION_SHADER, tessEvalSrc);
+            if (tessEvalShader == 0)
+            {
+                for (GLuint shader : shaders)
+                    DeleteShader(shader);
+                return false;
+            }
+            shaders.push_back(tessEvalShader);
+        }
+
+        // Compile geometry shader (optional)
+        GLuint geometryShader = 0;
+        if (!geometrySrc.empty())
+        {
+            geometryShader = CompileShader(GL_GEOMETRY_SHADER, geometrySrc);
+            if (geometryShader == 0)
+            {
+                for (GLuint shader : shaders)
+                    DeleteShader(shader);
+                return false;
+            }
+            shaders.push_back(geometryShader);
+        }
+
+        // Compile fragment shader (required)
+        GLuint fragmentShader = CompileShader(GL_FRAGMENT_SHADER, fragmentSrc);
+        if (fragmentShader == 0)
+        {
+            for (GLuint shader : shaders)
+                DeleteShader(shader);
+            return false;
+        }
+        shaders.push_back(fragmentShader);
+
+        // Create and link program
+        m_programId = glCreateProgram();
+        for (GLuint shader : shaders)
+        {
+            glAttachShader(m_programId, shader);
+        }
+
+        bool linkSuccess = LinkProgram(m_programId);
+
+        // Cleanup shaders
+        for (GLuint shader : shaders)
+        {
+            glDetachShader(m_programId, shader);
+            DeleteShader(shader);
+        }
+
+        if (!linkSuccess)
+        {
+            glDeleteProgram(m_programId);
+            m_programId = 0;
+            return false;
+        }
+
+        PYRAMID_LOG_INFO("Advanced shader program compiled successfully with ", shaders.size(), " stages");
+        return true;
     }
 
 } // namespace Pyramid

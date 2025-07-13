@@ -31,6 +31,54 @@ namespace Pyramid
          */
         virtual bool Compile(const std::string &vertexSrc, const std::string &fragmentSrc) = 0;
 
+        /**
+         * @brief Compile shader from source code with geometry shader
+         * @param vertexSrc Vertex shader source code
+         * @param geometrySrc Geometry shader source code
+         * @param fragmentSrc Fragment shader source code
+         * @return true if compilation was successful
+         */
+        virtual bool CompileWithGeometry(const std::string &vertexSrc, const std::string &geometrySrc, const std::string &fragmentSrc) = 0;
+
+        /**
+         * @brief Compile shader from source code with tessellation shaders
+         * @param vertexSrc Vertex shader source code
+         * @param tessControlSrc Tessellation control shader source code
+         * @param tessEvalSrc Tessellation evaluation shader source code
+         * @param fragmentSrc Fragment shader source code
+         * @return true if compilation was successful
+         */
+        virtual bool CompileWithTessellation(const std::string &vertexSrc, const std::string &tessControlSrc,
+                                             const std::string &tessEvalSrc, const std::string &fragmentSrc) = 0;
+
+        /**
+         * @brief Compile shader from source code with all shader stages
+         * @param vertexSrc Vertex shader source code
+         * @param tessControlSrc Tessellation control shader source code (optional, can be empty)
+         * @param tessEvalSrc Tessellation evaluation shader source code (optional, can be empty)
+         * @param geometrySrc Geometry shader source code (optional, can be empty)
+         * @param fragmentSrc Fragment shader source code
+         * @return true if compilation was successful
+         */
+        virtual bool CompileAdvanced(const std::string &vertexSrc, const std::string &tessControlSrc,
+                                     const std::string &tessEvalSrc, const std::string &geometrySrc,
+                                     const std::string &fragmentSrc) = 0;
+
+        /**
+         * @brief Compile compute shader from source code
+         * @param computeSrc Compute shader source code
+         * @return true if compilation was successful
+         */
+        virtual bool CompileCompute(const std::string &computeSrc) = 0;
+
+        /**
+         * @brief Dispatch compute shader
+         * @param numGroupsX Number of work groups in X dimension
+         * @param numGroupsY Number of work groups in Y dimension
+         * @param numGroupsZ Number of work groups in Z dimension
+         */
+        virtual void DispatchCompute(u32 numGroupsX, u32 numGroupsY, u32 numGroupsZ) = 0;
+
         // Uniform setters
         virtual void SetUniformInt(const std::string &name, int value) = 0;
         virtual void SetUniformFloat(const std::string &name, float value) = 0;
