@@ -1,5 +1,6 @@
 #include <Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp>
 #include <Pyramid/Graphics/Buffer/UniformBuffer.hpp>
+#include <Pyramid/Graphics/Buffer/ShaderStorageBuffer.hpp>
 #include <Pyramid/Util/Log.hpp> // Updated to use Utils logging system
 #include <vector>
 // #include <iostream> // No longer needed directly if using Log macros

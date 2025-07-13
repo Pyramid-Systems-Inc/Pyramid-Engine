@@ -38,6 +38,17 @@ namespace Pyramid
         std::shared_ptr<class IInstanceBuffer> CreateInstanceBuffer() override;
         std::shared_ptr<class IShaderStorageBuffer> CreateShaderStorageBuffer() override;
 
+        // State management methods
+        void EnableBlend(bool enable) override;
+        void SetBlendFunc(u32 sfactor, u32 dfactor) override;
+        void EnableDepthTest(bool enable) override;
+        void SetDepthFunc(u32 func) override;
+        void EnableCullFace(bool enable) override;
+        void SetCullFace(u32 mode) override;
+        void SetClearColor(f32 r, f32 g, f32 b, f32 a) override;
+        u32 GetStateChangeCount() const override;
+        void ResetStateChangeCount() override;
+
         /**
          * @brief Get the window associated with this device
          * @return Window* The window instance

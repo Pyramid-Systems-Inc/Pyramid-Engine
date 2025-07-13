@@ -146,6 +146,64 @@ namespace Pyramid
          */
         virtual std::shared_ptr<class IShaderStorageBuffer> CreateShaderStorageBuffer() = 0;
 
+        // State management methods
+        /**
+         * @brief Enable or disable blending
+         * @param enable True to enable blending, false to disable
+         */
+        virtual void EnableBlend(bool enable) = 0;
+
+        /**
+         * @brief Set blend function
+         * @param sfactor Source factor
+         * @param dfactor Destination factor
+         */
+        virtual void SetBlendFunc(u32 sfactor, u32 dfactor) = 0;
+
+        /**
+         * @brief Enable or disable depth testing
+         * @param enable True to enable depth testing, false to disable
+         */
+        virtual void EnableDepthTest(bool enable) = 0;
+
+        /**
+         * @brief Set depth function
+         * @param func Depth comparison function
+         */
+        virtual void SetDepthFunc(u32 func) = 0;
+
+        /**
+         * @brief Enable or disable face culling
+         * @param enable True to enable culling, false to disable
+         */
+        virtual void EnableCullFace(bool enable) = 0;
+
+        /**
+         * @brief Set which faces to cull
+         * @param mode Culling mode (front, back, front and back)
+         */
+        virtual void SetCullFace(u32 mode) = 0;
+
+        /**
+         * @brief Set clear color
+         * @param r Red component (0.0 to 1.0)
+         * @param g Green component (0.0 to 1.0)
+         * @param b Blue component (0.0 to 1.0)
+         * @param a Alpha component (0.0 to 1.0)
+         */
+        virtual void SetClearColor(f32 r, f32 g, f32 b, f32 a) = 0;
+
+        /**
+         * @brief Get the number of state changes since last reset
+         * @return Number of state changes
+         */
+        virtual u32 GetStateChangeCount() const = 0;
+
+        /**
+         * @brief Reset the state change counter
+         */
+        virtual void ResetStateChangeCount() = 0;
+
         /**
          * @brief Create a graphics device for the specified API
          * @param api The graphics API to use

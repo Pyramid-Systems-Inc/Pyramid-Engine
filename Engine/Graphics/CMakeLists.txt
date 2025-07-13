@@ -8,6 +8,7 @@ target_sources(PyramidEngine
         source/OpenGL/Buffer/OpenGLUniformBuffer.cpp
         source/OpenGL/Buffer/OpenGLInstanceBuffer.cpp # Added for instanced rendering
         source/OpenGL/Buffer/OpenGLShaderStorageBuffer.cpp # Added for compute shaders
+        source/OpenGL/OpenGLStateManager.cpp # Added for state management
         source/Buffer/UniformBuffer.cpp
         source/OpenGL/Shader/OpenGLShader.cpp
         source/Texture.cpp # Added
@@ -43,6 +44,7 @@ target_sources(PyramidEngine
         include/Pyramid/Graphics/OpenGL/Buffer/OpenGLUniformBuffer.hpp
         include/Pyramid/Graphics/OpenGL/Buffer/OpenGLInstanceBuffer.hpp # Added for instanced rendering
         include/Pyramid/Graphics/OpenGL/Buffer/OpenGLShaderStorageBuffer.hpp # Added for compute shaders
+        include/Pyramid/Graphics/OpenGL/OpenGLStateManager.hpp # Added for state management
         include/Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp
         include/Pyramid/Graphics/OpenGL/OpenGLTexture.hpp # Added
         include/Pyramid/Graphics/OpenGL/OpenGLFramebuffer.hpp # Added - FBO Implementation

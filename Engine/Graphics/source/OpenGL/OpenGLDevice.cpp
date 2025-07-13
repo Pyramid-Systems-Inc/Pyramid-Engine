@@ -6,6 +6,7 @@
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLUniformBuffer.hpp>
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLInstanceBuffer.hpp>
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLShaderStorageBuffer.hpp>
+#include <Pyramid/Graphics/OpenGL/OpenGLStateManager.hpp>
 #include <Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp>
 #include <Pyramid/Graphics/Texture.hpp> // Added for ITexture2D factory methods
 #include <glad/glad.h>
@@ -68,7 +69,7 @@ namespace Pyramid
 
     void OpenGLDevice::SetViewport(u32 x, u32 y, u32 width, u32 height)
     {
-        glViewport(x, y, width, height);
+        OpenGLStateManager::GetInstance().SetViewport(x, y, width, height);
     }
 
     std::shared_ptr<IVertexBuffer> OpenGLDevice::CreateVertexBuffer()
@@ -119,6 +120,51 @@ namespace Pyramid
     std::shared_ptr<IShaderStorageBuffer> OpenGLDevice::CreateShaderStorageBuffer()
     {
         return std::make_shared<OpenGLShaderStorageBuffer>();
+    }
+
+    void OpenGLDevice::EnableBlend(bool enable)
+    {
+        OpenGLStateManager::GetInstance().EnableBlend(enable);
+    }
+
+    void OpenGLDevice::SetBlendFunc(u32 sfactor, u32 dfactor)
+    {
+        OpenGLStateManager::GetInstance().SetBlendFunc(static_cast<GLenum>(sfactor), static_cast<GLenum>(dfactor));
+    }
+
+    void OpenGLDevice::EnableDepthTest(bool enable)
+    {
+        OpenGLStateManager::GetInstance().EnableDepthTest(enable);
+    }
+
+    void OpenGLDevice::SetDepthFunc(u32 func)
+    {
+        OpenGLStateManager::GetInstance().SetDepthFunc(static_cast<GLenum>(func));
+    }
+
+    void OpenGLDevice::EnableCullFace(bool enable)
+    {
+        OpenGLStateManager::GetInstance().EnableCullFace(enable);
+    }
+
+    void OpenGLDevice::SetCullFace(u32 mode)
+    {
+        OpenGLStateManager::GetInstance().SetCullFace(static_cast<GLenum>(mode));
+    }
+
+    void OpenGLDevice::SetClearColor(f32 r, f32 g, f32 b, f32 a)
+    {
+        OpenGLStateManager::GetInstance().SetClearColor(r, g, b, a);
+    }
+
+    u32 OpenGLDevice::GetStateChangeCount() const
+    {
+        return OpenGLStateManager::GetInstance().GetStateChangeCount();
+    }
+
+    void OpenGLDevice::ResetStateChangeCount()
+    {
+        OpenGLStateManager::GetInstance().ResetStateChangeCount();
     }
 
 } // namespace Pyramid
