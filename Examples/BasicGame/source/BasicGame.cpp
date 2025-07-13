@@ -897,8 +897,8 @@ void BasicGame::UpdateCamera(float deltaTime)
         // Smooth step interpolation for cinematic feel
         float smoothT = segmentT * segmentT * (3.0f - 2.0f * segmentT);
 
-        Vec3 position = Vec3::Lerp(positions[currentSegment], positions[nextSegment], smoothT);
-        Vec3 target = Vec3::Lerp(targets[currentSegment], targets[nextSegment], smoothT);
+        Vec3 position = positions[currentSegment] + (positions[nextSegment] - positions[currentSegment]) * smoothT;
+        Vec3 target = targets[currentSegment] + (targets[nextSegment] - targets[currentSegment]) * smoothT;
 
         m_camera->SetPosition(position);
         m_camera->LookAt(target, Vec3::Up);
@@ -1541,15 +1541,19 @@ BasicGame::MeshData BasicGame::GenerateSphere(float radius, int segments, int ri
             float z = ringRadius * std::sin(theta);
 
             Vertex vertex;
-            vertex.position = {x, y, z};
-            vertex.normal = {x / radius, y / radius, z / radius}; // Normalized position for sphere
-            vertex.texCoord = {static_cast<float>(segment) / segments, static_cast<float>(ring) / rings};
+            vertex.Position[0] = x;
+            vertex.Position[1] = y;
+            vertex.Position[2] = z;
+            vertex.Normal[0] = x / radius;
+            vertex.Normal[1] = y / radius;
+            vertex.Normal[2] = z / radius;
+            vertex.TexCoord[0] = static_cast<float>(segment) / segments;
+            vertex.TexCoord[1] = static_cast<float>(ring) / rings;
 
             // Color based on position for visual variety
-            vertex.color = {
-                0.5f + 0.5f * vertex.normal.x,
-                0.5f + 0.5f * vertex.normal.y,
-                0.5f + 0.5f * vertex.normal.z};
+            vertex.Color[0] = 0.5f + 0.5f * vertex.Normal[0];
+            vertex.Color[1] = 0.5f + 0.5f * vertex.Normal[1];
+            vertex.Color[2] = 0.5f + 0.5f * vertex.Normal[2];
 
             mesh.vertices.push_back(vertex);
         }
@@ -1592,18 +1596,32 @@ BasicGame::MeshData BasicGame::GenerateCylinder(float radius, float height, int 
 
         // Bottom vertex
         Vertex bottomVertex;
-        bottomVertex.position = {x, -halfHeight, z};
-        bottomVertex.normal = {x / radius, 0.0f, z / radius};
-        bottomVertex.texCoord = {static_cast<float>(i) / segments, 0.0f};
-        bottomVertex.color = {0.8f, 0.4f, 0.2f}; // Orange-ish
+        bottomVertex.Position[0] = x;
+        bottomVertex.Position[1] = -halfHeight;
+        bottomVertex.Position[2] = z;
+        bottomVertex.Normal[0] = x / radius;
+        bottomVertex.Normal[1] = 0.0f;
+        bottomVertex.Normal[2] = z / radius;
+        bottomVertex.TexCoord[0] = static_cast<float>(i) / segments;
+        bottomVertex.TexCoord[1] = 0.0f;
+        bottomVertex.Color[0] = 0.8f;
+        bottomVertex.Color[1] = 0.4f;
+        bottomVertex.Color[2] = 0.2f; // Orange-ish
         mesh.vertices.push_back(bottomVertex);
 
         // Top vertex
         Vertex topVertex;
-        topVertex.position = {x, halfHeight, z};
-        topVertex.normal = {x / radius, 0.0f, z / radius};
-        topVertex.texCoord = {static_cast<float>(i) / segments, 1.0f};
-        topVertex.color = {0.8f, 0.6f, 0.2f}; // Lighter orange
+        topVertex.Position[0] = x;
+        topVertex.Position[1] = halfHeight;
+        topVertex.Position[2] = z;
+        topVertex.Normal[0] = x / radius;
+        topVertex.Normal[1] = 0.0f;
+        topVertex.Normal[2] = z / radius;
+        topVertex.TexCoord[0] = static_cast<float>(i) / segments;
+        topVertex.TexCoord[1] = 1.0f;
+        topVertex.Color[0] = 0.8f;
+        topVertex.Color[1] = 0.6f;
+        topVertex.Color[2] = 0.2f; // Lighter orange
         mesh.vertices.push_back(topVertex);
     }
 
@@ -1629,18 +1647,32 @@ BasicGame::MeshData BasicGame::GenerateCylinder(float radius, float height, int 
     // Add center vertices for caps
     int centerBottom = mesh.vertices.size();
     Vertex centerBottomVertex;
-    centerBottomVertex.position = {0.0f, -halfHeight, 0.0f};
-    centerBottomVertex.normal = {0.0f, -1.0f, 0.0f};
-    centerBottomVertex.texCoord = {0.5f, 0.5f};
-    centerBottomVertex.color = {0.6f, 0.3f, 0.1f};
+    centerBottomVertex.Position[0] = 0.0f;
+    centerBottomVertex.Position[1] = -halfHeight;
+    centerBottomVertex.Position[2] = 0.0f;
+    centerBottomVertex.Normal[0] = 0.0f;
+    centerBottomVertex.Normal[1] = -1.0f;
+    centerBottomVertex.Normal[2] = 0.0f;
+    centerBottomVertex.TexCoord[0] = 0.5f;
+    centerBottomVertex.TexCoord[1] = 0.5f;
+    centerBottomVertex.Color[0] = 0.6f;
+    centerBottomVertex.Color[1] = 0.3f;
+    centerBottomVertex.Color[2] = 0.1f;
     mesh.vertices.push_back(centerBottomVertex);
 
     int centerTop = mesh.vertices.size();
     Vertex centerTopVertex;
-    centerTopVertex.position = {0.0f, halfHeight, 0.0f};
-    centerTopVertex.normal = {0.0f, 1.0f, 0.0f};
-    centerTopVertex.texCoord = {0.5f, 0.5f};
-    centerTopVertex.color = {0.9f, 0.7f, 0.3f};
+    centerTopVertex.Position[0] = 0.0f;
+    centerTopVertex.Position[1] = halfHeight;
+    centerTopVertex.Position[2] = 0.0f;
+    centerTopVertex.Normal[0] = 0.0f;
+    centerTopVertex.Normal[1] = 1.0f;
+    centerTopVertex.Normal[2] = 0.0f;
+    centerTopVertex.TexCoord[0] = 0.5f;
+    centerTopVertex.TexCoord[1] = 0.5f;
+    centerTopVertex.Color[0] = 0.9f;
+    centerTopVertex.Color[1] = 0.7f;
+    centerTopVertex.Color[2] = 0.3f;
     mesh.vertices.push_back(centerTopVertex);
 
     // Generate cap indices

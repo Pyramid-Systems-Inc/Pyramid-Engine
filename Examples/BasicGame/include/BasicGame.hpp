@@ -17,6 +17,18 @@
 #include <vector>
 #include <string>
 #include <chrono>
+#include <map>
+#include <functional>
+#include <array>
+
+// Enhanced vertex structure for PBR rendering
+struct Vertex
+{
+    float Position[3];
+    float Normal[3];
+    float TexCoord[2];
+    float Color[3];
+};
 
 /**
  * @brief Enhanced BasicGame demonstrating all advanced engine systems
