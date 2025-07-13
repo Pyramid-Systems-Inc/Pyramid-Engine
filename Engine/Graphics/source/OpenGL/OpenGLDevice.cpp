@@ -5,6 +5,7 @@
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexArray.hpp>
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLUniformBuffer.hpp>
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLInstanceBuffer.hpp>
+#include <Pyramid/Graphics/OpenGL/Buffer/OpenGLShaderStorageBuffer.hpp>
 #include <Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp>
 #include <Pyramid/Graphics/Texture.hpp> // Added for ITexture2D factory methods
 #include <glad/glad.h>
@@ -113,6 +114,11 @@ namespace Pyramid
     std::shared_ptr<IInstanceBuffer> OpenGLDevice::CreateInstanceBuffer()
     {
         return std::make_shared<OpenGLInstanceBuffer>();
+    }
+
+    std::shared_ptr<IShaderStorageBuffer> OpenGLDevice::CreateShaderStorageBuffer()
+    {
+        return std::make_shared<OpenGLShaderStorageBuffer>();
     }
 
 } // namespace Pyramid

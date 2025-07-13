@@ -141,6 +141,12 @@ namespace Pyramid
         virtual std::shared_ptr<class IInstanceBuffer> CreateInstanceBuffer() = 0;
 
         /**
+         * @brief Create a shader storage buffer object for compute shaders
+         * @return std::shared_ptr<IShaderStorageBuffer> The created SSBO, or nullptr on failure
+         */
+        virtual std::shared_ptr<class IShaderStorageBuffer> CreateShaderStorageBuffer() = 0;
+
+        /**
          * @brief Create a graphics device for the specified API
          * @param api The graphics API to use
          * @param window The window to associate with the graphics device
