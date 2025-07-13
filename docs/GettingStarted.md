@@ -161,6 +161,62 @@ void onCreate() override {
 }
 ```
 
+## Scene Management
+
+The engine features a production-ready scene management system with spatial partitioning:
+
+### Basic Scene Management
+```cpp
+#include <Pyramid/Graphics/Scene/SceneManager.hpp>
+
+void onCreate() override {
+    using namespace Pyramid::SceneManagement;
+
+    // Create scene manager
+    m_sceneManager = SceneUtils::CreateSceneManager();
+
+    // Create and set active scene
+    auto mainScene = m_sceneManager->CreateScene("MainLevel");
+    m_sceneManager->SetActiveScene(mainScene);
+
+    // Configure spatial partitioning
+    m_sceneManager->SetOctreeDepth(8);  // 8 levels deep
+    m_sceneManager->SetOctreeSize(Math::Vec3(1000.0f, 1000.0f, 1000.0f));
+}
+```
+
+### Spatial Queries
+```cpp
+void onUpdate(float deltaTime) override {
+    // Find objects near player
+    Math::Vec3 playerPos = getPlayerPosition();
+    auto nearbyObjects = m_sceneManager->GetObjectsInRadius(playerPos, 10.0f);
+
+    // Find nearest interactive object
+    auto nearest = m_sceneManager->GetNearestObject(playerPos);
+    if (nearest) {
+        // Handle interaction
+    }
+
+    // Get visible objects for rendering
+    auto visibleObjects = m_sceneManager->GetVisibleObjects(camera);
+
+    // Update scene
+    m_sceneManager->Update(deltaTime);
+}
+```
+
+### Performance Monitoring
+```cpp
+void logPerformanceStats() {
+    const auto& stats = m_sceneManager->GetStats();
+    PYRAMID_LOG_INFO("Scene Performance:");
+    PYRAMID_LOG_INFO("  Total Objects: ", stats.totalObjects);
+    PYRAMID_LOG_INFO("  Visible Objects: ", stats.visibleObjects);
+    PYRAMID_LOG_INFO("  Query Time: ", stats.lastQueryTime, " ms");
+}
+```
+
 ## Project Structure
 
 A typical Pyramid game project structure looks like this:

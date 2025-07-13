@@ -19,6 +19,15 @@ A modern, multi-platform game engine with support for multiple graphics APIs. Cu
   - **Camera System**: Perspective/orthographic projections with frustum culling
   - **Scene Graph**: Hierarchical transforms with efficient update propagation
 
+- **Scene Management Core Architecture**
+  - **SceneManager**: Comprehensive scene lifecycle management and organization
+  - **Octree Spatial Partitioning**: O(log n) object queries with configurable depth
+  - **Advanced Spatial Queries**: Point, sphere, box, ray, and frustum-based object lookup
+  - **AABB Implementation**: Axis-aligned bounding boxes with intersection testing
+  - **Performance Monitoring**: Real-time statistics and query time tracking
+  - **Memory Efficient**: Smart pointer-based resource management with RAII
+  - **Extensible Design**: Ready for serialization, LOD, and advanced culling systems
+
 - **Multiple Graphics API Support**
   - OpenGL 4.6 (current, fully implemented)
   - DirectX 9/10/11/12 (planned)
@@ -217,6 +226,65 @@ renderSystem->Render(*scene, camera);
 renderSystem->EndFrame();
 ```
 
+### Scene Management System
+
+The Pyramid Engine features a production-ready scene management system with spatial partitioning:
+
+```cpp
+#include <Pyramid/Graphics/Scene/SceneManager.hpp>
+#include <Pyramid/Graphics/Scene/Octree.hpp>
+
+using namespace Pyramid::SceneManagement;
+
+// Create scene manager with spatial partitioning
+auto sceneManager = SceneUtils::CreateSceneManager();
+sceneManager->EnableSpatialPartitioning(true);
+sceneManager->SetOctreeDepth(8);  // 8 levels deep
+sceneManager->SetOctreeSize(Math::Vec3(1000.0f, 1000.0f, 1000.0f));
+
+// Create and manage scenes
+auto mainScene = sceneManager->CreateScene("MainLevel");
+auto menuScene = sceneManager->CreateScene("MainMenu");
+sceneManager->SetActiveScene(mainScene);
+
+// Spatial queries for game logic
+Math::Vec3 playerPosition(10.0f, 0.0f, 5.0f);
+
+// Find nearby objects (enemies, items, etc.)
+auto nearbyObjects = sceneManager->GetObjectsInRadius(playerPosition, 15.0f);
+PYRAMID_LOG_INFO("Found ", nearbyObjects.size(), " objects near player");
+
+// Find the nearest object for interaction
+auto nearest = sceneManager->GetNearestObject(playerPosition);
+if (nearest) {
+    f32 distance = (nearest->position - playerPosition).Length();
+    PYRAMID_LOG_INFO("Nearest object at distance: ", distance);
+}
+
+// Advanced spatial queries
+QueryParams params;
+params.type = QueryType::Box;
+params.position = playerPosition;
+params.size = Math::Vec3(20.0f, 10.0f, 20.0f);
+auto result = sceneManager->QueryScene(params);
+
+// Frustum culling for rendering
+auto visibleObjects = sceneManager->GetVisibleObjects(camera);
+PYRAMID_LOG_INFO("Rendering ", visibleObjects.size(), " visible objects");
+
+// Performance monitoring
+const auto& stats = sceneManager->GetStats();
+PYRAMID_LOG_INFO("Scene Stats:");
+PYRAMID_LOG_INFO("  Total Objects: ", stats.totalObjects);
+PYRAMID_LOG_INFO("  Visible Objects: ", stats.visibleObjects);
+PYRAMID_LOG_INFO("  Octree Nodes: ", stats.octreeNodes);
+PYRAMID_LOG_INFO("  Last Query Time: ", stats.lastQueryTime, " ms");
+
+// Update scene with performance flags
+UpdateFlags flags = UpdateFlags::Transforms | UpdateFlags::SpatialPartition;
+sceneManager->Update(deltaTime, flags);
+```
+
 ### Graphics System
 
 ```cpp
@@ -237,17 +305,22 @@ shader->SetUniformInt("u_Texture", 0);
 
 ## Project Structure
 
-```
+```text
 Pyramid/
 ├── Engine/                 # Core engine library
 │   ├── Core/              # Core engine functionality
 │   ├── Graphics/          # Graphics abstraction layer
+│   │   ├── Scene/         # Scene Management Core Architecture
+│   │   │   ├── SceneManager.hpp/.cpp  # Scene lifecycle management
+│   │   │   └── Octree.hpp/.cpp        # Spatial partitioning system
+│   │   ├── Renderer/      # Rendering system components
+│   │   └── ...            # Other graphics components
 │   ├── Platform/          # Platform-specific code
-│   ├── Math/              # Math library
+│   ├── Math/              # SIMD-optimized math library
 │   ├── Utils/             # Enhanced logging system & utilities
 │   ├── Renderer/          # Rendering system
 │   ├── Input/             # Input handling
-│   ├── Scene/             # Scene management
+│   ├── Scene/             # Scene management (legacy)
 │   ├── Audio/             # Audio system
 │   └── Physics/           # Physics system
 ├── Examples/              # Example projects

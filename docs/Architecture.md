@@ -44,6 +44,87 @@ fields["score"] = "1500";
 PYRAMID_LOG_STRUCTURED(LogLevel::Info, "Level completed", fields);
 ```
 
+### Scene Management Core Architecture
+
+The Pyramid Engine features a production-ready scene management system with advanced spatial partitioning capabilities, located in the `Pyramid::SceneManagement` namespace:
+
+#### Key Components
+
+- **SceneManager**: Central scene lifecycle management and organization
+- **Octree**: Spatial partitioning system for efficient object queries
+- **AABB**: Axis-aligned bounding box implementation with intersection testing
+- **Query System**: Multiple spatial query types with performance optimization
+- **Performance Monitoring**: Real-time statistics and profiling capabilities
+
+#### Architecture Overview
+
+```cpp
+namespace Pyramid::SceneManagement {
+    class SceneManager {
+        // Scene lifecycle management
+        std::shared_ptr<Scene> CreateScene(const std::string& name);
+        void SetActiveScene(std::shared_ptr<Scene> scene);
+
+        // Spatial partitioning
+        void EnableSpatialPartitioning(bool enable);
+        void SetOctreeDepth(u32 depth);
+        void RebuildSpatialPartition();
+
+        // Spatial queries
+        QueryResult QueryScene(const QueryParams& params);
+        std::vector<std::shared_ptr<RenderObject>> GetVisibleObjects(const Camera& camera);
+        std::vector<std::shared_ptr<RenderObject>> GetObjectsInRadius(const Vec3& center, f32 radius);
+        std::shared_ptr<RenderObject> GetNearestObject(const Vec3& position);
+
+        // Performance monitoring
+        const SceneStats& GetStats() const;
+    };
+
+    class Octree {
+        // Spatial partitioning with configurable depth and object limits
+        void Insert(std::shared_ptr<RenderObject> object);
+        std::vector<std::shared_ptr<RenderObject>> QueryPoint(const Vec3& point);
+        std::vector<std::shared_ptr<RenderObject>> QuerySphere(const Vec3& center, f32 radius);
+        std::vector<std::shared_ptr<RenderObject>> QueryBox(const AABB& bounds);
+        std::shared_ptr<RenderObject> FindNearest(const Vec3& position);
+    };
+}
+```
+
+#### Spatial Partitioning Features
+
+- **Octree Implementation**: Hierarchical spatial subdivision with configurable depth (default 8 levels)
+- **Query Types**: Point, sphere, box, ray, and frustum-based spatial queries
+- **Performance**: O(log n) object lookup complexity vs O(n) brute force
+- **Memory Efficient**: Smart pointer-based resource management with RAII principles
+- **Configurable**: Adjustable octree depth and objects per node for different use cases
+
+#### Query System
+
+The scene management system supports multiple query types optimized for different game scenarios:
+
+- **Point Queries**: Find objects at specific locations
+- **Sphere Queries**: Radius-based object discovery (explosions, AI awareness)
+- **Box Queries**: Rectangular region object detection (triggers, areas)
+- **Ray Queries**: Line-based intersection testing (line of sight, projectiles)
+- **Frustum Queries**: Camera-based visibility culling for rendering
+
+#### Performance Monitoring
+
+Real-time statistics tracking for optimization and debugging:
+
+```cpp
+struct SceneStats {
+    u32 totalNodes;        // Total scene nodes
+    u32 totalObjects;      // Total render objects
+    u32 visibleObjects;    // Currently visible objects
+    u32 octreeNodes;       // Octree node count
+    u32 octreeDepth;       // Current octree depth
+    f32 lastQueryTime;     // Last query execution time (ms)
+    f32 lastUpdateTime;    // Last update execution time (ms)
+};
+```
+
 ### Graphics System
 
 The graphics system is built around a flexible abstraction layer that supports multiple graphics APIs:
@@ -103,7 +184,7 @@ The main game loop is managed by the `Game` class, which provides:
 
 ## Directory Structure
 
-```
+```text
 Pyramid/
 ├── Engine/                # Core engine library
 │   ├── Core/             # Core engine functionality
@@ -111,15 +192,21 @@ Pyramid/
 │   │   └── source/       # Implementation files
 │   ├── Graphics/         # Graphics abstraction layer
 │   │   ├── include/      # Public headers
+│   │   │   └── Scene/    # Scene Management Core Architecture
+│   │   │       ├── SceneManager.hpp  # Scene lifecycle management
+│   │   │       └── Octree.hpp        # Spatial partitioning system
 │   │   └── source/       # Implementation files
+│   │       └── Scene/    # Scene Management implementations
+│   │           ├── SceneManager.cpp  # Scene manager implementation
+│   │           └── Octree.cpp        # Octree spatial partitioning
 │   ├── Platform/         # Platform-specific code
 │   │   ├── include/      # Public headers
 │   │   └── source/       # Implementation files
-│   ├── Math/             # Math library
+│   ├── Math/             # SIMD-optimized math library
 │   ├── Utils/            # Enhanced logging system & utilities
 │   ├── Renderer/         # Rendering system
 │   ├── Input/            # Input handling
-│   ├── Scene/            # Scene management
+│   ├── Scene/            # Scene management (legacy)
 │   ├── Audio/            # Audio system
 │   └── Physics/          # Physics system
 ├── Examples/             # Example projects
