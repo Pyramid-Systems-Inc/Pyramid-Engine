@@ -291,11 +291,19 @@ void BasicGame::onCreate()
     // Initialize OpenGL 4.6 advanced features
     InitializeAdvancedFeatures();
 
+    // Create the enhanced 3D scene
+    CreateEnhancedScene();
+
+    // Setup dynamic lighting system
+    SetupDynamicLighting();
+
     PYRAMID_LOG_INFO("Enhanced BasicGame initialized successfully!");
-    PYRAMID_LOG_INFO("  3D Cube: 24 vertices, 36 indices (12 triangles)");
+    PYRAMID_LOG_INFO("  Enhanced 3D Scene: ", m_sceneObjects.size(), " diverse objects");
+    PYRAMID_LOG_INFO("  Dynamic Lighting: ", m_lights.size(), " light sources");
     PYRAMID_LOG_INFO("  PBR Shader: Position, Normal, TexCoord, Color attributes");
     PYRAMID_LOG_INFO("  Enhanced Systems: SIMD math, camera, scene graph, PBR materials");
     PYRAMID_LOG_INFO("  OpenGL 4.6 Features: Instanced rendering, advanced shaders, compute shaders, state management");
+    PYRAMID_LOG_INFO("  Camera System: Multiple modes (Static, Orbital, Cinematic, FreeRoam)");
 }
 
 void BasicGame::LoadTestTextures()
@@ -547,6 +555,7 @@ void BasicGame::onUpdate(float deltaTime)
     // Update enhanced systems
     UpdateCamera(deltaTime);
     UpdateScene(deltaTime);
+    UpdateSceneAnimations(deltaTime);
     UpdateUniformBuffers(deltaTime);
 
     // Demonstrate all advanced systems (SIMD disabled for now)
@@ -584,51 +593,42 @@ void BasicGame::onRender()
     if (!device)
         return;
 
-    // Set clear color to dark blue instead of green
-    device->SetClearColor(0.1f, 0.1f, 0.2f, 1.0f);
-
     // Debug viewport info
     static bool viewportLogged = false;
     if (!viewportLogged)
     {
-        PYRAMID_LOG_INFO("Rendering setup - viewport and clear color configured");
+        PYRAMID_LOG_INFO("Enhanced rendering setup - multiple objects and dynamic lighting");
         viewportLogged = true;
     }
 
-    if (m_shader && m_vertexArray && m_sceneUBO && m_materialUBO)
+    // Render the enhanced 3D scene
+    if (!m_sceneObjects.empty())
     {
-        // Enable depth testing
-        device->EnableDepthTest(true);
-        device->SetDepthFunc(GL_LESS);
-
-        m_shader->Bind();
-
-        // Ensure uniform buffers are bound to their binding points
-        m_sceneUBO->Bind(0);    // Binding point 0 for SceneData
-        m_materialUBO->Bind(1); // Binding point 1 for MaterialData
-
-        // No texture setup needed for simplified shader
-
-        // Render the basic 3D cube
-        m_vertexArray->Bind();
-        device->DrawIndexed(m_vertexArray->GetIndexBuffer()->GetCount());
-        m_vertexArray->Unbind();
-        m_shader->Unbind();
-
-        // Debug output every few seconds
-        static float lastRenderDebugTime = 0.0f;
-        if (m_time - lastRenderDebugTime > 3.0f)
-        {
-            PYRAMID_LOG_INFO("Rendering cube with ", m_vertexArray->GetIndexBuffer()->GetCount(), " indices");
-            lastRenderDebugTime = m_time;
-        }
+        RenderEnhancedScene();
     }
     else
     {
-        PYRAMID_LOG_ERROR("Missing rendering components: shader=", (m_shader ? "OK" : "NULL"),
-                          " VAO=", (m_vertexArray ? "OK" : "NULL"),
-                          " sceneUBO=", (m_sceneUBO ? "OK" : "NULL"),
-                          " materialUBO=", (m_materialUBO ? "OK" : "NULL"));
+        // Fallback to original cube rendering if enhanced scene isn't ready
+        device->SetClearColor(0.1f, 0.1f, 0.2f, 1.0f);
+
+        if (m_shader && m_vertexArray && m_sceneUBO && m_materialUBO)
+        {
+            device->EnableDepthTest(true);
+            device->SetDepthFunc(GL_LESS);
+
+            m_shader->Bind();
+            m_sceneUBO->Bind(0);
+            m_materialUBO->Bind(1);
+
+            m_vertexArray->Bind();
+            device->DrawIndexed(m_vertexArray->GetIndexBuffer()->GetCount());
+            m_vertexArray->Unbind();
+            m_shader->Unbind();
+        }
+        else
+        {
+            PYRAMID_LOG_ERROR("Missing rendering components for fallback rendering");
+        }
     }
 
     // Demonstrate OpenGL 4.6 advanced rendering features
@@ -838,25 +838,103 @@ void BasicGame::UpdateCamera(float deltaTime)
     if (!m_camera)
         return;
 
-    // Fixed camera position for debugging - disable animation temporarily
     using namespace Pyramid::Math;
 
-    // Static camera position to see the cube clearly
-    Vec3 position(0.0f, 0.0f, 3.0f); // Simple position in front of cube
-    m_camera->SetPosition(position);
-    m_camera->LookAt(Vec3::Zero, Vec3::Up);
+    switch (m_cameraMode)
+    {
+    case CameraMode::Static:
+    {
+        // Static camera position for debugging
+        Vec3 position(0.0f, 2.0f, 8.0f);
+        m_camera->SetPosition(position);
+        m_camera->LookAt(m_cameraTarget, Vec3::Up);
+        break;
+    }
 
-    // Uncomment for animated camera:
-    /*
-    float radius = 5.0f;
-    Vec3 position(
-        cos(m_time * 0.5f) * radius,
-        2.0f + sin(m_time * 0.3f) * 1.0f,
-        sin(m_time * 0.5f) * radius);
+    case CameraMode::Orbital:
+    {
+        // Smooth orbital camera movement
+        float angle = m_time * m_cameraOrbitSpeed;
+        Vec3 position(
+            cos(angle) * m_cameraOrbitRadius,
+            m_cameraHeight + sin(m_time * 0.2f) * 0.5f, // Gentle vertical movement
+            sin(angle) * m_cameraOrbitRadius);
 
-    m_camera->SetPosition(position);
-    m_camera->LookAt(Vec3::Zero, Vec3::Up);
-    */
+        m_camera->SetPosition(position);
+        m_camera->LookAt(m_cameraTarget, Vec3::Up);
+        break;
+    }
+
+    case CameraMode::Cinematic:
+    {
+        // Cinematic camera with smooth transitions between viewpoints
+        float cycleTime = 20.0f; // 20 seconds per cycle
+        float t = fmod(m_time, cycleTime) / cycleTime;
+
+        // Define keyframe positions and targets
+        std::vector<Vec3> positions = {
+            {8.0f, 3.0f, 8.0f},  // Wide establishing shot
+            {-5.0f, 2.0f, 3.0f}, // Side view
+            {0.0f, 6.0f, 0.0f},  // Top-down view
+            {3.0f, 1.0f, 6.0f},  // Low angle
+            {-8.0f, 4.0f, -2.0f} // Dramatic angle
+        };
+
+        std::vector<Vec3> targets = {
+            {0.0f, 0.0f, 0.0f},
+            {0.0f, 1.0f, 0.0f},
+            {0.0f, 0.0f, 0.0f},
+            {0.0f, 2.0f, -2.0f},
+            {2.0f, 1.0f, 1.0f}};
+
+        // Smooth interpolation between keyframes
+        int numKeyframes = positions.size();
+        float segmentTime = 1.0f / numKeyframes;
+        int currentSegment = static_cast<int>(t / segmentTime);
+        int nextSegment = (currentSegment + 1) % numKeyframes;
+        float segmentT = (t - currentSegment * segmentTime) / segmentTime;
+
+        // Smooth step interpolation for cinematic feel
+        float smoothT = segmentT * segmentT * (3.0f - 2.0f * segmentT);
+
+        Vec3 position = Vec3::Lerp(positions[currentSegment], positions[nextSegment], smoothT);
+        Vec3 target = Vec3::Lerp(targets[currentSegment], targets[nextSegment], smoothT);
+
+        m_camera->SetPosition(position);
+        m_camera->LookAt(target, Vec3::Up);
+        break;
+    }
+
+    case CameraMode::FreeRoam:
+    {
+        // Free roam camera (could be controlled by input in the future)
+        float radius = 6.0f + sin(m_time * 0.1f) * 2.0f;
+        float height = 2.0f + cos(m_time * 0.15f) * 1.5f;
+        float angle = m_time * 0.3f;
+
+        Vec3 position(
+            cos(angle) * radius,
+            height,
+            sin(angle) * radius);
+
+        m_camera->SetPosition(position);
+        m_camera->LookAt(m_cameraTarget, Vec3::Up);
+        break;
+    }
+    }
+
+    // Cycle through camera modes every 30 seconds
+    static float lastModeSwitch = 0.0f;
+    if (m_time - lastModeSwitch > 30.0f)
+    {
+        lastModeSwitch = m_time;
+        int currentMode = static_cast<int>(m_cameraMode);
+        currentMode = (currentMode + 1) % 4;
+        m_cameraMode = static_cast<CameraMode>(currentMode);
+
+        const char *modeNames[] = {"Static", "Orbital", "Cinematic", "FreeRoam"};
+        PYRAMID_LOG_INFO("Camera mode switched to: ", modeNames[currentMode]);
+    }
 }
 
 void BasicGame::UpdateScene(float deltaTime)
@@ -2004,4 +2082,161 @@ void BasicGame::CreateEnhancedScene()
     PYRAMID_LOG_INFO("  Total objects: ", m_sceneObjects.size());
     PYRAMID_LOG_INFO("  Scene layout: Foreground (3), Midground (3), Background (2), Ground (1), Decorative (4)");
     PYRAMID_LOG_INFO("  Geometric variety: Spheres, Icospheres, Tori, Cylinders, Planes");
+}
+
+void BasicGame::UpdateSceneAnimations(float deltaTime)
+{
+    using namespace Pyramid::Math;
+
+    // Update object animations
+    for (auto &obj : m_sceneObjects)
+    {
+        if (obj.animationSpeed > 0.0f)
+        {
+            float animTime = m_time * obj.animationSpeed + obj.animationOffset;
+
+            // Different animation types based on object type
+            if (obj.name.find("Sphere") != std::string::npos || obj.name.find("Icosphere") != std::string::npos)
+            {
+                // Spheres: gentle floating motion
+                obj.position.y += sin(animTime * 2.0f) * 0.02f;
+                obj.rotation.y = animTime * 0.5f;
+            }
+            else if (obj.name.find("Torus") != std::string::npos)
+            {
+                // Tori: spinning motion
+                obj.rotation.x = animTime * 0.3f;
+                obj.rotation.y = animTime * 0.7f;
+                obj.rotation.z = sin(animTime) * 0.2f;
+            }
+            else if (obj.name.find("Cylinder") != std::string::npos)
+            {
+                // Cylinders: rotation around Y axis with slight wobble
+                obj.rotation.y = animTime;
+                obj.rotation.z = sin(animTime * 2.0f) * 0.1f;
+                obj.position.y += cos(animTime * 1.5f) * 0.05f;
+            }
+        }
+    }
+}
+
+void BasicGame::SetupDynamicLighting()
+{
+    PYRAMID_LOG_INFO("=== Setting up Dynamic Multi-Light System ===");
+
+    m_lights.clear();
+
+    // Main directional light (sun)
+    Light sunLight;
+    sunLight.type = 0; // Directional
+    sunLight.direction = {-0.3f, -0.7f, -0.6f};
+    sunLight.color = {1.0f, 0.95f, 0.8f}; // Warm sunlight
+    sunLight.intensity = 1.2f;
+    m_lights.push_back(sunLight);
+
+    // Key light (main scene illumination)
+    Light keyLight;
+    keyLight.type = 1; // Point light
+    keyLight.position = {-2.0f, 4.0f, 3.0f};
+    keyLight.color = {0.9f, 0.9f, 1.0f}; // Cool white
+    keyLight.intensity = 2.0f;
+    keyLight.range = 15.0f;
+    m_lights.push_back(keyLight);
+
+    // Fill light (softer illumination)
+    Light fillLight;
+    fillLight.type = 1; // Point light
+    fillLight.position = {4.0f, 2.0f, 2.0f};
+    fillLight.color = {1.0f, 0.8f, 0.6f}; // Warm fill
+    fillLight.intensity = 1.0f;
+    fillLight.range = 12.0f;
+    m_lights.push_back(fillLight);
+
+    // Accent light (dramatic effect)
+    Light accentLight;
+    accentLight.type = 2; // Spot light
+    accentLight.position = {0.0f, 6.0f, -4.0f};
+    accentLight.direction = {0.0f, -1.0f, 0.5f};
+    accentLight.color = {0.8f, 0.4f, 1.0f}; // Purple accent
+    accentLight.intensity = 1.5f;
+    accentLight.range = 10.0f;
+    accentLight.innerCone = 0.8f;
+    accentLight.outerCone = 0.6f;
+    m_lights.push_back(accentLight);
+
+    PYRAMID_LOG_INFO("Dynamic lighting setup completed:");
+    PYRAMID_LOG_INFO("  Directional lights: 1 (sun)");
+    PYRAMID_LOG_INFO("  Point lights: 2 (key + fill)");
+    PYRAMID_LOG_INFO("  Spot lights: 1 (accent)");
+    PYRAMID_LOG_INFO("  Total lights: ", m_lights.size());
+}
+
+void BasicGame::RenderEnhancedScene()
+{
+    auto device = GetGraphicsDevice();
+    if (!device || !m_shader)
+        return;
+
+    // Set enhanced clear color for better visual appeal
+    device->SetClearColor(0.05f, 0.1f, 0.15f, 1.0f); // Dark blue-gray
+
+    // Enable enhanced rendering states
+    device->EnableDepthTest(true);
+    device->SetDepthFunc(GL_LESS);
+    device->EnableCullFace(true);
+    device->SetCullFace(GL_BACK);
+    device->EnableBlend(false); // Disable for opaque objects
+
+    m_shader->Bind();
+
+    // Bind uniform buffers
+    if (m_sceneUBO)
+        m_sceneUBO->Bind(0);
+    if (m_materialUBO)
+        m_materialUBO->Bind(1);
+
+    // Render all scene objects
+    for (const auto &obj : m_sceneObjects)
+    {
+        if (!obj.vertexArray)
+            continue;
+
+        // Update material properties for this object
+        MaterialUniforms materialData = {};
+        materialData.baseColor = obj.baseColor;
+        materialData.metallicRoughness = {obj.metallic, obj.roughness, 0.0f, 1.0f};
+
+        if (m_materialUBO)
+        {
+            m_materialUBO->SetData(&materialData, sizeof(MaterialUniforms));
+        }
+
+        // Calculate model matrix for this object
+        using namespace Pyramid::Math;
+        Mat4 translation = Mat4::Translation(obj.position);
+        Mat4 rotationX = Mat4::RotationX(obj.rotation.x);
+        Mat4 rotationY = Mat4::RotationY(obj.rotation.y);
+        Mat4 rotationZ = Mat4::RotationZ(obj.rotation.z);
+        Mat4 scale = Mat4::Scale(obj.scale);
+
+        Mat4 modelMatrix = translation * rotationY * rotationX * rotationZ * scale;
+
+        // Set model matrix uniform (if shader supports it)
+        // For now, we'll use the existing transform system
+
+        // Render the object
+        obj.vertexArray->Bind();
+        device->DrawIndexed(obj.vertexArray->GetIndexBuffer()->GetCount());
+        obj.vertexArray->Unbind();
+    }
+
+    m_shader->Unbind();
+
+    // Debug output for rendering
+    static float lastRenderDebugTime = 0.0f;
+    if (m_time - lastRenderDebugTime > 5.0f)
+    {
+        PYRAMID_LOG_INFO("Enhanced scene rendered: ", m_sceneObjects.size(), " objects");
+        lastRenderDebugTime = m_time;
+    }
 }
