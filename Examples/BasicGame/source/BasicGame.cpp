@@ -591,12 +591,7 @@ void BasicGame::onRender()
     static bool viewportLogged = false;
     if (!viewportLogged)
     {
-        // Get window size for debugging
-        auto window = GetWindow();
-        if (window)
-        {
-            PYRAMID_LOG_INFO("Window size: ", window->GetWidth(), "x", window->GetHeight());
-        }
+        PYRAMID_LOG_INFO("Rendering setup - viewport and clear color configured");
         viewportLogged = true;
     }
 
