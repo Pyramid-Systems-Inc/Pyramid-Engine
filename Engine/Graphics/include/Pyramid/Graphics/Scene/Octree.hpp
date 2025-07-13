@@ -56,6 +56,12 @@ namespace Pyramid
                 max.y = Math::Max(max.y, point.y);
                 max.z = Math::Max(max.z, point.z);
             }
+
+            // Additional methods implemented in source file
+            bool IntersectsSphere(const Math::Vec3 &center, f32 radius) const;
+            bool IntersectsRay(const Math::Vec3 &origin, const Math::Vec3 &direction, f32 &distance) const;
+            void Expand(const AABB &other);
+            AABB GetExpanded(f32 amount) const;
         };
 
         /**

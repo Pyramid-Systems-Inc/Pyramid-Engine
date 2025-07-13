@@ -13,7 +13,11 @@ namespace Pyramid
 {
     // Forward declarations
     class Camera;
-    class Octree;
+
+    namespace SceneManagement
+    {
+        class Octree;
+    }
 
     namespace SceneManagement
     {
@@ -131,7 +135,7 @@ namespace Pyramid
             void UpdateSpatialPartition();
 
             // Performance monitoring
-            const SceneStats &GetStats() const { return m_stats; }
+            const SceneStats &GetStats() const;
             void ResetStats();
 
             // Event system
@@ -167,7 +171,7 @@ namespace Pyramid
             std::unordered_map<std::string, std::shared_ptr<Pyramid::Scene>> m_scenes;
 
             // Spatial partitioning
-            std::unique_ptr<Octree> m_octree;
+            std::unique_ptr<SceneManagement::Octree> m_octree;
             bool m_spatialPartitioningEnabled = true;
             u32 m_octreeMaxDepth = 8;
             Math::Vec3 m_octreeSize = Math::Vec3(1000.0f, 1000.0f, 1000.0f);

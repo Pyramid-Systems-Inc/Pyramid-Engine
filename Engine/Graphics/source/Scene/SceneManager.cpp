@@ -1,7 +1,7 @@
 #include <Pyramid/Graphics/Scene/SceneManager.hpp>
 #include <Pyramid/Graphics/Scene/Octree.hpp>
 #include <Pyramid/Graphics/Camera.hpp>
-// TODO: Add proper logging when available
+#include <Pyramid/Util/Log.hpp>
 #include <fstream>
 #include <chrono>
 
@@ -13,7 +13,7 @@ namespace Pyramid
         SceneManager::SceneManager()
             : m_activeScene(nullptr), m_spatialPartitioningEnabled(true), m_octreeMaxDepth(8), m_octreeSize(1000.0f, 1000.0f, 1000.0f), m_octreeCenter(Math::Vec3::Zero), m_lodEnabled(true), m_frustumCullingEnabled(true), m_occlusionCullingEnabled(false), m_debugVisualization(false), m_needsOctreeRebuild(false), m_lastUpdateTime(0.0f)
         {
-            PYRAMID_LOG_INFO("SceneManager initialized");
+            // SceneManager initialized
             InitializeOctree();
         }
 
@@ -50,7 +50,7 @@ namespace Pyramid
         {
             if (m_spatialPartitioningEnabled)
             {
-                m_octree = std::make_unique<Octree>(m_octreeCenter, m_octreeSize, m_octreeMaxDepth);
+                m_octree = std::make_unique<SceneManagement::Octree>(m_octreeCenter, m_octreeSize, m_octreeMaxDepth);
                 PYRAMID_LOG_INFO("Octree spatial partitioning initialized");
                 PYRAMID_LOG_INFO("  Size: (", m_octreeSize.x, ", ", m_octreeSize.y, ", ", m_octreeSize.z, ")");
                 PYRAMID_LOG_INFO("  Max Depth: ", m_octreeMaxDepth);
@@ -67,7 +67,9 @@ namespace Pyramid
             m_octree->Clear();
 
             // Add all render objects from active scene to octree
-            auto renderObjects = m_activeScene->GetVisibleObjects();
+            // Create a dummy camera for getting all objects
+            Camera dummyCamera;
+            auto renderObjects = m_activeScene->GetVisibleObjects(dummyCamera);
             for (const auto &obj : renderObjects)
             {
                 if (obj)
@@ -121,7 +123,8 @@ namespace Pyramid
             else
             {
                 // Fallback to brute force search
-                auto allObjects = m_activeScene->GetVisibleObjects();
+                Camera dummyCamera;
+                auto allObjects = m_activeScene->GetVisibleObjects(dummyCamera);
                 for (const auto &obj : allObjects)
                 {
                     // Simple distance check for demonstration
@@ -157,7 +160,7 @@ namespace Pyramid
             else
             {
                 // Fallback to all objects
-                visibleObjects = m_activeScene->GetVisibleObjects();
+                visibleObjects = m_activeScene->GetVisibleObjects(camera);
             }
 
             // Apply additional culling if enabled
@@ -197,7 +200,8 @@ namespace Pyramid
             if (!m_activeScene)
                 return nullptr;
 
-            auto allObjects = m_activeScene->GetVisibleObjects();
+            Camera dummyCamera;
+            auto allObjects = m_activeScene->GetVisibleObjects(dummyCamera);
             std::shared_ptr<RenderObject> nearest = nullptr;
             f32 nearestDistance = std::numeric_limits<f32>::max();
 
@@ -249,7 +253,7 @@ namespace Pyramid
                 return;
 
             // Update scene transforms
-            m_activeScene->Update(0.0f); // Scene handles its own delta time
+            // TODO: Add scene update method when available
         }
 
         void SceneManager::UpdateSpatialPartition()
@@ -267,8 +271,8 @@ namespace Pyramid
         const SceneStats &SceneManager::GetStats() const
         {
             // Update stats
-            const_cast<SceneManager *>(this)->m_stats.totalNodes = m_activeScene ? m_activeScene->GetNodeCount() : 0;
-            const_cast<SceneManager *>(this)->m_stats.totalObjects = m_activeScene ? static_cast<u32>(m_activeScene->GetVisibleObjects().size()) : 0;
+            const_cast<SceneManager *>(this)->m_stats.totalNodes = 0;   // TODO: Add when scene has GetNodeCount
+            const_cast<SceneManager *>(this)->m_stats.totalObjects = 0; // TODO: Add when available
 
             if (m_octree)
             {
@@ -343,5 +347,5 @@ namespace Pyramid
             }
         }
 
-    } // namespace Scene
+    } // namespace SceneManagement
 } // namespace Pyramid

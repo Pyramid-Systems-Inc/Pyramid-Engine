@@ -1,12 +1,12 @@
 #include <Pyramid/Graphics/Scene/Octree.hpp>
 #include <Pyramid/Graphics/Camera.hpp>
-#include <Pyramid/Utils/Logger.hpp>
+#include <Pyramid/Util/Log.hpp>
 #include <algorithm>
 #include <limits>
 
 namespace Pyramid
 {
-    namespace Scene
+    namespace SceneManagement
     {
 
         // AABB Implementation
@@ -615,7 +615,7 @@ namespace Pyramid
                         sqDist += (v - aabb.max[i]) * (v - aabb.max[i]);
                 }
 
-                return Math::Sqrt(sqDist);
+                return Math::Fast::Sqrt(sqDist);
             }
         }
 
