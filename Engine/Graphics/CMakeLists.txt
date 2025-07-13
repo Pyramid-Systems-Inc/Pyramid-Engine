@@ -7,6 +7,7 @@ target_sources(PyramidEngine
         source/OpenGL/Buffer/OpenGLVertexArray.cpp
         source/OpenGL/Buffer/OpenGLUniformBuffer.cpp
         source/OpenGL/Buffer/OpenGLInstanceBuffer.cpp # Added for instanced rendering
+        source/OpenGL/Buffer/OpenGLShaderStorageBuffer.cpp # Added for compute shaders
         source/Buffer/UniformBuffer.cpp
         source/OpenGL/Shader/OpenGLShader.cpp
         source/Texture.cpp # Added
@@ -25,6 +26,7 @@ target_sources(PyramidEngine
         include/Pyramid/Graphics/Buffer/BufferLayout.hpp
         include/Pyramid/Graphics/Buffer/UniformBuffer.hpp # Added
         include/Pyramid/Graphics/Buffer/InstanceBuffer.hpp # Added for instanced rendering
+        include/Pyramid/Graphics/Buffer/ShaderStorageBuffer.hpp # Added for compute shaders
         include/Pyramid/Graphics/Shader/Shader.hpp
         include/Pyramid/Graphics/Texture.hpp # Added
         include/Pyramid/Graphics/Geometry/Vertex.hpp
@@ -40,6 +42,7 @@ target_sources(PyramidEngine
         include/Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexBuffer.hpp
         include/Pyramid/Graphics/OpenGL/Buffer/OpenGLUniformBuffer.hpp
         include/Pyramid/Graphics/OpenGL/Buffer/OpenGLInstanceBuffer.hpp # Added for instanced rendering
+        include/Pyramid/Graphics/OpenGL/Buffer/OpenGLShaderStorageBuffer.hpp # Added for compute shaders
         include/Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp
         include/Pyramid/Graphics/OpenGL/OpenGLTexture.hpp # Added
         include/Pyramid/Graphics/OpenGL/OpenGLFramebuffer.hpp # Added - FBO Implementation

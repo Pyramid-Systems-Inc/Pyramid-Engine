@@ -107,6 +107,21 @@ namespace Pyramid
          */
         virtual void SetUniformBlockBinding(const std::string &blockName, u32 bindingPoint) = 0;
 
+        /**
+         * @brief Bind a shader storage buffer to a named storage block
+         * @param blockName The name of the storage block in the shader
+         * @param buffer The shader storage buffer to bind
+         * @param bindingPoint The binding point index
+         */
+        virtual void BindShaderStorageBuffer(const std::string &blockName, class IShaderStorageBuffer *buffer, u32 bindingPoint) = 0;
+
+        /**
+         * @brief Set the binding point for a shader storage block
+         * @param blockName The name of the storage block
+         * @param bindingPoint The binding point index
+         */
+        virtual void SetShaderStorageBlockBinding(const std::string &blockName, u32 bindingPoint) = 0;
+
         // TODO: Add overloads for Vec2, Vec3, Vec4, Mat3, Mat4 types when math library is more complete.
     };
 

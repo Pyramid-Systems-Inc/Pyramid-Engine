@@ -41,6 +41,10 @@ namespace Pyramid
         void BindUniformBuffer(const std::string &blockName, class IUniformBuffer *buffer, u32 bindingPoint) override;
         void SetUniformBlockBinding(const std::string &blockName, u32 bindingPoint) override;
 
+        // Shader storage buffer methods
+        void BindShaderStorageBuffer(const std::string &blockName, class IShaderStorageBuffer *buffer, u32 bindingPoint) override;
+        void SetShaderStorageBlockBinding(const std::string &blockName, u32 bindingPoint) override;
+
     private:
         GLint GetUniformLocation(const std::string &name); // Not const as it modifies cache
 

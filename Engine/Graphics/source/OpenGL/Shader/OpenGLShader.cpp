@@ -570,4 +570,41 @@ namespace Pyramid
         PYRAMID_LOG_DEBUG("Dispatched compute shader with groups: ", numGroupsX, "x", numGroupsY, "x", numGroupsZ);
     }
 
+    void OpenGLShader::BindShaderStorageBuffer(const std::string &blockName, IShaderStorageBuffer *buffer, u32 bindingPoint)
+    {
+        if (!buffer)
+        {
+            PYRAMID_LOG_ERROR("Shader storage buffer is null");
+            return;
+        }
+
+        // Set the storage block binding point
+        SetShaderStorageBlockBinding(blockName, bindingPoint);
+
+        // Bind the buffer to the binding point
+        buffer->Bind(bindingPoint);
+    }
+
+    void OpenGLShader::SetShaderStorageBlockBinding(const std::string &blockName, u32 bindingPoint)
+    {
+        if (m_programId == 0)
+        {
+            PYRAMID_LOG_ERROR("Cannot set storage block binding: no program loaded");
+            return;
+        }
+
+        // Get the storage block index
+        GLuint blockIndex = glGetProgramResourceIndex(m_programId, GL_SHADER_STORAGE_BLOCK, blockName.c_str());
+        if (blockIndex == GL_INVALID_INDEX)
+        {
+            PYRAMID_LOG_ERROR("Shader storage block '", blockName, "' not found in program ", m_programId);
+            return;
+        }
+
+        // Set the binding point for the storage block
+        glShaderStorageBlockBinding(m_programId, blockIndex, bindingPoint);
+
+        PYRAMID_LOG_INFO("Bound shader storage block '", blockName, "' to binding point ", bindingPoint);
+    }
+
 } // namespace Pyramid
