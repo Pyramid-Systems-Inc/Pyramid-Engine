@@ -1,6 +1,8 @@
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLUniformBuffer.hpp>
 #include <Pyramid/Util/Log.hpp>
 #include <cstring>
+#include <vector>
+#include <algorithm>
 
 namespace Pyramid
 {
@@ -234,6 +236,186 @@ namespace Pyramid
         default:
             return GL_WRITE_ONLY;
         }
+    }
+
+    // Enhanced UBO Methods Implementation
+    void OpenGLUniformBuffer::UpdateDataRange(const void *data, size_t offset, size_t size)
+    {
+        if (m_bufferID == 0)
+        {
+            PYRAMID_LOG_ERROR("Uniform buffer not initialized");
+            return;
+        }
+
+        if (offset + size > m_size)
+        {
+            PYRAMID_LOG_ERROR("Update range exceeds buffer size");
+            return;
+        }
+
+        glBindBuffer(GL_UNIFORM_BUFFER, m_bufferID);
+        glBufferSubData(GL_UNIFORM_BUFFER, offset, size, data);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    }
+
+    void OpenGLUniformBuffer::ClearData(size_t offset, size_t size)
+    {
+        if (m_bufferID == 0)
+        {
+            PYRAMID_LOG_ERROR("Uniform buffer not initialized");
+            return;
+        }
+
+        if (size == 0)
+        {
+            size = m_size - offset;
+        }
+
+        if (offset + size > m_size)
+        {
+            PYRAMID_LOG_ERROR("Clear range exceeds buffer size");
+            return;
+        }
+
+        // Create zero-filled buffer
+        std::vector<u8> zeroData(size, 0);
+        UpdateDataRange(zeroData.data(), offset, size);
+    }
+
+    bool OpenGLUniformBuffer::Resize(size_t newSize)
+    {
+        if (m_bufferID == 0)
+        {
+            PYRAMID_LOG_ERROR("Uniform buffer not initialized");
+            return false;
+        }
+
+        if (newSize == m_size)
+        {
+            return true; // No change needed
+        }
+
+        // Create new buffer with new size
+        GLuint newBufferID;
+        glGenBuffers(1, &newBufferID);
+        glBindBuffer(GL_UNIFORM_BUFFER, newBufferID);
+        glBufferData(GL_UNIFORM_BUFFER, newSize, nullptr, BufferUsageToGL(m_usage));
+
+        // Copy existing data if shrinking or keep existing data if growing
+        if (newSize > 0 && m_size > 0)
+        {
+            size_t copySize = std::min(m_size, newSize);
+
+            // Copy data from old buffer to new buffer
+            glBindBuffer(GL_COPY_READ_BUFFER, m_bufferID);
+            glBindBuffer(GL_COPY_WRITE_BUFFER, newBufferID);
+            glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, copySize);
+        }
+
+        // Delete old buffer and update to new one
+        glDeleteBuffers(1, &m_bufferID);
+        m_bufferID = newBufferID;
+        m_size = newSize;
+
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        glBindBuffer(GL_COPY_READ_BUFFER, 0);
+        glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+
+        PYRAMID_LOG_INFO("Uniform buffer resized from ", m_size, " to ", newSize, " bytes");
+        return true;
+    }
+
+    void OpenGLUniformBuffer::BindRange(u32 bindingPoint, size_t offset, size_t size)
+    {
+        if (m_bufferID == 0)
+        {
+            PYRAMID_LOG_ERROR("Uniform buffer not initialized");
+            return;
+        }
+
+        if (offset + size > m_size)
+        {
+            PYRAMID_LOG_ERROR("Bind range exceeds buffer size");
+            return;
+        }
+
+        glBindBufferRange(GL_UNIFORM_BUFFER, bindingPoint, m_bufferID, offset, size);
+        m_currentBindingPoint = bindingPoint;
+    }
+
+    void OpenGLUniformBuffer::InvalidateData()
+    {
+        if (m_bufferID == 0)
+        {
+            return;
+        }
+
+        // Invalidate buffer data to hint driver that we don't need old data
+        glBindBuffer(GL_UNIFORM_BUFFER, m_bufferID);
+        glBufferData(GL_UNIFORM_BUFFER, m_size, nullptr, BufferUsageToGL(m_usage));
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    }
+
+    void OpenGLUniformBuffer::SetPersistentMapping(bool enable)
+    {
+        if (m_bufferID == 0)
+        {
+            PYRAMID_LOG_ERROR("Uniform buffer not initialized");
+            return;
+        }
+
+        if (enable && !m_persistentMapped)
+        {
+            // Enable persistent mapping (requires OpenGL 4.4+)
+            glBindBuffer(GL_UNIFORM_BUFFER, m_bufferID);
+
+            GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT;
+            if (m_coherentMapping)
+            {
+                flags |= GL_MAP_COHERENT_BIT;
+            }
+
+            m_persistentPtr = glMapBufferRange(GL_UNIFORM_BUFFER, 0, m_size, flags);
+            if (m_persistentPtr)
+            {
+                m_persistentMapped = true;
+                PYRAMID_LOG_INFO("Persistent mapping enabled for UBO");
+            }
+            else
+            {
+                PYRAMID_LOG_ERROR("Failed to create persistent mapping for UBO");
+            }
+
+            glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        }
+        else if (!enable && m_persistentMapped)
+        {
+            // Disable persistent mapping
+            glBindBuffer(GL_UNIFORM_BUFFER, m_bufferID);
+            glUnmapBuffer(GL_UNIFORM_BUFFER);
+            glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+            m_persistentMapped = false;
+            m_persistentPtr = nullptr;
+            PYRAMID_LOG_INFO("Persistent mapping disabled for UBO");
+        }
+    }
+
+    void OpenGLUniformBuffer::FlushMappedRange(size_t offset, size_t size)
+    {
+        if (m_bufferID == 0 || !m_persistentMapped)
+        {
+            return;
+        }
+
+        glBindBuffer(GL_UNIFORM_BUFFER, m_bufferID);
+        glFlushMappedBufferRange(GL_UNIFORM_BUFFER, offset, size);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    }
+
+    bool OpenGLUniformBuffer::IsBoundToPoint(u32 bindingPoint) const
+    {
+        return UBOStateManager::GetInstance().IsBufferBound(bindingPoint, m_bufferID);
     }
 
 } // namespace Pyramid
