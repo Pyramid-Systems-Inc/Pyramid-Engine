@@ -231,10 +231,8 @@ namespace Pyramid
                         return false;
                     }
 
-                    // Log the OpenGL version we got
-                    const char *version_str = reinterpret_cast<const char *>(glGetString(GL_VERSION));
-                    const char *renderer = reinterpret_cast<const char *>(glGetString(GL_RENDERER));
-                    PYRAMID_LOG_INFO("OpenGL Context Created - Version: ", version_str, ", Renderer: ", renderer);
+                    // Enhanced OpenGL context information logging
+                    LogOpenGLContextInfo();
 
                     return true;
                 }
@@ -287,6 +285,77 @@ namespace Pyramid
         }
 
         return !m_shouldClose;
+    }
+
+    void Win32OpenGLWindow::LogOpenGLContextInfo()
+    {
+        // Basic OpenGL information
+        const char *version_str = reinterpret_cast<const char *>(glGetString(GL_VERSION));
+        const char *renderer = reinterpret_cast<const char *>(glGetString(GL_RENDERER));
+        const char *vendor = reinterpret_cast<const char *>(glGetString(GL_VENDOR));
+        const char *glsl_version = reinterpret_cast<const char *>(glGetString(GL_SHADING_LANGUAGE_VERSION));
+
+        PYRAMID_LOG_INFO("=== OpenGL Context Information ===");
+        PYRAMID_LOG_INFO("OpenGL Version: ", version_str ? version_str : "Unknown");
+        PYRAMID_LOG_INFO("Renderer: ", renderer ? renderer : "Unknown");
+        PYRAMID_LOG_INFO("Vendor: ", vendor ? vendor : "Unknown");
+        PYRAMID_LOG_INFO("GLSL Version: ", glsl_version ? glsl_version : "Unknown");
+
+        // Get OpenGL version numbers
+        GLint major, minor;
+        glGetIntegerv(GL_MAJOR_VERSION, &major);
+        glGetIntegerv(GL_MINOR_VERSION, &minor);
+        PYRAMID_LOG_INFO("OpenGL Version (parsed): ", major, ".", minor);
+
+        // Check for key OpenGL 4.6 features
+        if (major >= 4)
+        {
+            PYRAMID_LOG_INFO("=== OpenGL 4.x Features Available ===");
+
+            // Check for specific features that are important for our engine
+            if (major > 4 || (major == 4 && minor >= 6))
+            {
+                PYRAMID_LOG_INFO("✅ OpenGL 4.6 features available");
+                PYRAMID_LOG_INFO("  - SPIR-V shader support");
+                PYRAMID_LOG_INFO("  - Anisotropic filtering");
+                PYRAMID_LOG_INFO("  - Polygon offset clamp");
+            }
+
+            if (major > 4 || (major == 4 && minor >= 5))
+            {
+                PYRAMID_LOG_INFO("✅ OpenGL 4.5 features available");
+                PYRAMID_LOG_INFO("  - Direct State Access (DSA)");
+                PYRAMID_LOG_INFO("  - Clip control");
+            }
+
+            if (major > 4 || (major == 4 && minor >= 4))
+            {
+                PYRAMID_LOG_INFO("✅ OpenGL 4.4 features available");
+                PYRAMID_LOG_INFO("  - Buffer storage");
+                PYRAMID_LOG_INFO("  - Multi-bind");
+            }
+
+            if (major > 4 || (major == 4 && minor >= 3))
+            {
+                PYRAMID_LOG_INFO("✅ OpenGL 4.3 features available");
+                PYRAMID_LOG_INFO("  - Compute shaders");
+                PYRAMID_LOG_INFO("  - Shader storage buffer objects");
+                PYRAMID_LOG_INFO("  - Multi-draw indirect");
+            }
+        }
+
+        // Check hardware limits important for our engine
+        GLint max_texture_size, max_texture_units, max_uniform_buffer_bindings;
+        glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+        glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &max_texture_units);
+        glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &max_uniform_buffer_bindings);
+
+        PYRAMID_LOG_INFO("=== Hardware Limits ===");
+        PYRAMID_LOG_INFO("Max Texture Size: ", max_texture_size, "x", max_texture_size);
+        PYRAMID_LOG_INFO("Max Texture Units: ", max_texture_units);
+        PYRAMID_LOG_INFO("Max UBO Bindings: ", max_uniform_buffer_bindings);
+
+        PYRAMID_LOG_INFO("===================================");
     }
 
 } // namespace Pyramid
