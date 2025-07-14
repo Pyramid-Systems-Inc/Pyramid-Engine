@@ -60,6 +60,8 @@ protected:
     void onCreate() override;
     void onUpdate(float deltaTime) override;
     void onRender() override;
+    // Input handling methods
+    void HandleInput(float deltaTime);
 
 private:
     // Initialization methods
@@ -313,4 +315,19 @@ private:
     float m_cameraOrbitSpeed = 0.3f;
     float m_cameraHeight = 2.0f;
     Pyramid::Math::Vec3 m_cameraTarget = Pyramid::Math::Vec3::Zero;
+
+    // Free roam camera controls
+    void UpdateFreeRoamCamera(float deltaTime);
+    void ProcessKeyboardInput(float deltaTime);
+    void ProcessMouseInput(float deltaTime);
+
+    // Free roam camera state
+    Pyramid::Math::Vec3 m_cameraPosition = Pyramid::Math::Vec3::Zero;
+    Pyramid::Math::Vec3 m_cameraFront = Pyramid::Math::Vec3(0.0f, 0.0f, -1.0f);
+    Pyramid::Math::Vec3 m_cameraUp = Pyramid::Math::Vec3(0.0f, 1.0f, 0.0f);
+    Pyramid::Math::Vec3 m_cameraRight = Pyramid::Math::Vec3::Zero;
+
+    float m_cameraYaw = -90.0f; // Yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right
+    float m_cameraPitch = 0.0f;
+    bool m_freeRoamEnabled = false;
 };

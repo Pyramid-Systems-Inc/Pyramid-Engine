@@ -657,6 +657,67 @@ void BasicGame::onRender()
     Game::onRender();
 }
 
+void BasicGame::HandleInput(float deltaTime)
+{
+    // Simple input simulation for demonstration
+    // In a real implementation, this would get input from the window system
+
+    // For now, we'll use time-based input simulation
+    static float inputTimer = 0.0f;
+    inputTimer += deltaTime;
+
+    // Simulate key presses for camera mode switching every 10 seconds
+    static int currentInputMode = 0;
+    if (inputTimer > 10.0f)
+    {
+        inputTimer = 0.0f;
+        currentInputMode = (currentInputMode + 1) % 4;
+
+        // Simulate pressing keys 1-4 for camera mode switching
+        int key = '1' + currentInputMode;
+
+        m_cameraMode = static_cast<CameraMode>(currentInputMode);
+        const char *modeNames[] = {"Static", "Orbital", "Cinematic", "FreeRoam"};
+        PYRAMID_LOG_INFO("Camera mode switched to: ", modeNames[currentInputMode]);
+
+        // If switching to FreeRoam, initialize position
+        if (currentInputMode == 3) // FreeRoam
+        {
+            m_cameraPosition = m_camera->GetPosition();
+            m_freeRoamEnabled = true;
+            PYRAMID_LOG_INFO("Free roam camera enabled - simulated WASD movement active");
+        }
+        else
+        {
+            m_freeRoamEnabled = false;
+        }
+    }
+
+    // Simulate WASD movement when in free roam mode
+    if (m_freeRoamEnabled && m_cameraMode == CameraMode::FreeRoam)
+    {
+        // Simulate automatic movement for demonstration
+        float moveSpeed = 2.0f * deltaTime;
+        float time = m_time * 0.5f;
+
+        // Simulate W/S movement (forward/backward)
+        m_cameraPosition = m_cameraPosition + m_cameraFront * (sin(time) * moveSpeed);
+
+        // Simulate A/D movement (left/right)
+        m_cameraPosition = m_cameraPosition + m_cameraRight * (cos(time * 0.7f) * moveSpeed);
+
+        // Simulate mouse look
+        m_cameraYaw += sin(time * 0.3f) * 20.0f * deltaTime;
+        m_cameraPitch += cos(time * 0.4f) * 10.0f * deltaTime;
+
+        // Constrain pitch
+        if (m_cameraPitch > 45.0f)
+            m_cameraPitch = 45.0f;
+        if (m_cameraPitch < -45.0f)
+            m_cameraPitch = -45.0f;
+    }
+}
+
 // Enhanced initialization methods
 void BasicGame::InitializeRenderSystem()
 {
@@ -688,14 +749,22 @@ void BasicGame::InitializeCamera()
         1000.0f         // Far plane
     );
 
-    // Set initial camera position and orientation
-    m_camera->SetPosition(Vec3(0.0f, 2.0f, 5.0f));
-    m_camera->LookAt(Vec3::Zero, Vec3::Up);
+    // Set initial camera position and orientation - focused on cube
+    m_camera->SetPosition(Vec3(0.0f, 2.0f, 6.0f)); // Better distance to see cube
+    m_camera->LookAt(Vec3::Zero, Vec3::Up);        // Always look at cube at origin
 
-    PYRAMID_LOG_INFO("Advanced camera system initialized");
-    PYRAMID_LOG_INFO("  Position: (0, 2, 5)");
-    PYRAMID_LOG_INFO("  Target: (0, 0, 0)");
+    // Initialize camera system parameters for cube-focused viewing
+    m_cameraTarget = Vec3::Zero;        // Cube is at origin
+    m_cameraOrbitRadius = 6.0f;         // Good distance to see the cube clearly
+    m_cameraOrbitSpeed = 0.2f;          // Slower for better viewing
+    m_cameraHeight = 2.0f;              // Good height to see cube faces
+    m_cameraMode = CameraMode::Orbital; // Start with orbital mode
+
+    PYRAMID_LOG_INFO("Enhanced camera system initialized - cube-focused");
+    PYRAMID_LOG_INFO("  Initial Position: (0, 2, 6)");
+    PYRAMID_LOG_INFO("  Target: (0, 0, 0) - Cube center");
     PYRAMID_LOG_INFO("  FOV: 60 degrees");
+    PYRAMID_LOG_INFO("  Mode: Orbital (will cycle every 30s)");
 }
 
 void BasicGame::InitializeScene()
@@ -909,36 +978,47 @@ void BasicGame::UpdateCamera(float deltaTime)
 
     case CameraMode::FreeRoam:
     {
-        // Free roam camera with dynamic movement - always focused on cube
-        float radius = 5.0f + sin(m_time * 0.1f) * 2.0f;  // Varying distance from cube
-        float height = 2.0f + cos(m_time * 0.15f) * 2.0f; // Varying height
-        float angle = m_time * 0.4f;                      // Rotation around cube
+        if (m_freeRoamEnabled)
+        {
+            // Free roam camera with manual controls (WASD + Mouse)
+            UpdateFreeRoamCamera(deltaTime);
+        }
+        else
+        {
+            // Automatic free roam mode (original behavior)
+            float radius = 5.0f + sin(m_time * 0.1f) * 2.0f;  // Varying distance from cube
+            float height = 2.0f + cos(m_time * 0.15f) * 2.0f; // Varying height
+            float angle = m_time * 0.4f;                      // Rotation around cube
 
-        // Add some figure-8 motion for more interesting movement
-        float figure8 = sin(m_time * 0.2f) * 1.5f;
+            // Add some figure-8 motion for more interesting movement
+            float figure8 = sin(m_time * 0.2f) * 1.5f;
 
-        Vec3 position(
-            cos(angle) * radius + figure8 * cos(m_time * 0.3f),
-            height,
-            sin(angle) * radius + figure8 * sin(m_time * 0.25f));
+            Vec3 position(
+                cos(angle) * radius + figure8 * cos(m_time * 0.3f),
+                height,
+                sin(angle) * radius + figure8 * sin(m_time * 0.25f));
 
-        m_camera->SetPosition(position);
-        m_camera->LookAt(m_cameraTarget, Vec3::Up); // Always look at cube
+            m_camera->SetPosition(position);
+            m_camera->LookAt(m_cameraTarget, Vec3::Up); // Always look at cube
+        }
         break;
     }
     }
 
-    // Cycle through camera modes every 30 seconds
-    static float lastModeSwitch = 0.0f;
-    if (m_time - lastModeSwitch > 30.0f)
+    // Cycle through camera modes every 30 seconds (unless free roam is manually enabled)
+    if (!m_freeRoamEnabled)
     {
-        lastModeSwitch = m_time;
-        int currentMode = static_cast<int>(m_cameraMode);
-        currentMode = (currentMode + 1) % 4;
-        m_cameraMode = static_cast<CameraMode>(currentMode);
+        static float lastModeSwitch = 0.0f;
+        if (m_time - lastModeSwitch > 30.0f)
+        {
+            lastModeSwitch = m_time;
+            int currentMode = static_cast<int>(m_cameraMode);
+            currentMode = (currentMode + 1) % 4;
+            m_cameraMode = static_cast<CameraMode>(currentMode);
 
-        const char *modeNames[] = {"Static", "Orbital", "Cinematic", "FreeRoam"};
-        PYRAMID_LOG_INFO("Camera mode switched to: ", modeNames[currentMode]);
+            const char *modeNames[] = {"Static", "Orbital", "Cinematic", "FreeRoam"};
+            PYRAMID_LOG_INFO("Camera mode switched to: ", modeNames[currentMode]);
+        }
     }
 }
 
@@ -2281,3 +2361,109 @@ void BasicGame::RenderEnhancedScene()
     }
 }
 */
+
+// Free Roam Camera Implementation
+void BasicGame::UpdateFreeRoamCamera(float deltaTime)
+{
+    using namespace Pyramid::Math;
+
+    // Process input
+    ProcessKeyboardInput(deltaTime);
+    ProcessMouseInput(deltaTime);
+
+    // Update camera vectors
+    Vec3 front;
+    front.x = cos(Radians(m_cameraYaw)) * cos(Radians(m_cameraPitch));
+    front.y = sin(Radians(m_cameraPitch));
+    front.z = sin(Radians(m_cameraYaw)) * cos(Radians(m_cameraPitch));
+    m_cameraFront = front.Normalized();
+
+    // Calculate right and up vectors
+    m_cameraRight = m_cameraFront.Cross(Vec3(0.0f, 1.0f, 0.0f)).Normalized();
+    m_cameraUp = m_cameraRight.Cross(m_cameraFront).Normalized();
+
+    // Update camera position and orientation
+    m_camera->SetPosition(m_cameraPosition);
+    m_camera->LookAt(m_cameraPosition + m_cameraFront, m_cameraUp);
+}
+
+void BasicGame::ProcessKeyboardInput(float deltaTime)
+{
+    using namespace Pyramid::Math;
+
+    float velocity = m_cameraSpeed * deltaTime;
+
+    // WASD movement
+    if (m_keys['W'] || m_keys['w'])
+        m_cameraPosition = m_cameraPosition + m_cameraFront * velocity;
+    if (m_keys['S'] || m_keys['s'])
+        m_cameraPosition = m_cameraPosition - m_cameraFront * velocity;
+    if (m_keys['A'] || m_keys['a'])
+        m_cameraPosition = m_cameraPosition - m_cameraRight * velocity;
+    if (m_keys['D'] || m_keys['d'])
+        m_cameraPosition = m_cameraPosition + m_cameraRight * velocity;
+
+    // QE for up/down movement
+    if (m_keys['Q'] || m_keys['q'])
+        m_cameraPosition = m_cameraPosition + m_cameraUp * velocity;
+    if (m_keys['E'] || m_keys['e'])
+        m_cameraPosition = m_cameraPosition - m_cameraUp * velocity;
+
+    // Speed control
+    if (m_keys[16]) // Shift key - speed up
+        m_cameraSpeed = 10.0f;
+    else if (m_keys[17]) // Ctrl key - slow down
+        m_cameraSpeed = 2.0f;
+    else
+        m_cameraSpeed = 5.0f;
+
+    // Toggle free roam mode with F key
+    static bool fKeyPressed = false;
+    if (m_keys['F'] || m_keys['f'])
+    {
+        if (!fKeyPressed)
+        {
+            m_freeRoamEnabled = !m_freeRoamEnabled;
+            if (m_freeRoamEnabled)
+            {
+                // Initialize free roam position to current camera position
+                m_cameraPosition = m_camera->GetPosition();
+                PYRAMID_LOG_INFO("Free roam camera enabled - Use WASD to move, QE for up/down, mouse to look");
+                PYRAMID_LOG_INFO("Controls: W/A/S/D = move, Q/E = up/down, Shift = speed up, Ctrl = slow down, F = toggle");
+            }
+            else
+            {
+                PYRAMID_LOG_INFO("Free roam camera disabled - returning to automatic camera modes");
+            }
+            fKeyPressed = true;
+        }
+    }
+    else
+    {
+        fKeyPressed = false;
+    }
+}
+
+void BasicGame::ProcessMouseInput(float deltaTime)
+{
+    // Mouse look is simplified for now - could be enhanced with actual mouse input
+    // For now, we'll use arrow keys for look control
+
+    float lookSpeed = 50.0f * deltaTime; // degrees per second
+
+    // Arrow keys for looking around
+    if (m_keys[37]) // Left arrow
+        m_cameraYaw -= lookSpeed;
+    if (m_keys[39]) // Right arrow
+        m_cameraYaw += lookSpeed;
+    if (m_keys[38]) // Up arrow
+        m_cameraPitch += lookSpeed;
+    if (m_keys[40]) // Down arrow
+        m_cameraPitch -= lookSpeed;
+
+    // Constrain pitch
+    if (m_cameraPitch > 89.0f)
+        m_cameraPitch = 89.0f;
+    if (m_cameraPitch < -89.0f)
+        m_cameraPitch = -89.0f;
+}
