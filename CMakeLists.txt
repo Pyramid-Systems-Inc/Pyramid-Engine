@@ -21,6 +21,7 @@ add_subdirectory(Engine)
 
 if(PYRAMID_BUILD_EXAMPLES)
     add_subdirectory(Examples/BasicGame)
+    add_subdirectory(Examples/BasicRendering)
 endif()
 
 if(PYRAMID_BUILD_TOOLS)
