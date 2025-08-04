@@ -101,9 +101,8 @@ public:
 
 protected:
     void onCreate() override;
-    void onUpdate() override;
+    void onUpdate(float deltaTime) override;
     void onRender() override;
-    void onQuit() override;
 
 private:
     // Graphics resources
@@ -127,13 +126,11 @@ private:
 #include "MyGame.hpp"
 
 MyGame::MyGame() : Pyramid::Game() {
-    // Set window properties
-    setWindowTitle("My First Pyramid Game");
-    setWindowSize(1280, 720);
+    // Constructor - window properties are set automatically
 }
 
 void MyGame::onCreate() {
-    auto* device = getGraphicsDevice();
+    auto* device = GetGraphicsDevice();
     
     // Create camera
     m_camera = Pyramid::Camera(
@@ -222,9 +219,9 @@ void MyGame::onCreate() {
     PYRAMID_LOG_INFO("Game created successfully!");
 }
 
-void MyGame::onUpdate() {
+void MyGame::onUpdate(float deltaTime) {
     // Update timing
-    m_time += getDeltaTime();
+    m_time += deltaTime;
     
     // Rotate camera around the triangle
     f32 radius = 5.0f;
@@ -236,7 +233,7 @@ void MyGame::onUpdate() {
 }
 
 void MyGame::onRender() {
-    auto* device = getGraphicsDevice();
+    auto* device = GetGraphicsDevice();
     
     // Clear the screen
     device->Clear(Pyramid::Color(0.1f, 0.1f, 0.1f, 1.0f));
@@ -255,9 +252,6 @@ void MyGame::onRender() {
     device->DrawIndexed(3);
 }
 
-void MyGame::onQuit() {
-    PYRAMID_LOG_INFO("Game shutting down...");
-}
 ```
 
 #### Step 3: Create the Main Entry Point
@@ -347,7 +341,7 @@ Here's a complete minimal example that renders a colored triangle:
 class HelloTriangle : public Pyramid::Game {
 public:
     void onCreate() override {
-        auto* device = getGraphicsDevice();
+        auto* device = GetGraphicsDevice();
         
         // Create simple shader
         m_shader = device->CreateShader();
@@ -403,14 +397,14 @@ public:
         // Set up camera
         m_camera = Pyramid::Camera(
             Pyramid::Math::Radians(60.0f),
-            getWindowWidth() / (float)getWindowHeight(),
+            1280.0f / 720.0f,  // Fixed aspect ratio - window size methods don't exist
             0.1f, 100.0f
         );
         m_camera.SetPosition(Pyramid::Math::Vec3(0.0f, 0.0f, 3.0f));
     }
     
     void onRender() override {
-        auto* device = getGraphicsDevice();
+        auto* device = GetGraphicsDevice();
         
         device->Clear(Pyramid::Color(0.2f, 0.2f, 0.2f, 1.0f));
         
@@ -557,12 +551,8 @@ public:
         // Initialize your game resources
     }
 
-    void onUpdate() override {
+    void onUpdate(float deltaTime) override {
         // Add your game logic here
-    }
-
-    void onQuit() override {
-        // Clean up your resources
     }
 };
 ```
@@ -599,13 +589,10 @@ The engine provides a robust window management system:
 ### Basic Window Management
 ```cpp
 // Window is automatically created and managed by Game
-// You can customize window creation by overriding:
+// Window customization is handled through the platform-specific window implementation
 void onCreate() override {
-    // Set window title
-    setWindowTitle("My Game");
-    
-    // Set window size
-    setWindowSize(1280, 720);
+    // Initialize your game resources
+    // Window properties are set automatically during Game initialization
 }
 ```
 
@@ -636,11 +623,11 @@ The engine provides a flexible graphics abstraction layer:
 // Graphics device is automatically created and managed by Game
 // You can access it in your game class:
 void onCreate() override {
-    auto* device = getGraphicsDevice();
+    auto* device = GetGraphicsDevice();
     
     // Create graphics resources
-    auto vertexBuffer = device->createVertexBuffer();
-    auto shader = device->createShader();
+    auto vertexBuffer = device->CreateVertexBuffer();
+    auto shader = device->CreateShader();
 }
 ```
 
@@ -648,10 +635,10 @@ void onCreate() override {
 ```cpp
 // Create and use shaders
 void onCreate() override {
-    auto* device = getGraphicsDevice();
+    auto* device = GetGraphicsDevice();
     
     // Create shader
-    auto shader = device->createShader();
+    auto shader = device->CreateShader();
     shader->setVertexSource(vertexShaderSource);
     shader->setFragmentSource(fragmentShaderSource);
     shader->compile();
@@ -665,10 +652,10 @@ void onCreate() override {
 ```cpp
 // Create and use vertex buffers
 void onCreate() override {
-    auto* device = getGraphicsDevice();
+    auto* device = GetGraphicsDevice();
     
     // Create vertex buffer
-    auto vertexBuffer = device->createVertexBuffer();
+    auto vertexBuffer = device->CreateVertexBuffer();
     vertexBuffer->setData(vertices, sizeof(vertices));
     
     // Use vertex buffer
