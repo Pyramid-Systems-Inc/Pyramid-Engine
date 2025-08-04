@@ -2,7 +2,45 @@
 
 ## Overview
 
-Pyramid is a modern, multi-platform game engine designed with flexibility and performance in mind. The engine supports multiple graphics APIs and provides a clean abstraction layer for rendering.
+Pyramid is a modern, multi-platform game engine designed with flexibility and performance in mind. The engine supports multiple graphics APIs and provides a clean abstraction layer for rendering. Built with C++17 best practices, the engine features a multi-layered architecture that separates concerns while maintaining high performance through SIMD optimizations and efficient memory management.
+
+## Multi-Layered Architecture
+
+The Pyramid Engine is organized into five distinct layers, each with specific responsibilities:
+
+### 1. Core Layer
+- **Game Loop**: Main game loop with update and render cycles
+- **Event System**: Platform-independent event handling
+- **Memory Management**: Custom allocators and memory pools
+- **Configuration**: Engine settings and runtime configuration
+- **Platform Abstraction**: Unified interface for platform-specific operations
+
+### 2. Platform Layer
+- **Window Management**: Platform-specific window creation and management
+- **Input Handling**: Keyboard, mouse, and controller input
+- **System Integration**: File I/O, timing, and system services
+- **Graphics Context**: Platform-specific graphics context management
+
+### 3. Graphics Layer
+- **Graphics Device Abstraction**: Multi-API support (OpenGL, DirectX planned)
+- **Rendering Pipeline**: Organized rendering stages with command buffers
+- **Resource Management**: Textures, buffers, and shader management
+- **Camera System**: Advanced camera with projections and frustum culling
+- **Scene Rendering**: Efficient scene rendering with visibility culling
+
+### 4. Math Layer
+- **SIMD-Optimized Operations**: Runtime CPU feature detection
+- **Vector and Matrix Classes**: Vec2, Vec3, Vec4, Mat3, Mat4
+- **Quaternion Support**: Rotations and orientation
+- **Geometric Utilities**: Intersection testing and spatial operations
+- **Performance Optimizations**: Fast approximations and batch processing
+
+### 5. Utilities Layer
+- **Logging System**: Thread-safe logging with file rotation
+- **Asset Management**: Resource loading and management
+- **Serialization**: Scene and object serialization
+- **Debug Tools**: Performance monitoring and visualization
+- **Math Utilities**: Additional mathematical functions and utilities
 
 ## Core Components
 
@@ -127,23 +165,56 @@ struct SceneStats {
 
 ### Graphics System
 
-The graphics system is built around a flexible abstraction layer that supports multiple graphics APIs:
+The graphics system is built around a flexible abstraction layer that supports multiple graphics APIs with a focus on performance and modern rendering techniques:
+
+#### Graphics Device Architecture
 
 - **IGraphicsDevice**: Core interface for all graphics implementations
-  - OpenGL (3.3 - 4.6)
-  - DirectX 9 (planned)
-  - DirectX 10 (planned)
-  - DirectX 11 (planned)
-  - DirectX 12 (planned)
+  - OpenGL (3.3 - 4.6) - Currently implemented
+  - DirectX 9/10/11/12 (planned)
+  - Vulkan (planned)
+  - Metal (planned for Apple platforms)
+
+#### Key Graphics Components
+
+- **Command Buffer System**: Efficient GPU command batching and submission
+- **Render Pass Framework**: Organized rendering stages with clear separation
+- **Resource Management**: Unified handling of textures, buffers, and shaders
+- **State Management**: Optimized graphics state changes with minimal overhead
+- **Camera System**: Advanced camera with projections and frustum culling
+- **Scene Management**: Spatial partitioning and visibility culling
 
 #### Graphics Features
 
-- Multiple graphics API support
-- Version detection and fallback
-- Automatic feature detection
-- Unified resource management
-- Shader system
-- Vertex buffer abstraction
+- **Multi-API Support**: Unified interface across different graphics APIs
+- **Version Detection**: Automatic feature detection and fallback
+- **Modern OpenGL**: UBOs, advanced shaders, instanced rendering
+- **Buffer Management**: Vertex, index, uniform, and shader storage buffers
+- **Shader System**: Flexible shader creation and management
+- **Texture Management**: 2D texture creation and loading from files
+- **State Optimization**: Minimal state changes and efficient batching
+
+#### Rendering Pipeline
+
+1. **Geometry Stage**
+   - Vertex buffer binding and attribute setup
+   - Index buffer management for indexed rendering
+   - Instance data for instanced rendering
+
+2. **Shader Stage**
+   - Vertex and fragment shader compilation and linking
+   - Uniform buffer object management
+   - Shader storage buffer for compute operations
+
+3. **Rasterization Stage**
+   - Viewport and scissor setup
+   - Depth testing and stencil operations
+   - Blending and color operations
+
+4. **Output Stage**
+   - Framebuffer management
+   - Multiple render targets support
+   - Present with optional vsync
 
 ### Window Management
 
@@ -277,6 +348,55 @@ The graphics pipeline is designed to be API-agnostic:
    - Texture management (planned)
    - Render state management (planned)
 
+## Math Library Architecture
+
+The Pyramid Engine features a comprehensive, SIMD-optimized math library that forms the foundation for all 3D operations:
+
+### Core Math Components
+
+- **Vector Classes**: Vec2, Vec3, Vec4 with full operator support
+- **Matrix Classes**: Mat3, Mat4 for transformations and projections
+- **Quaternion**: Quat for rotations and orientation
+- **Math Utilities**: Constants, functions, and geometric operations
+- **SIMD Optimizations**: Runtime CPU feature detection and optimization
+
+### SIMD Optimization Strategy
+
+- **Runtime Detection**: Automatic detection of CPU capabilities (SSE, SSE2, SSE3, SSE4.1, AVX, FMA)
+- **Fallback Paths**: Scalar implementations for systems without SIMD support
+- **Batch Operations**: SIMD-optimized processing of arrays of mathematical objects
+- **Memory Alignment**: 16-byte aligned structures for optimal SIMD performance
+
+### Key Math Features
+
+- **Comprehensive Operations**: All standard 3D math operations with operator overloading
+- **Performance Optimizations**: Fast inverse square root, trigonometric approximations
+- **Geometric Utilities**: Ray-sphere intersection, frustum culling, spatial operations
+- **Transformation Utilities**: TRS (Translate, Rotate, Scale) matrix creation
+- **Camera Utilities**: Perspective and orthographic projection matrices
+
+### Usage Examples
+
+```cpp
+using namespace Pyramid::Math;
+
+// Vector operations
+Vec3 position(1.0f, 2.0f, 3.0f);
+Vec3 direction = Vec3::Forward;
+Vec3 newPosition = position + direction * 5.0f;
+
+// Matrix transformations
+Mat4 translation = Mat4::CreateTranslation(position);
+Mat4 rotation = Mat4::CreateRotationY(Radians(45.0f));
+Mat4 scale = Mat4::CreateScale(2.0f);
+Mat4 transform = translation * rotation * scale;
+
+// Camera matrices
+Mat4 view = Mat4::CreateLookAt(Vec3(0, 0, 5), Vec3::Zero, Vec3::Up);
+Mat4 projection = Mat4::CreatePerspective(Radians(60.0f), 16.0f/9.0f, 0.1f, 1000.0f);
+Mat4 mvp = projection * view * transform;
+```
+
 ## Thread Safety and Performance
 
 ### Logging System Thread Safety
@@ -288,12 +408,35 @@ The enhanced logging system is designed for multi-threaded game engines:
 - **Race Condition Elimination**: Configuration access is properly synchronized
 - **Performance Optimization**: Early exit checks minimize lock contention
 
+### Math Library Performance
+
+- **SIMD Acceleration**: Automatic utilization of available CPU features
+- **Memory Layout**: Structure of Arrays (SoA) for batch operations
+- **Cache Optimization**: Cache-friendly data access patterns
+- **Branch Reduction**: Minimized branching in critical paths
+
+### Graphics System Performance
+
+- **Command Buffer Batching**: Reduced API call overhead through batching
+- **State Management**: Minimal state changes and efficient tracking
+- **Resource Management**: Efficient buffer and texture management
+- **Visibility Culling**: Frustum and occlusion culling for performance
+
+### Memory Management
+
+- **RAII Principles**: Automatic resource management through smart pointers
+- **Memory Pools**: Custom allocators for frequently allocated objects
+- **Alignment**: Proper memory alignment for SIMD operations
+- **Leak Detection**: Comprehensive memory leak detection and reporting
+
 ### Performance Considerations
 
 - **Early Exit**: Log level filtering occurs before expensive operations
 - **Local Buffers**: Message formatting uses stack-allocated buffers
 - **Minimal Overhead**: Release builds can disable debug/trace logging entirely
 - **File I/O Optimization**: Buffered file writing with configurable flush intervals
+- **SIMD Utilization**: Automatic detection and use of available CPU features
+- **Cache-Friendly Design**: Data structures optimized for cache performance
 
 ## Future Development
 
