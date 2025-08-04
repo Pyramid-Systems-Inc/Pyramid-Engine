@@ -200,8 +200,7 @@ void BasicRendering::CreateGeometry()
         {{-size, -size, -size}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f, 1.0f}},
         {{-size, -size, size}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 1.0f, 1.0f}},
         {{size, -size, size}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 1.0f, 1.0f}},
-        {{size, -size, -size}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}}
-    };
+        {{size, -size, -size}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}}};
 
     // Cube indices
     Pyramid::u32 indices[] = {
@@ -216,8 +215,7 @@ void BasicRendering::CreateGeometry()
         // Top face
         16, 17, 18, 18, 19, 16,
         // Bottom face
-        20, 21, 22, 22, 23, 20
-    };
+        20, 21, 22, 22, 23, 20};
 
     // Create vertex buffer
     auto vbo = device->CreateVertexBuffer();
@@ -235,8 +233,7 @@ void BasicRendering::CreateGeometry()
         {Pyramid::ShaderDataType::Float3, "a_Position"},
         {Pyramid::ShaderDataType::Float3, "a_Normal"},
         {Pyramid::ShaderDataType::Float2, "a_TexCoord"},
-        {Pyramid::ShaderDataType::Float3, "a_Color"}
-    };
+        {Pyramid::ShaderDataType::Float3, "a_Color"}};
 
     // Add buffers to vertex array
     m_vertexArray->AddVertexBuffer(vbo, layout);
@@ -251,7 +248,7 @@ void BasicRendering::SetupCamera()
 
     // Create camera with proper parameters
     m_camera = std::make_unique<Pyramid::Camera>(
-        Radians(60.0f),  // FOV
+        Radians(60.0f), // FOV
         16.0f / 9.0f,   // Aspect ratio
         0.1f,           // Near plane
         100.0f          // Far plane
@@ -328,13 +325,12 @@ void BasicRendering::UpdateCamera(float deltaTime)
 
     using namespace Pyramid::Math;
 
-    // Orbital camera movement
+    // Orbital camera movement - ensure we're using the right trigonometric functions
     float angle = m_time * m_cameraOrbitSpeed;
     Vec3 position(
         cos(angle) * m_cameraOrbitRadius,
         m_cameraHeight,
-        sin(angle) * m_cameraOrbitRadius
-    );
+        sin(angle) * m_cameraOrbitRadius);
 
     m_camera->SetPosition(position);
     m_camera->LookAt(Vec3::Zero, Vec3::Up);
@@ -355,8 +351,7 @@ void BasicRendering::UpdateUniformBuffers(float deltaTime)
         sin(m_time * 0.5f) * 0.5f,
         -0.8f,
         cos(m_time * 0.5f) * 0.5f,
-        0.0f
-    );
+        0.0f);
     sceneData.lightColor = Pyramid::Math::Vec4(1.0f, 0.95f, 0.8f, 1.0f);
     sceneData.time = m_time;
 
@@ -366,14 +361,12 @@ void BasicRendering::UpdateUniformBuffers(float deltaTime)
         0.8f + 0.2f * sin(m_time * 0.7f),
         0.8f + 0.2f * sin(m_time * 0.9f + 2.0f),
         0.8f + 0.2f * sin(m_time * 1.1f + 4.0f),
-        1.0f
-    );
+        1.0f);
     materialData.emissiveColor = Pyramid::Math::Vec4(
         0.1f * sin(m_time * 2.0f),
         0.1f * sin(m_time * 1.5f + 1.0f),
         0.1f * sin(m_time * 1.8f + 3.0f),
-        1.0f
-    );
+        1.0f);
     materialData.metallic = 0.5f + 0.5f * sin(m_time * 0.4f);
     materialData.roughness = 0.5f + 0.4f * sin(m_time * 0.6f + 1.5f);
 
@@ -386,7 +379,7 @@ void BasicRendering::HandleInput(float deltaTime)
 {
     // Simple input simulation for demonstration
     // In a real implementation, this would get input from the window system
-    
+
     // Simulate pressing '1' to reset camera
     static float resetTimer = 0.0f;
     resetTimer += deltaTime;
@@ -407,11 +400,11 @@ void BasicRendering::onRender()
 
     // Set clear color and clear buffers
     device->SetClearColor(0.1f, 0.1f, 0.2f, 1.0f);
-    device->Clear();
+    device->Clear(Pyramid::Color(0.1f, 0.1f, 0.2f, 1.0f));
 
     // Enable depth testing
     device->EnableDepthTest(true);
-    device->SetDepthFunc(GL_LESS);
+    device->SetDepthFunc(0x0201); // GL_LESS
 
     // Render the scene
     RenderScene();

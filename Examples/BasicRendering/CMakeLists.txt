@@ -9,9 +9,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
 # Add executable
-add_executable(BasicRenderingExample
-    Main.cpp
-    BasicRendering.cpp
+add_executable(BasicRenderingExample WIN32
+Main.cpp
+BasicRendering.cpp
 )
 
 # Link with Pyramid Engine
