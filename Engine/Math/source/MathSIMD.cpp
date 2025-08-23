@@ -285,6 +285,180 @@ namespace Pyramid
                 }
             }
 
+            // Vec3 SIMD operations
+            namespace Vec3Ops
+            {
+                Vec3 Add(const Vec3 &a, const Vec3 &b)
+                {
+                    if (!IsEnabled())
+                    {
+                        return a + b; // Fallback to scalar
+                    }
+
+                    // Load Vec3 into SSE registers (with w=0)
+                    __m128 va = _mm_set_ps(0.0f, a.z, a.y, a.x);
+                    __m128 vb = _mm_set_ps(0.0f, b.z, b.y, b.x);
+                    __m128 result = _mm_add_ps(va, vb);
+
+                    Vec3 output;
+                    output.x = _mm_cvtss_f32(result);
+                    output.y = _mm_cvtss_f32(_mm_shuffle_ps(result, result, 1));
+                    output.z = _mm_cvtss_f32(_mm_shuffle_ps(result, result, 2));
+                    return output;
+                }
+
+                Vec3 Sub(const Vec3 &a, const Vec3 &b)
+                {
+                    if (!IsEnabled())
+                    {
+                        return a - b; // Fallback to scalar
+                    }
+
+                    __m128 va = _mm_set_ps(0.0f, a.z, a.y, a.x);
+                    __m128 vb = _mm_set_ps(0.0f, b.z, b.y, b.x);
+                    __m128 result = _mm_sub_ps(va, vb);
+
+                    Vec3 output;
+                    output.x = _mm_cvtss_f32(result);
+                    output.y = _mm_cvtss_f32(_mm_shuffle_ps(result, result, 1));
+                    output.z = _mm_cvtss_f32(_mm_shuffle_ps(result, result, 2));
+                    return output;
+                }
+
+                Vec3 Mul(const Vec3 &a, const Vec3 &b)
+                {
+                    if (!IsEnabled())
+                    {
+                        return Vec3(a.x * b.x, a.y * b.y, a.z * b.z);
+                    }
+
+                    __m128 va = _mm_set_ps(0.0f, a.z, a.y, a.x);
+                    __m128 vb = _mm_set_ps(0.0f, b.z, b.y, b.x);
+                    __m128 result = _mm_mul_ps(va, vb);
+
+                    Vec3 output;
+                    output.x = _mm_cvtss_f32(result);
+                    output.y = _mm_cvtss_f32(_mm_shuffle_ps(result, result, 1));
+                    output.z = _mm_cvtss_f32(_mm_shuffle_ps(result, result, 2));
+                    return output;
+                }
+
+                Vec3 Scale(const Vec3 &v, f32 s)
+                {
+                    if (!IsEnabled())
+                    {
+                        return v * s; // Fallback to scalar
+                    }
+
+                    __m128 vv = _mm_set_ps(0.0f, v.z, v.y, v.x);
+                    __m128 vs = _mm_set1_ps(s);
+                    __m128 result = _mm_mul_ps(vv, vs);
+
+                    Vec3 output;
+                    output.x = _mm_cvtss_f32(result);
+                    output.y = _mm_cvtss_f32(_mm_shuffle_ps(result, result, 1));
+                    output.z = _mm_cvtss_f32(_mm_shuffle_ps(result, result, 2));
+                    return output;
+                }
+
+                f32 Dot(const Vec3 &a, const Vec3 &b)
+                {
+                    if (!IsEnabled())
+                    {
+                        return a.Dot(b); // Fallback to scalar
+                    }
+
+                    __m128 va = _mm_set_ps(0.0f, a.z, a.y, a.x);
+                    __m128 vb = _mm_set_ps(0.0f, b.z, b.y, b.x);
+                    __m128 mul = _mm_mul_ps(va, vb);
+
+                    // Horizontal add for x + y + z (ignore w)
+                    __m128 shuf = _mm_shuffle_ps(mul, mul, _MM_SHUFFLE(2, 1, 0, 3));
+                    __m128 sums = _mm_add_ps(mul, shuf);
+                    shuf = _mm_shuffle_ps(sums, sums, _MM_SHUFFLE(1, 0, 3, 2));
+                    sums = _mm_add_ss(sums, shuf);
+
+                    return _mm_cvtss_f32(sums);
+                }
+
+                Vec3 Cross(const Vec3 &a, const Vec3 &b)
+                {
+                    if (!IsEnabled())
+                    {
+                        return a.Cross(b); // Fallback to scalar
+                    }
+
+                    // Cross product: (a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x)
+                    __m128 va = _mm_set_ps(0.0f, a.z, a.y, a.x);
+                    __m128 vb = _mm_set_ps(0.0f, b.z, b.y, b.x);
+
+                    // Shuffle to get (y, z, x, 0) for both vectors
+                    __m128 va_yzx = _mm_shuffle_ps(va, va, _MM_SHUFFLE(3, 0, 2, 1));
+                    __m128 vb_yzx = _mm_shuffle_ps(vb, vb, _MM_SHUFFLE(3, 0, 2, 1));
+
+                    // First part: a_yzx * b - a * b_yzx
+                    __m128 mul1 = _mm_mul_ps(va_yzx, vb);
+                    __m128 mul2 = _mm_mul_ps(va, vb_yzx);
+                    __m128 result = _mm_sub_ps(mul1, mul2);
+
+                    Vec3 output;
+                    output.x = _mm_cvtss_f32(result);
+                    output.y = _mm_cvtss_f32(_mm_shuffle_ps(result, result, 1));
+                    output.z = _mm_cvtss_f32(_mm_shuffle_ps(result, result, 2));
+                    return output;
+                }
+
+                f32 Length(const Vec3 &v)
+                {
+                    if (!IsEnabled())
+                    {
+                        return v.Length(); // Fallback to scalar
+                    }
+
+                    f32 dot = Dot(v, v);
+                    return _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ss(dot)));
+                }
+
+                Vec3 Normalize(const Vec3 &v)
+                {
+                    if (!IsEnabled())
+                    {
+                        return v.Normalized(); // Fallback to scalar
+                    }
+
+                    f32 length = Length(v);
+                    if (Math::IsZero(length))
+                    {
+                        return Vec3::Zero;
+                    }
+
+                    return Scale(v, 1.0f / length);
+                }
+
+                Vec3 Lerp(const Vec3 &a, const Vec3 &b, f32 t)
+                {
+                    if (!IsEnabled())
+                    {
+                        return a.Lerp(b, t); // Fallback to scalar
+                    }
+
+                    __m128 va = _mm_set_ps(0.0f, a.z, a.y, a.x);
+                    __m128 vb = _mm_set_ps(0.0f, b.z, b.y, b.x);
+                    __m128 vt = _mm_set1_ps(t);
+
+                    // lerp(a, b, t) = a + t * (b - a)
+                    __m128 diff = _mm_sub_ps(vb, va);
+                    __m128 scaled = _mm_mul_ps(diff, vt);
+                    __m128 result = _mm_add_ps(va, scaled);
+
+                    Vec3 output;
+                    output.x = _mm_cvtss_f32(result);
+                    output.y = _mm_cvtss_f32(_mm_shuffle_ps(result, result, 1));
+                    output.z = _mm_cvtss_f32(_mm_shuffle_ps(result, result, 2));
+                    return output;
+                }
+            }
+
             // Mat4 SIMD operations
             namespace Mat4Ops
             {

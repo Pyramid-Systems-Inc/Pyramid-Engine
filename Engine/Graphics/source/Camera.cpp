@@ -293,8 +293,76 @@ namespace Pyramid
 
     void Camera::UpdateFrustumPlanes() const
     {
-        // TODO: Implement proper frustum plane extraction
-        // For now, this is a placeholder
+        // Ensure view-projection matrix is up to date
+        if (m_viewProjectionMatrixDirty)
+            UpdateViewProjectionMatrix();
+
+        const Math::Mat4& vp = m_viewProjectionMatrix;
+
+        // Extract frustum planes from view-projection matrix
+        // Plane equations are in the form: ax + by + cz + d = 0
+        
+        // Left plane: row4 + row1
+        m_frustumPlanes[0] = Math::Vec4(
+            vp.m[3] + vp.m[0],   // a
+            vp.m[7] + vp.m[4],   // b
+            vp.m[11] + vp.m[8],  // c
+            vp.m[15] + vp.m[12]  // d
+        );
+
+        // Right plane: row4 - row1
+        m_frustumPlanes[1] = Math::Vec4(
+            vp.m[3] - vp.m[0],   // a
+            vp.m[7] - vp.m[4],   // b
+            vp.m[11] - vp.m[8],  // c
+            vp.m[15] - vp.m[12]  // d
+        );
+
+        // Bottom plane: row4 + row2
+        m_frustumPlanes[2] = Math::Vec4(
+            vp.m[3] + vp.m[1],   // a
+            vp.m[7] + vp.m[5],   // b
+            vp.m[11] + vp.m[9],  // c
+            vp.m[15] + vp.m[13]  // d
+        );
+
+        // Top plane: row4 - row2
+        m_frustumPlanes[3] = Math::Vec4(
+            vp.m[3] - vp.m[1],   // a
+            vp.m[7] - vp.m[5],   // b
+            vp.m[11] - vp.m[9],  // c
+            vp.m[15] - vp.m[13]  // d
+        );
+
+        // Near plane: row4 + row3
+        m_frustumPlanes[4] = Math::Vec4(
+            vp.m[3] + vp.m[2],   // a
+            vp.m[7] + vp.m[6],   // b
+            vp.m[11] + vp.m[10], // c
+            vp.m[15] + vp.m[14]  // d
+        );
+
+        // Far plane: row4 - row3
+        m_frustumPlanes[5] = Math::Vec4(
+            vp.m[3] - vp.m[2],   // a
+            vp.m[7] - vp.m[6],   // b
+            vp.m[11] - vp.m[10], // c
+            vp.m[15] - vp.m[14]  // d
+        );
+
+        // Normalize the planes
+        for (int i = 0; i < 6; ++i)
+        {
+            Math::Vec3 normal(m_frustumPlanes[i].x, m_frustumPlanes[i].y, m_frustumPlanes[i].z);
+            f32 length = normal.Length();
+            
+            if (length > Math::EPSILON)
+            {
+                f32 invLength = 1.0f / length;
+                m_frustumPlanes[i] = m_frustumPlanes[i] * invLength;
+            }
+        }
+
         m_frustumPlanesDirty = false;
     }
 

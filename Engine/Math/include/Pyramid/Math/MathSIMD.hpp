@@ -106,6 +106,81 @@ namespace Pyramid
                 Vec4 Lerp(const Vec4& a, const Vec4& b, f32 t);
             }
 
+            // SIMD-optimized Vec3 operations
+            namespace Vec3Ops
+            {
+                /**
+                 * @brief SIMD Vec3 addition
+                 * @param a First vector
+                 * @param b Second vector
+                 * @return a + b
+                 */
+                Vec3 Add(const Vec3& a, const Vec3& b);
+
+                /**
+                 * @brief SIMD Vec3 subtraction
+                 * @param a First vector
+                 * @param b Second vector
+                 * @return a - b
+                 */
+                Vec3 Sub(const Vec3& a, const Vec3& b);
+
+                /**
+                 * @brief SIMD Vec3 multiplication
+                 * @param a First vector
+                 * @param b Second vector
+                 * @return a * b (component-wise)
+                 */
+                Vec3 Mul(const Vec3& a, const Vec3& b);
+
+                /**
+                 * @brief SIMD Vec3 scalar multiplication
+                 * @param v Vector
+                 * @param s Scalar
+                 * @return v * s
+                 */
+                Vec3 Scale(const Vec3& v, f32 s);
+
+                /**
+                 * @brief SIMD Vec3 dot product
+                 * @param a First vector
+                 * @param b Second vector
+                 * @return dot(a, b)
+                 */
+                f32 Dot(const Vec3& a, const Vec3& b);
+
+                /**
+                 * @brief SIMD Vec3 cross product
+                 * @param a First vector
+                 * @param b Second vector
+                 * @return cross(a, b)
+                 */
+                Vec3 Cross(const Vec3& a, const Vec3& b);
+
+                /**
+                 * @brief SIMD Vec3 length
+                 * @param v Vector
+                 * @return |v|
+                 */
+                f32 Length(const Vec3& v);
+
+                /**
+                 * @brief SIMD Vec3 normalization
+                 * @param v Vector to normalize
+                 * @return normalized v
+                 */
+                Vec3 Normalize(const Vec3& v);
+
+                /**
+                 * @brief SIMD Vec3 linear interpolation
+                 * @param a Start vector
+                 * @param b End vector
+                 * @param t Interpolation factor [0,1]
+                 * @return lerp(a, b, t)
+                 */
+                Vec3 Lerp(const Vec3& a, const Vec3& b, f32 t);
+            }
+
             // SIMD-optimized matrix operations
             namespace Mat4Ops
             {
