@@ -19,6 +19,10 @@
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
+#ifdef _WIN32
+#define NOMINMAX  // Prevent Windows min/max macros
+#include <windows.h>  // For GetAsyncKeyState
+#endif
 
 // Vertex structure is now defined in the header
 
@@ -317,6 +321,7 @@ void BasicGame::onCreate()
     
     PYRAMID_LOG_INFO("=== BasicGame::onCreate() completed successfully ===");
     PYRAMID_LOG_INFO("Application should now enter the main game loop...");
+    PYRAMID_LOG_INFO("Window is now open - Press ESC to exit, or close the window");
 }
 
 void BasicGame::LoadTestTextures()
@@ -561,6 +566,15 @@ void BasicGame::onUpdate(float deltaTime)
     auto frameStart = high_resolution_clock::now();
 
     Game::onUpdate(deltaTime);
+    
+    // Simple ESC key handling to exit the application
+    if (GetAsyncKeyState(0x1B) & 0x8000) // 0x1B is ESC key code
+    {
+        PYRAMID_LOG_INFO("ESC key pressed - exiting application");
+        quit();
+        return;
+    }
+    
     m_time += deltaTime;
     m_sceneAnimationTime += deltaTime;
     m_textureSwapTimer += deltaTime;
@@ -2510,3 +2524,5 @@ void BasicGame::DemonstrateEnhancedSIMDOperations()
     
     PYRAMID_LOG_INFO("SIMD math operations demonstration complete");
 }
+
+

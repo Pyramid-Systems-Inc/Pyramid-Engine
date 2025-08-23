@@ -60,6 +60,7 @@ protected:
     void onCreate() override;
     void onUpdate(float deltaTime) override;
     void onRender() override;
+    
     // Input handling methods
     void HandleInput(float deltaTime);
 
