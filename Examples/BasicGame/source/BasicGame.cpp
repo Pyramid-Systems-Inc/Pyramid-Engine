@@ -8,7 +8,9 @@
 #include <Pyramid/Util/Log.hpp>
 #include <Pyramid/Util/Image.hpp>
 #include <Pyramid/Math/Math.hpp>
+#include <Pyramid/Math/MathSIMD.hpp>  // NEW: Include SIMD operations
 #include <Pyramid/Graphics/Renderer/RenderPasses.hpp>
+#include <Pyramid/Graphics/Scene.hpp>  // NEW: Include scene utilities
 #include <vector>
 #include <cmath>
 #include <string>
@@ -154,7 +156,9 @@ void BasicGame::onCreate()
     // Demonstrate SIMD operations (disabled for now)
     // DemonstrateSIMDOperations();
 
-    // Demonstrate new systems
+    // Demonstrate enhanced systems
+    DemonstrateEnhancedGraphicsDevice();
+    DemonstrateSIMDOperations(); 
     DemonstrateSceneManagement();
     DemonstrateFramebuffers();
 
@@ -2466,4 +2470,88 @@ void BasicGame::ProcessMouseInput(float deltaTime)
         m_cameraPitch = 89.0f;
     if (m_cameraPitch < -89.0f)
         m_cameraPitch = -89.0f;
+}
+
+// NEW: Demonstrate enhanced graphics device features
+void BasicGame::DemonstrateEnhancedGraphicsDevice()
+{
+    PYRAMID_LOG_INFO("=== Enhanced Graphics Device Demonstration ===");
+    
+    auto* device = GetGraphicsDevice();
+    if (!device) {
+        PYRAMID_LOG_ERROR("Graphics device not available");
+        return;
+    }
+    
+    // Show device information
+    PYRAMID_LOG_INFO("Graphics Device Information:");
+    PYRAMID_LOG_INFO(device->GetDeviceInfo());
+    
+    // Check device validity
+    PYRAMID_LOG_INFO("Device is valid: ", device->IsValid() ? "Yes" : "No");
+    
+    // Test wireframe mode (toggle on/off quickly for demo)
+    PYRAMID_LOG_INFO("Testing wireframe mode...");
+    device->SetWireframeMode(true);
+    device->SetWireframeMode(false);
+    
+    // Check for any errors
+    std::string lastError = device->GetLastError();
+    if (!lastError.empty()) {
+        PYRAMID_LOG_WARN("Graphics device error: ", lastError);
+    } else {
+        PYRAMID_LOG_INFO("Graphics device: No errors detected");
+    }
+    
+    PYRAMID_LOG_INFO("Enhanced graphics device demonstration complete");
+}
+
+// NEW: Demonstrate SIMD math operations
+void BasicGame::DemonstrateSIMDOperations()
+{
+    PYRAMID_LOG_INFO("=== SIMD Math Operations Demonstration ===");
+    
+    using namespace Pyramid::Math;
+    using namespace Pyramid::Math::SIMD;
+    
+    // Test Vec3 SIMD operations
+    Vec3 a(1.0f, 2.0f, 3.0f);
+    Vec3 b(4.0f, 5.0f, 6.0f);
+    
+    PYRAMID_LOG_INFO("Vec3 SIMD Operations:");
+    PYRAMID_LOG_INFO("a = (", a.x, ", ", a.y, ", ", a.z, ")");
+    PYRAMID_LOG_INFO("b = (", b.x, ", ", b.y, ", ", b.z, ")");
+    
+    // Addition
+    Vec3 sum = Vec3Ops::Add(a, b);
+    PYRAMID_LOG_INFO("SIMD Add: (", sum.x, ", ", sum.y, ", ", sum.z, ")");
+    
+    // Cross product
+    Vec3 cross = Vec3Ops::Cross(a, b);
+    PYRAMID_LOG_INFO("SIMD Cross: (", cross.x, ", ", cross.y, ", ", cross.z, ")");
+    
+    // Dot product
+    Pyramid::f32 dot = Vec3Ops::Dot(a, b);
+    PYRAMID_LOG_INFO("SIMD Dot: ", dot);
+    
+    // Normalization
+    Vec3 normalized = Vec3Ops::Normalize(a);
+    PYRAMID_LOG_INFO("SIMD Normalize: (", normalized.x, ", ", normalized.y, ", ", normalized.z, ")");
+    
+    // Test Vec4 SIMD operations
+    Vec4 c(1.0f, 2.0f, 3.0f, 4.0f);
+    Vec4 d(5.0f, 6.0f, 7.0f, 8.0f);
+    
+    PYRAMID_LOG_INFO("Vec4 SIMD Operations:");
+    Vec4 vec4Sum = Vec4Ops::Add(c, d);
+    PYRAMID_LOG_INFO("SIMD Vec4 Add: (", vec4Sum.x, ", ", vec4Sum.y, ", ", vec4Sum.z, ", ", vec4Sum.w, ")");
+    
+    Pyramid::f32 vec4Dot = Vec4Ops::Dot(c, d);
+    PYRAMID_LOG_INFO("SIMD Vec4 Dot: ", vec4Dot);
+    
+    // Performance comparison (simplified)
+    PYRAMID_LOG_INFO("SIMD features available: ", IsAvailable() ? "Yes" : "No");
+    PYRAMID_LOG_INFO("SIMD operations enabled: ", IsEnabled() ? "Yes" : "No");
+    
+    PYRAMID_LOG_INFO("SIMD math operations demonstration complete");
 }

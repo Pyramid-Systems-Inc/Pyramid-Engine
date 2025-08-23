@@ -86,6 +86,7 @@ private:
     void UpdatePerformanceMetrics(float deltaTime);
 
     // Demonstration methods
+    void DemonstrateEnhancedGraphicsDevice(); // NEW: Enhanced graphics device features
     void DemonstrateSIMDOperations();
     void DemonstrateSceneGraph();
     void DemonstrateFrustumCulling();
