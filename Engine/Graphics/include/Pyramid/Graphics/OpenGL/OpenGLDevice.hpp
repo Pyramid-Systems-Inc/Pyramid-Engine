@@ -49,14 +49,26 @@ namespace Pyramid
         u32 GetStateChangeCount() const override;
         void ResetStateChangeCount() override;
 
+        // Performance and debugging methods
+        std::string GetDeviceInfo() const override;
+        bool IsValid() const override;
+        std::string GetLastError() const override;
+        void SetWireframeMode(bool enable) override;
+        void SetPolygonMode(u32 mode) override;
+        void BindFramebuffer(class IFramebuffer* framebuffer) override;
+
         /**
          * @brief Get the window associated with this device
          * @return Window* The window instance
          */
-        Window *GetWindow() const { return m_window; } // Changed
+        Window *GetWindow() const { return m_window; }
 
     private:
-        Window *m_window; // Changed
+        Window *m_window;
+        mutable std::string m_lastError;
+        bool m_initialized;
+        mutable std::string m_deviceInfo;
+        mutable bool m_deviceInfoCached;
     };
 
 } // namespace Pyramid

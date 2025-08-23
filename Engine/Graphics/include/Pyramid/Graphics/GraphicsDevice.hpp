@@ -204,13 +204,50 @@ namespace Pyramid
          */
         virtual void ResetStateChangeCount() = 0;
 
+        // Performance and debugging methods
+        /**
+         * @brief Get graphics device information
+         * @return String containing device info (vendor, renderer, version)
+         */
+        virtual std::string GetDeviceInfo() const = 0;
+
+        /**
+         * @brief Check if the graphics device is valid and ready
+         * @return true if device is ready for rendering
+         */
+        virtual bool IsValid() const = 0;
+
+        /**
+         * @brief Get the last error message (if any)
+         * @return Error message string, empty if no error
+         */
+        virtual std::string GetLastError() const = 0;
+
+        /**
+         * @brief Enable or disable wireframe mode
+         * @param enable True to enable wireframe, false for solid
+         */
+        virtual void SetWireframeMode(bool enable) = 0;
+
+        /**
+         * @brief Set polygon mode
+         * @param mode Polygon mode (fill, line, point)
+         */
+        virtual void SetPolygonMode(u32 mode) = 0;
+
+        /**
+         * @brief Bind a framebuffer for rendering
+         * @param framebuffer Framebuffer to bind (nullptr for default)
+         */
+        virtual void BindFramebuffer(class IFramebuffer* framebuffer) = 0;
+
         /**
          * @brief Create a graphics device for the specified API
          * @param api The graphics API to use
          * @param window The window to associate with the graphics device
          * @return std::unique_ptr<IGraphicsDevice> The created graphics device
          */
-        static std::unique_ptr<IGraphicsDevice> Create(GraphicsAPI api, Window *window); // Changed
+        static std::unique_ptr<IGraphicsDevice> Create(GraphicsAPI api, Window *window);
     };
 
 } // namespace Pyramid

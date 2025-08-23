@@ -14,8 +14,10 @@
 namespace Pyramid
 {
 
-    OpenGLDevice::OpenGLDevice(Window *window) // Changed
-        : m_window(window)                     // Changed
+    OpenGLDevice::OpenGLDevice(Window *window)
+        : m_window(window)
+        , m_initialized(false)
+        , m_deviceInfoCached(false)
     {
     }
 
@@ -28,17 +30,41 @@ namespace Pyramid
     {
         // Initialize the window
         if (!m_window->Initialize())
+        {
+            m_lastError = "Failed to initialize window";
             return false;
+        }
 
         // Make OpenGL context current
         m_window->MakeContextCurrent();
-
+        
+        // Check for OpenGL errors after context creation
+        GLenum error = glGetError();
+        if (error != GL_NO_ERROR)
+        {
+            m_lastError = "OpenGL error after context creation: " + std::to_string(error);
+            return false;
+        }
+        
+        m_initialized = true;
+        m_deviceInfoCached = false; // Force device info refresh
+        m_lastError.clear();
+        
         return true;
     }
 
     void OpenGLDevice::Shutdown()
     {
-        // m_window.reset(); // Removed as OpenGLDevice no longer owns the window
+        if (m_initialized)
+        {
+            // Clear any OpenGL errors
+            while (glGetError() != GL_NO_ERROR);
+            
+            m_initialized = false;
+            m_deviceInfoCached = false;
+            m_deviceInfo.clear();
+            m_lastError.clear();
+        }
     }
 
     void OpenGLDevice::Clear(const Color &color)
@@ -165,6 +191,91 @@ namespace Pyramid
     void OpenGLDevice::ResetStateChangeCount()
     {
         OpenGLStateManager::GetInstance().ResetStateChangeCount();
+    }
+
+    std::string OpenGLDevice::GetDeviceInfo() const
+    {
+        if (!m_deviceInfoCached)
+        {
+            if (m_initialized)
+            {
+                const char* vendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
+                const char* renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
+                const char* version = reinterpret_cast<const char*>(glGetString(GL_VERSION));
+                const char* glslVersion = reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION));
+                
+                m_deviceInfo = std::string("OpenGL Device Info:\n") +
+                              "  Vendor: " + (vendor ? vendor : "Unknown") + "\n" +
+                              "  Renderer: " + (renderer ? renderer : "Unknown") + "\n" +
+                              "  Version: " + (version ? version : "Unknown") + "\n" +
+                              "  GLSL Version: " + (glslVersion ? glslVersion : "Unknown");
+            }
+            else
+            {
+                m_deviceInfo = "OpenGL Device not initialized";
+            }
+            m_deviceInfoCached = true;
+        }
+        return m_deviceInfo;
+    }
+
+    bool OpenGLDevice::IsValid() const
+    {
+        return m_initialized && m_window && glGetError() == GL_NO_ERROR;
+    }
+
+    std::string OpenGLDevice::GetLastError() const
+    {
+        return m_lastError;
+    }
+
+    void OpenGLDevice::SetWireframeMode(bool enable)
+    {
+        if (enable)
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        }
+        else
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+        
+        GLenum error = glGetError();
+        if (error != GL_NO_ERROR)
+        {
+            m_lastError = "Failed to set wireframe mode. OpenGL error: " + std::to_string(error);
+        }
+    }
+
+    void OpenGLDevice::SetPolygonMode(u32 mode)
+    {
+        glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(mode));
+        
+        GLenum error = glGetError();
+        if (error != GL_NO_ERROR)
+        {
+            m_lastError = "Failed to set polygon mode. OpenGL error: " + std::to_string(error);
+        }
+    }
+
+    void OpenGLDevice::BindFramebuffer(IFramebuffer* framebuffer)
+    {
+        if (framebuffer)
+        {
+            // TODO: Implement when IFramebuffer interface is available
+            m_lastError = "Framebuffer binding not yet implemented";
+        }
+        else
+        {
+            // Bind default framebuffer
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            
+            GLenum error = glGetError();
+            if (error != GL_NO_ERROR)
+            {
+                m_lastError = "Failed to bind default framebuffer. OpenGL error: " + std::to_string(error);
+            }
+        }
     }
 
 } // namespace Pyramid
