@@ -5,9 +5,11 @@ Welcome to the Pyramid Game Engine documentation! Pyramid is a modern, multi-pla
 ## Quick Links
 
 - [Getting Started](GettingStarted.md) - Setup guide and basic usage
+- [Build Guide](BuildGuide.md) - Detailed build and installation instructions
 - [Architecture Overview](Architecture.md) - Engine architecture and design principles
 - [API Reference](API_Reference/) - Detailed API documentation
-- [Examples](../Examples/) - Example projects and code samples
+- [Examples and Tutorials](Examples/) - Example projects and tutorials
+- [Contributing](Contributing.md) - Contributing guidelines and development setup
 
 ## Engine Overview
 
