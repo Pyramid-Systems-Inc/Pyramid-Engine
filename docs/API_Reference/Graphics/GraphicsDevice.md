@@ -159,6 +159,32 @@ virtual u32 GetStateChangeCount() const = 0;
 virtual void ResetStateChangeCount() = 0;
 ```
 
+### **NEW**: Enhanced Device Information and Debugging
+
+#### Device Information
+```cpp
+virtual std::string GetDeviceInfo() const = 0;
+virtual bool IsValid() const = 0;
+virtual std::string GetLastError() const = 0;
+```
+
+**NEW FEATURES:**
+- **GetDeviceInfo()**: Returns detailed GPU information including vendor, renderer, OpenGL version, and GLSL version
+- **IsValid()**: Real-time validation of device state and OpenGL context
+- **GetLastError()**: Retrieves the last error message for debugging
+
+#### Advanced Rendering Modes
+```cpp
+virtual void SetWireframeMode(bool enable) = 0;
+virtual void SetPolygonMode(u32 mode) = 0;
+virtual void BindFramebuffer(IFramebuffer* framebuffer) = 0;
+```
+
+**NEW FEATURES:**
+- **SetWireframeMode()**: Toggle wireframe rendering for debugging geometry
+- **SetPolygonMode()**: Advanced polygon rendering modes (fill, line, point)
+- **BindFramebuffer()**: Support for off-screen rendering and render targets
+
 ## Resource Types
 
 ### Vertex Buffers (IVertexBuffer)
