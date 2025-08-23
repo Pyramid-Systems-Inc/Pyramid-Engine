@@ -158,7 +158,7 @@ void BasicGame::onCreate()
 
     // Demonstrate enhanced systems
     DemonstrateEnhancedGraphicsDevice();
-    DemonstrateSIMDOperations(); 
+    DemonstrateEnhancedSIMDOperations(); 
     DemonstrateSceneManagement();
     DemonstrateFramebuffers();
 
@@ -821,69 +821,8 @@ void BasicGame::InitializeScene()
 
 void BasicGame::DemonstrateSIMDOperations()
 {
-    using namespace Pyramid;
-    using namespace Pyramid::Math;
-    using namespace std::chrono;
-
-    PYRAMID_LOG_INFO("=== SIMD Performance Demonstration ===");
-
-    // Simple SIMD test with smaller dataset to avoid hanging
-    const int testSize = 100; // Smaller test size
-    std::vector<Vec4> testVectors(testSize);
-    std::vector<Vec4> testResults(testSize);
-
-    // Initialize test data
-    for (int i = 0; i < testSize; ++i)
-    {
-        testVectors[i] = Vec4((float)i, (float)i + 1.0f, (float)i + 2.0f, 1.0f);
-    }
-
-    // Test basic SIMD operations
-    auto start = high_resolution_clock::now();
-
-    // Scalar version
-    for (int i = 0; i < testSize; ++i)
-    {
-        testResults[i] = testVectors[i].Normalized();
-    }
-
-    auto scalarEnd = high_resolution_clock::now();
-    float scalarTime = duration<float, std::milli>(scalarEnd - start).count();
-
-    // Simple SIMD test without performance measurement to avoid hanging
-    PYRAMID_LOG_INFO("Testing basic SIMD vector operations...");
-
-    // Test basic vector operations
-    Vec4 testVec1(1.0f, 2.0f, 3.0f, 4.0f);
-    Vec4 testVec2(2.0f, 3.0f, 4.0f, 5.0f);
-
-    // Test SIMD operations if available
-    if (SIMD::IsEnabled())
-    {
-        Vec4 result1 = SIMD::Vec4Ops::Add(testVec1, testVec2);
-        Vec4 result2 = SIMD::Vec4Ops::Mul(testVec1, testVec2);
-        f32 dotResult = SIMD::Vec4Ops::Dot(testVec1, testVec2);
-
-        PYRAMID_LOG_INFO("SIMD Vector Addition: (", result1.x, ", ", result1.y, ", ", result1.z, ", ", result1.w, ")");
-        PYRAMID_LOG_INFO("SIMD Vector Multiplication: (", result2.x, ", ", result2.y, ", ", result2.z, ", ", result2.w, ")");
-        PYRAMID_LOG_INFO("SIMD Dot Product: ", dotResult);
-
-        // Store mock performance data
-        m_metrics.scalarTime = scalarTime;
-        m_metrics.simdTime = 0.3f;
-        m_metrics.simdSpeedup = scalarTime / 0.3f;
-
-        PYRAMID_LOG_INFO("SIMD operations completed successfully!");
-    }
-    else
-    {
-        PYRAMID_LOG_WARN("SIMD not available, using scalar fallback");
-        m_metrics.scalarTime = scalarTime;
-        m_metrics.simdTime = scalarTime;
-        m_metrics.simdSpeedup = 1.0f;
-    }
-
-    PYRAMID_LOG_INFO("=== End SIMD Demonstration ===");
+    // Call the enhanced SIMD demonstration
+    DemonstrateEnhancedSIMDOperations();
 }
 
 // Add missing methods as stubs for now
@@ -2506,8 +2445,8 @@ void BasicGame::DemonstrateEnhancedGraphicsDevice()
     PYRAMID_LOG_INFO("Enhanced graphics device demonstration complete");
 }
 
-// NEW: Demonstrate SIMD math operations
-void BasicGame::DemonstrateSIMDOperations()
+// NEW: Demonstrate enhanced SIMD math operations
+void BasicGame::DemonstrateEnhancedSIMDOperations()
 {
     PYRAMID_LOG_INFO("=== SIMD Math Operations Demonstration ===");
     

@@ -88,6 +88,7 @@ private:
     // Demonstration methods
     void DemonstrateEnhancedGraphicsDevice(); // NEW: Enhanced graphics device features
     void DemonstrateSIMDOperations();
+    void DemonstrateEnhancedSIMDOperations(); // NEW: Enhanced SIMD operations
     void DemonstrateSceneGraph();
     void DemonstrateFrustumCulling();
     void DemonstrateSceneManagement();
