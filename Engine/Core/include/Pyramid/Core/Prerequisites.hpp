@@ -32,6 +32,18 @@ struct Color {
 
     Color(f32 r = 0.0f, f32 g = 0.0f, f32 b = 0.0f, f32 a = 1.0f)
         : r(r), g(g), b(b), a(a) {}
+    
+    // Common color constants
+    static const Color Black;
+    static const Color White;
+    static const Color Red;
+    static const Color Green;
+    static const Color Blue;
+    static const Color Clear;
+    
+    // Comparison operators
+    bool operator==(const Color& other) const;
+    bool operator!=(const Color& other) const;
 };
 
 // Forward declarations

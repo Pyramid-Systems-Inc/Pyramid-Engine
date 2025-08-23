@@ -44,23 +44,32 @@ public:
      */
     void quit();
 
+    /**
+     * @brief Check if the game engine was initialized successfully
+     * @return true if the game engine is ready to run, false otherwise
+     */
+    bool IsInitialized() const;
+
 protected:
     /**
      * @brief Called when the game engine is first created
      * Override this to initialize your game resources
+     * @note Always call the base implementation first: Game::onCreate()
      */
     virtual void onCreate();
 
     /**
      * @brief Called every frame to update game logic
      * Override this to implement your game update logic
-     * @param deltaTime Time elapsed since last update in seconds
+     * @param deltaTime Time elapsed since last update in seconds (clamped to prevent large jumps)
+     * @note This should contain game logic only, not rendering operations
      */
     virtual void onUpdate(float deltaTime);
 
     /**
      * @brief Called every frame to render the game
      * Override this to implement your game rendering
+     * @note The base implementation clears the screen and presents the frame
      */
     virtual void onRender();
 
@@ -71,9 +80,10 @@ protected:
     IGraphicsDevice* GetGraphicsDevice() const { return m_graphicsDevice.get(); }
 
 private:
-    std::unique_ptr<Window> m_window; // Added: Game now owns the window
+    std::unique_ptr<Window> m_window;
     std::unique_ptr<IGraphicsDevice> m_graphicsDevice;
     bool m_isRunning;
+    bool m_initialized; // Track if initialization was successful
 };
 
 } // namespace Pyramid
