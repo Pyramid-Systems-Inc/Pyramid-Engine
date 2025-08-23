@@ -122,17 +122,50 @@ namespace Pyramid
 
             for (const auto& cmd : m_commands) {
                 switch (cmd.type) {
+                    case RenderCommandType::SetRenderTarget:
+                        // TODO: Implement render target binding when framebuffer system is complete
+                        PYRAMID_LOG_DEBUG("SetRenderTarget command executed (placeholder)");
+                        break;
+                        
+                    case RenderCommandType::SetShader:
+                        // TODO: Implement shader binding when shader system is enhanced
+                        PYRAMID_LOG_DEBUG("SetShader command executed (placeholder)");
+                        break;
+                        
+                    case RenderCommandType::SetTexture:
+                        // TODO: Implement texture binding when texture system is enhanced
+                        PYRAMID_LOG_DEBUG("SetTexture command executed (placeholder)");
+                        break;
+                        
+                    case RenderCommandType::SetUniformBuffer:
+                        // TODO: Implement UBO binding when uniform buffer system is enhanced
+                        PYRAMID_LOG_DEBUG("SetUniformBuffer command executed (placeholder)");
+                        break;
+                        
                     case RenderCommandType::ClearTarget:
                         device->Clear(Color(cmd.data.clear.r, cmd.data.clear.g, 
                                           cmd.data.clear.b, cmd.data.clear.a));
                         break;
                     
                     case RenderCommandType::DrawIndexed:
-                        device->DrawIndexed(cmd.data.draw.indexCount);
+                        if (cmd.data.draw.instanceCount > 1) {
+                            device->DrawIndexedInstanced(cmd.data.draw.indexCount, cmd.data.draw.instanceCount);
+                        } else {
+                            device->DrawIndexed(cmd.data.draw.indexCount);
+                        }
+                        break;
+                        
+                    case RenderCommandType::DrawInstanced:
+                        device->DrawIndexedInstanced(cmd.data.draw.indexCount, cmd.data.draw.instanceCount);
                         break;
                     
-                    // TODO: Implement other command types as graphics device expands
+                    case RenderCommandType::Dispatch:
+                        // TODO: Implement compute shader dispatch when compute shaders are supported
+                        PYRAMID_LOG_DEBUG("Compute dispatch command executed (placeholder)");
+                        break;
+                    
                     default:
+                        PYRAMID_LOG_WARN("Unknown render command type: ", static_cast<int>(cmd.type));
                         break;
                 }
             }

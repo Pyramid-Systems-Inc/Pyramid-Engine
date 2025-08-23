@@ -53,6 +53,50 @@ public:
      * @return Window height in pixels
      */
     virtual int GetHeight() const = 0;
+
+    /**
+     * @brief Check if the window should close
+     * @return true if close was requested
+     */
+    virtual bool ShouldClose() const { return false; }
+
+    /**
+     * @brief Set the window title
+     * @param title New window title
+     */
+    virtual void SetTitle(const char* title) {}
+
+    /**
+     * @brief Set the window size
+     * @param width New width
+     * @param height New height
+     */
+    virtual void SetSize(int width, int height) {}
+
+    /**
+     * @brief Set the window position
+     * @param x New x position
+     * @param y New y position
+     */
+    virtual void SetPosition(int x, int y) {}
+
+    /**
+     * @brief Show or hide the window
+     * @param visible true to show, false to hide
+     */
+    virtual void SetVisible(bool visible) {}
+
+    /**
+     * @brief Check if the window is minimized
+     * @return true if minimized
+     */
+    virtual bool IsMinimized() const { return false; }
+
+    /**
+     * @brief Check if the window is maximized
+     * @return true if maximized
+     */
+    virtual bool IsMaximized() const { return false; }
 };
 
 } // namespace Pyramid
