@@ -93,6 +93,7 @@ namespace Pyramid
         {
             PYRAMID_LOG_CRITICAL("Graphics device failed to initialize!");
             m_isRunning = false;
+            m_initialized = false;  // Mark as not initialized
             return;
         }
         

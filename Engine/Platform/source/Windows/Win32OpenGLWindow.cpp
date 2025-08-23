@@ -63,11 +63,18 @@ namespace Pyramid
 
     bool Win32OpenGLWindow::Initialize(const char *title, int width, int height)
     {
+        PYRAMID_LOG_INFO("Initializing Win32 OpenGL window (", width, "x", height, ")...");
+        
         m_width = width;
         m_height = height;
 
         if (!RegisterWindowClass())
+        {
+            PYRAMID_LOG_ERROR("Failed to register window class");
             return false;
+        }
+        
+        PYRAMID_LOG_INFO("Window class registered successfully");
 
         // Create the window
         RECT windowRect = {0, 0, width, height};
@@ -110,16 +117,32 @@ namespace Pyramid
         );
 
         if (!m_hwnd)
+        {
+            PYRAMID_LOG_ERROR("Failed to create window");
             return false;
+        }
+        
+        PYRAMID_LOG_INFO("Window created successfully");
 
         // Get the device context
         m_hdc = GetDC(m_hwnd);
         if (!m_hdc)
+        {
+            PYRAMID_LOG_ERROR("Failed to get device context");
             return false;
+        }
+        
+        PYRAMID_LOG_INFO("Device context obtained successfully");
 
         // Create OpenGL context
+        PYRAMID_LOG_INFO("Creating OpenGL context...");
         if (!CreateOpenGLContext())
+        {
+            PYRAMID_LOG_ERROR("Failed to create OpenGL context");
             return false;
+        }
+        
+        PYRAMID_LOG_INFO("OpenGL context created successfully");
 
         // Show the window
         ShowWindow(m_hwnd, SW_SHOW);
@@ -130,6 +153,14 @@ namespace Pyramid
 
     bool Win32OpenGLWindow::RegisterWindowClass()
     {
+        // Check if the class is already registered
+        WNDCLASSEXW existingClass = {};
+        if (GetClassInfoExW(GetModuleHandle(nullptr), L"PyramidWindowClass", &existingClass))
+        {
+            PYRAMID_LOG_INFO("Window class already registered, reusing existing class");
+            return true; // Class already exists, no need to register again
+        }
+        
         WNDCLASSEXW wc = {};
         wc.cbSize = sizeof(WNDCLASSEXW);
         wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
@@ -138,7 +169,24 @@ namespace Pyramid
         wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
         wc.lpszClassName = L"PyramidWindowClass";
 
-        return RegisterClassExW(&wc) != 0;
+        ATOM result = RegisterClassExW(&wc);
+        if (result == 0)
+        {
+            DWORD error = GetLastError();
+            if (error == ERROR_CLASS_ALREADY_EXISTS)
+            {
+                PYRAMID_LOG_INFO("Window class already exists (ERROR_CLASS_ALREADY_EXISTS), continuing...");
+                return true; // This is actually fine
+            }
+            else
+            {
+                PYRAMID_LOG_ERROR("Failed to register window class, error code: ", error);
+                return false;
+            }
+        }
+        
+        PYRAMID_LOG_INFO("Window class registered successfully");
+        return true;
     }
 
     bool Win32OpenGLWindow::CreateOpenGLContext()

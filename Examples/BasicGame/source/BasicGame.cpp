@@ -156,13 +156,26 @@ void BasicGame::onCreate()
     // Demonstrate SIMD operations (disabled for now)
     // DemonstrateSIMDOperations();
 
-    // Demonstrate enhanced systems
+    // Call base class onCreate first to initialize graphics device
+    PYRAMID_LOG_INFO("Calling Game::onCreate() to initialize graphics device...");
+    Game::onCreate();
+    
+    // Check if initialization was successful
+    if (!IsInitialized())
+    {
+        PYRAMID_LOG_CRITICAL("Game failed to initialize! Cannot continue with demonstrations.");
+        PYRAMID_LOG_CRITICAL("This is likely due to graphics device or window initialization failure.");
+        PYRAMID_LOG_CRITICAL("Please check your graphics drivers and OpenGL support.");
+        return;
+    }
+    
+    PYRAMID_LOG_INFO("Game initialized successfully, demonstrating enhanced systems...");
+
+    // Now demonstrate enhanced systems with initialized graphics device
     DemonstrateEnhancedGraphicsDevice();
     DemonstrateEnhancedSIMDOperations(); 
     DemonstrateSceneManagement();
     DemonstrateFramebuffers();
-
-    Game::onCreate();
 
     Pyramid::IGraphicsDevice *device = GetGraphicsDevice();
     if (!device)
@@ -301,6 +314,9 @@ void BasicGame::onCreate()
     PYRAMID_LOG_INFO("  Enhanced Systems: SIMD math, camera, scene graph, PBR materials");
     PYRAMID_LOG_INFO("  OpenGL 4.6 Features: Instanced rendering, advanced shaders, compute shaders, state management");
     PYRAMID_LOG_INFO("  Camera System: Multiple modes (Static, Orbital, Cinematic, FreeRoam)");
+    
+    PYRAMID_LOG_INFO("=== BasicGame::onCreate() completed successfully ===");
+    PYRAMID_LOG_INFO("Application should now enter the main game loop...");
 }
 
 void BasicGame::LoadTestTextures()

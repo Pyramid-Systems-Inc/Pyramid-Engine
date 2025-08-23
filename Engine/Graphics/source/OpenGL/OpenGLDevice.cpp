@@ -1,4 +1,5 @@
 #include <Pyramid/Graphics/OpenGL/OpenGLDevice.hpp>
+#include <Pyramid/Util/Log.hpp> // For logging
 #include <Pyramid/Graphics/Buffer/UniformBuffer.hpp> // For BufferUsage enum
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexBuffer.hpp>
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLIndexBuffer.hpp>
@@ -28,12 +29,17 @@ namespace Pyramid
 
     bool OpenGLDevice::Initialize()
     {
+        PYRAMID_LOG_INFO("Initializing OpenGL graphics device...");
+        
         // Initialize the window
         if (!m_window->Initialize())
         {
             m_lastError = "Failed to initialize window";
+            PYRAMID_LOG_ERROR("Window initialization failed in OpenGLDevice::Initialize()");
             return false;
         }
+        
+        PYRAMID_LOG_INFO("Window initialized successfully, setting up OpenGL context...");
 
         // Make OpenGL context current
         m_window->MakeContextCurrent();
