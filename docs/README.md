@@ -113,24 +113,38 @@ The Pyramid Engine follows a modular architecture with clear separation of conce
 
 The API Reference provides detailed documentation for all engine components:
 
-### Math Library
-- [Math Library Overview](API_Reference/Math/MathLibrary.md)
-- Vector types: Vec2, Vec3, Vec4
-- Matrix types: Mat3, Mat4
-- Quaternion: Quat
-- SIMD optimizations and performance utilities
+### Core Engine
+- [Game Class](API_Reference/Core/Game.md) - Main game loop and engine management
+- Window management and platform abstraction
+- Event handling and cross-platform support
 
 ### Graphics System
-- [Graphics Device](API_Reference/Graphics/GraphicsDevice.md)
-- Camera system and projections
-- Scene management and spatial partitioning
-- Buffer management and shaders
+- [Graphics Device](API_Reference/Graphics/GraphicsDevice.md) - Low-level graphics interface
+- [Render System](API_Reference/Graphics/RenderSystem.md) - High-level rendering pipeline
+- [Camera System](API_Reference/Graphics/Camera.md) - Advanced camera management
+- [Scene Manager](API_Reference/Graphics/SceneManager.md) - Spatial partitioning and object management
+- [Texture System](API_Reference/Graphics/Texture.md) - Comprehensive texture loading and management
 
-### Core Engine
-- Game class and main loop
-- Window management
-- Event handling
-- Platform abstraction
+### Math Library
+- [Math Library Overview](API_Reference/Math/MathLibrary.md) - SIMD-optimized mathematical operations
+- Vector types: Vec2, Vec3, Vec4 with full SIMD support
+- Matrix types: Mat3, Mat4 for transformations
+- Quaternion: Quat for rotations
+- Runtime CPU feature detection and optimization
+
+### Platform Layer
+- [Window System](API_Reference/Platform/Window.md) - Cross-platform window management
+- OpenGL context creation and management
+- Event processing and input integration
+
+### Utilities and Services
+- [Logging System](API_Reference/Utils/Logging.md) - Production-ready logging with file rotation
+- [Image Loading](API_Reference/Utils/ImageLoading.md) - Zero-dependency image format support
+
+### Planned Systems
+- [Audio System](API_Reference/Audio/AudioSystem.md) - 3D spatial audio (in development)
+- [Physics System](API_Reference/Physics/PhysicsSystem.md) - Rigid body dynamics (in development)
+- [Input System](API_Reference/Input/InputSystem.md) - Multi-device input handling (in development)
 
 ## Examples and Tutorials
 

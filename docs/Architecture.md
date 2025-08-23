@@ -256,28 +256,61 @@ The main game loop is managed by the `Game` class, which provides:
 ## Directory Structure
 
 ```text
-Pyramid/
-├── Engine/                # Core engine library
-│   ├── Core/             # Core engine functionality
-│   │   ├── include/      # Public headers
-│   │   └── source/       # Implementation files
-│   ├── Graphics/         # Graphics abstraction layer
-│   │   ├── include/      # Public headers
-│   │   │   └── Scene/    # Scene Management Core Architecture
-│   │   │       ├── SceneManager.hpp  # Scene lifecycle management
-│   │   │       └── Octree.hpp        # Spatial partitioning system
-│   │   └── source/       # Implementation files
-│   │       └── Scene/    # Scene Management implementations
-│   │           ├── SceneManager.cpp  # Scene manager implementation
-│   │           └── Octree.cpp        # Octree spatial partitioning
-│   ├── Platform/         # Platform-specific code
-│   │   ├── include/      # Public headers
-│   │   └── source/       # Implementation files
-│   ├── Math/             # SIMD-optimized math library
-│   ├── Utils/            # Enhanced logging system & utilities
-│   ├── Renderer/         # Rendering system
-│   ├── Input/            # Input handling
-│   ├── Scene/            # Scene management (legacy)
+Pyramid-Engine/
+├── Engine/                     # Core engine library
+│   ├── Core/                  # Core engine functionality
+│   │   ├── include/Pyramid/Core/  # Public headers
+│   │   │   ├── Game.hpp           # Main game class
+│   │   │   └── Prerequisites.hpp   # Common definitions
+│   │   └── source/               # Implementation files
+│   │       └── Game.cpp          # Game loop implementation
+│   ├── Graphics/              # Graphics abstraction layer
+│   │   ├── include/Pyramid/Graphics/  # Public headers
+│   │   │   ├── GraphicsDevice.hpp     # Graphics device interface
+│   │   │   ├── Camera.hpp             # Camera system
+│   │   │   ├── Texture.hpp            # Texture management
+│   │   │   ├── Buffer/                # Buffer management
+│   │   │   ├── Shader/                # Shader system
+│   │   │   ├── Renderer/              # Rendering system
+│   │   │   ├── Scene/                 # Scene Management
+│   │   │   │   ├── SceneManager.hpp   # Scene lifecycle management
+│   │   │   │   └── Octree.hpp         # Spatial partitioning system
+│   │   │   └── OpenGL/                # OpenGL implementation
+│   │   └── source/               # Implementation files
+│   │       ├── GraphicsDevice.cpp     # Device factory
+│   │       ├── Camera.cpp             # Camera implementation
+│   │       ├── Texture.cpp            # Texture loading
+│   │       ├── Scene/                 # Scene management
+│   │       ├── Renderer/              # Rendering pipeline
+│   │       └── OpenGL/                # OpenGL backend
+│   ├── Platform/              # Platform-specific code
+│   │   ├── include/Pyramid/Platform/ # Public headers
+│   │   │   ├── Window.hpp             # Window interface
+│   │   │   └── Windows/               # Windows-specific
+│   │   └── source/               # Implementation files
+│   │       └── Windows/              # Win32 implementation
+│   ├── Math/                  # SIMD-optimized math library
+│   │   ├── include/Pyramid/Math/     # Public headers
+│   │   │   ├── Math.hpp              # Unified math header
+│   │   │   ├── Vec2.hpp, Vec3.hpp, Vec4.hpp  # Vector classes
+│   │   │   ├── Mat3.hpp, Mat4.hpp    # Matrix classes
+│   │   │   ├── Quat.hpp              # Quaternion class
+│   │   │   ├── MathSIMD.hpp          # SIMD operations
+│   │   │   └── MathCommon.hpp        # Common definitions
+│   │   └── source/               # Implementation files
+│   ├── Utils/                 # Utilities and services
+│   │   ├── include/Pyramid/Util/     # Public headers
+│   │   │   ├── Log.hpp               # Logging system
+│   │   │   ├── Image.hpp             # Image loading
+│   │   │   ├── PNGLoader.hpp         # PNG format support
+│   │   │   ├── JPEGLoader.hpp        # JPEG format support
+│   │   │   └── ...                   # Other utilities
+│   │   └── source/               # Implementation files
+│   ├── Audio/                 # Audio system (planned)
+│   ├── Physics/               # Physics system (planned)
+│   ├── Input/                 # Input handling (planned)
+│   ├── Renderer/              # Renderer module (legacy)
+│   └── Scene/                 # Scene module (legacy)
 │   ├── Audio/            # Audio system
 │   └── Physics/          # Physics system
 ├── Examples/             # Example projects
