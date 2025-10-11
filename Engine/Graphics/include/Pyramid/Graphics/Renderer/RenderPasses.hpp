@@ -77,12 +77,12 @@ namespace Pyramid
         };
 
         /**
-         * @brief Shadow mapping pass
+         * @brief Shadow mapping pass with cascaded shadow maps
          */
         class ShadowMapPass : public RenderPass
         {
         public:
-            ShadowMapPass();
+            ShadowMapPass(const std::string& name, IGraphicsDevice* device, u32 cascadeCount = 4);
             ~ShadowMapPass() override = default;
 
             void Begin(CommandBuffer& cmd) override;
@@ -90,22 +90,28 @@ namespace Pyramid
             void End(CommandBuffer& cmd) override;
 
             // Configuration
-            void SetShadowMapSize(u32 size) { m_shadowMapSize = size; }
-            void SetCascadeCount(u32 count) { m_cascadeCount = count; }
-            void SetShadowBias(f32 bias) { m_shadowBias = bias; }
+            void SetCascadeCount(u32 count);
+            void SetShadowMapResolution(u32 resolution);
+            void SetCascadeSplits(const std::vector<f32>& splits);
+            void SetDepthBias(f32 bias);
 
             // Accessors
-            u32 GetShadowMapTexture() const { return m_shadowMapTexture; }
+            const std::vector<std::shared_ptr<class OpenGLFramebuffer>>& GetShadowMaps() const { return m_shadowMaps; }
+            const std::vector<Math::Mat4>& GetLightSpaceMatrices() const { return m_lightSpaceMatrices; }
 
         private:
-            void SetupShadowMapRenderTarget();
+            void CreateShadowMaps();
             void CalculateCascadeSplits(const Camera& camera);
+            Math::Mat4 CalculateLightSpaceMatrix(const Camera& camera, f32 nearPlane, f32 farPlane, const Math::Vec3& lightDir);
 
-            u32 m_shadowMapSize = 2048;
-            u32 m_cascadeCount = 4;
-            f32 m_shadowBias = 0.005f;
-            u32 m_shadowMapTexture = 0;
+            IGraphicsDevice* m_device;
+            u32 m_cascadeCount;
+            u32 m_shadowMapResolution;
             std::vector<f32> m_cascadeSplits;
+            std::vector<std::shared_ptr<class OpenGLFramebuffer>> m_shadowMaps;
+            std::vector<Math::Mat4> m_lightSpaceMatrices;
+            f32 m_depthBias;
+            std::shared_ptr<IShader> m_shadowShader;
         };
 
         /**
