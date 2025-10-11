@@ -25,6 +25,7 @@ namespace Pyramid
          */
         enum class RenderPassType
         {
+            Forward,        // Forward rendering pass
             Shadow,         // Shadow map generation
             GBuffer,        // Geometry buffer for deferred rendering
             Lighting,       // Lighting calculations
