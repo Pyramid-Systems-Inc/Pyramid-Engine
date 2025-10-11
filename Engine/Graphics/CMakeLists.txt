@@ -15,6 +15,7 @@ target_sources(PyramidEngine
         source/OpenGL/OpenGLTexture.cpp # Added
         source/OpenGL/OpenGLFramebuffer.cpp # Added - FBO Implementation
         source/Renderer/RenderSystem.cpp
+        source/Renderer/ForwardRenderPass.cpp # Added - Forward rendering pass
         source/Camera.cpp
         source/Scene.cpp
         source/Scene/SceneManager.cpp
