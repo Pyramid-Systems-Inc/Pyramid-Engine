@@ -1,5 +1,7 @@
 #include <Pyramid/Graphics/Renderer/RenderSystem.hpp>
+#include <Pyramid/Graphics/Renderer/RenderPasses.hpp>
 #include <Pyramid/Graphics/GraphicsDevice.hpp>
+#include <Pyramid/Graphics/Camera.hpp>
 #include <Pyramid/Graphics/Buffer/UniformBuffer.hpp>
 #include <Pyramid/Util/Log.hpp>
 #include <glad/glad.h>
@@ -466,16 +468,55 @@ namespace Pyramid
 
         void RenderSystem::SetupDefaultRenderPasses()
         {
-            // TODO: Create default render passes (forward rendering for now)
-            // This will be expanded when we implement specific render passes
-            PYRAMID_LOG_INFO("Default render passes setup (placeholder)");
+            // Create forward render pass
+            auto forwardPass = std::make_shared<ForwardRenderPass>();
+            forwardPass->SetClearColor(Math::Vec4(0.1f, 0.1f, 0.15f, 1.0f));
+            
+            AddRenderPass(forwardPass);
+            
+            // Future: Add shadow, post-process, UI passes
+            
+            PYRAMID_LOG_INFO("Default render passes initialized");
         }
 
         void RenderSystem::UpdateGlobalUniforms(const Camera& camera)
         {
-            // TODO: Update camera and lighting uniforms
-            // This requires Camera class implementation
-            PYRAMID_LOG_DEBUG("Updated global uniforms (placeholder)");
+            // Update camera UBO
+            if (m_cameraUBO) {
+                struct CameraUniforms {
+                    Math::Mat4 viewMatrix;
+                    Math::Mat4 projectionMatrix;
+                    Math::Mat4 viewProjectionMatrix;
+                    Math::Vec4 cameraPosition;
+                    Math::Vec4 cameraDirection;
+                    f32 nearPlane;
+                    f32 farPlane;
+                    f32 fov;
+                    f32 aspectRatio;
+                };
+                
+                CameraUniforms cameraData;
+                cameraData.viewMatrix = camera.GetViewMatrix();
+                cameraData.projectionMatrix = camera.GetProjectionMatrix();
+                cameraData.viewProjectionMatrix = camera.GetViewProjectionMatrix();
+                cameraData.cameraPosition = Math::Vec4(camera.GetPosition(), 1.0f);
+                cameraData.cameraDirection = Math::Vec4(camera.GetForward(), 0.0f);
+                cameraData.nearPlane = camera.GetNearPlane();
+                cameraData.farPlane = camera.GetFarPlane();
+                cameraData.fov = camera.GetFOV();
+                cameraData.aspectRatio = camera.GetAspectRatio();
+                
+                m_cameraUBO->UpdateData(&cameraData, sizeof(CameraUniforms), 0);
+                m_cameraUBO->Bind(0); // Bind to binding point 0
+            }
+            
+            // Update lighting UBO
+            if (m_lightingUBO) {
+                LightingData lightingData;
+                // Use default lighting for now - can be extended to use scene lights
+                m_lightingUBO->UpdateData(&lightingData, sizeof(LightingData), 0);
+                m_lightingUBO->Bind(1); // Bind to binding point 1
+            }
         }
 
     } // namespace Renderer
