@@ -80,14 +80,73 @@ namespace Pyramid
         for (const auto &element : layout)
         {
             glEnableVertexAttribArray(attributeIndex);
-            glVertexAttribPointer(
-                attributeIndex,
-                ShaderDataTypeComponentCount(element.Type),
-                ShaderDataTypeToOpenGLBaseType(element.Type),
-                element.Normalized ? GL_TRUE : GL_FALSE,
-                layout.GetStride(),
-                (const void *)(intptr_t)element.Offset // Cast to intptr_t then to const void* for offset
-            );
+            
+            // Handle integer types with glVertexAttribIPointer
+            bool isIntegerType = (element.Type == ShaderDataType::Int ||
+                                  element.Type == ShaderDataType::Int2 ||
+                                  element.Type == ShaderDataType::Int3 ||
+                                  element.Type == ShaderDataType::Int4);
+            
+            // Handle matrix types by decomposing into multiple attributes
+            if (element.Type == ShaderDataType::Mat3)
+            {
+                // Mat3 is 3x vec3
+                for (u32 i = 0; i < 3; i++)
+                {
+                    glEnableVertexAttribArray(attributeIndex);
+                    glVertexAttribPointer(
+                        attributeIndex,
+                        3, // vec3
+                        GL_FLOAT,
+                        element.Normalized ? GL_TRUE : GL_FALSE,
+                        layout.GetStride(),
+                        (const void *)(intptr_t)(element.Offset + sizeof(float) * 3 * i)
+                    );
+                    attributeIndex++;
+                }
+                continue; // Skip the regular increment
+            }
+            else if (element.Type == ShaderDataType::Mat4)
+            {
+                // Mat4 is 4x vec4
+                for (u32 i = 0; i < 4; i++)
+                {
+                    glEnableVertexAttribArray(attributeIndex);
+                    glVertexAttribPointer(
+                        attributeIndex,
+                        4, // vec4
+                        GL_FLOAT,
+                        element.Normalized ? GL_TRUE : GL_FALSE,
+                        layout.GetStride(),
+                        (const void *)(intptr_t)(element.Offset + sizeof(float) * 4 * i)
+                    );
+                    attributeIndex++;
+                }
+                continue; // Skip the regular increment
+            }
+            else if (isIntegerType)
+            {
+                // Use glVertexAttribIPointer for integer types
+                glVertexAttribIPointer(
+                    attributeIndex,
+                    ShaderDataTypeComponentCount(element.Type),
+                    ShaderDataTypeToOpenGLBaseType(element.Type),
+                    layout.GetStride(),
+                    (const void *)(intptr_t)element.Offset
+                );
+            }
+            else
+            {
+                // Use regular glVertexAttribPointer for float types
+                glVertexAttribPointer(
+                    attributeIndex,
+                    ShaderDataTypeComponentCount(element.Type),
+                    ShaderDataTypeToOpenGLBaseType(element.Type),
+                    element.Normalized ? GL_TRUE : GL_FALSE,
+                    layout.GetStride(),
+                    (const void *)(intptr_t)element.Offset
+                );
+            }
             attributeIndex++;
         }
         m_nextAttributeIndex = attributeIndex; // Update next available index
