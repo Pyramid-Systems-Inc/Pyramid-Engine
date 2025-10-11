@@ -512,7 +512,10 @@ namespace Pyramid
         }
 
         m_colorAttachmentTextures[spec.colorAttachmentIndex] = texture;
-        AttachTexture2D(texture, GetColorAttachmentEnum(spec.colorAttachmentIndex));
+        
+        // Use correct texture target based on multisampling
+        GLenum textureTarget = (spec.multisampled && spec.samples > 1) ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+        AttachTexture2D(texture, GetColorAttachmentEnum(spec.colorAttachmentIndex), textureTarget);
 
         PYRAMID_LOG_DEBUG("Created color attachment ", spec.colorAttachmentIndex, " with texture ID ", texture);
     }
@@ -530,7 +533,10 @@ namespace Pyramid
         }
 
         m_depthAttachmentTexture = texture;
-        AttachTexture2D(texture, GL_DEPTH_ATTACHMENT);
+        
+        // Use correct texture target based on multisampling
+        GLenum textureTarget = (spec.multisampled && spec.samples > 1) ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+        AttachTexture2D(texture, GL_DEPTH_ATTACHMENT, textureTarget);
 
         PYRAMID_LOG_DEBUG("Created depth attachment with texture ID ", texture);
     }
@@ -548,7 +554,10 @@ namespace Pyramid
         }
 
         m_stencilAttachmentTexture = texture;
-        AttachTexture2D(texture, GL_STENCIL_ATTACHMENT);
+        
+        // Use correct texture target based on multisampling
+        GLenum textureTarget = (spec.multisampled && spec.samples > 1) ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+        AttachTexture2D(texture, GL_STENCIL_ATTACHMENT, textureTarget);
 
         PYRAMID_LOG_DEBUG("Created stencil attachment with texture ID ", texture);
     }
@@ -566,7 +575,10 @@ namespace Pyramid
         }
 
         m_depthStencilAttachmentTexture = texture;
-        AttachTexture2D(texture, GL_DEPTH_STENCIL_ATTACHMENT);
+        
+        // Use correct texture target based on multisampling
+        GLenum textureTarget = (spec.multisampled && spec.samples > 1) ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+        AttachTexture2D(texture, GL_DEPTH_STENCIL_ATTACHMENT, textureTarget);
 
         PYRAMID_LOG_DEBUG("Created depth-stencil attachment with texture ID ", texture);
     }
@@ -618,9 +630,9 @@ namespace Pyramid
         return renderbuffer;
     }
 
-    void OpenGLFramebuffer::AttachTexture2D(GLuint texture, GLenum attachment, u32 mipLevel)
+    void OpenGLFramebuffer::AttachTexture2D(GLuint texture, GLenum attachment, GLenum textureTarget, u32 mipLevel)
     {
-        glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, texture, mipLevel);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, textureTarget, texture, mipLevel);
     }
 
     void OpenGLFramebuffer::AttachRenderbuffer(GLuint renderbuffer, GLenum attachment)

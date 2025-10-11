@@ -137,7 +137,7 @@ namespace Pyramid
         GLuint CreateRenderbuffer(u32 width, u32 height, GLenum internalFormat,
                                   bool multisampled, u32 samples);
 
-        void AttachTexture2D(GLuint texture, GLenum attachment, u32 mipLevel = 0);
+        void AttachTexture2D(GLuint texture, GLenum attachment, GLenum textureTarget = GL_TEXTURE_2D, u32 mipLevel = 0);
         void AttachRenderbuffer(GLuint renderbuffer, GLenum attachment);
 
         static GLenum GetColorAttachmentEnum(u32 index);
