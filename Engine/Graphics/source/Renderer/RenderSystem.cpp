@@ -2,6 +2,8 @@
 #include <Pyramid/Graphics/Renderer/RenderPasses.hpp>
 #include <Pyramid/Graphics/GraphicsDevice.hpp>
 #include <Pyramid/Graphics/Camera.hpp>
+#include <Pyramid/Graphics/Shader/Shader.hpp>
+#include <Pyramid/Graphics/Texture.hpp>
 #include <Pyramid/Graphics/Buffer/UniformBuffer.hpp>
 #include <Pyramid/Util/Log.hpp>
 #include <glad/glad.h>
@@ -517,6 +519,38 @@ namespace Pyramid
                 m_lightingUBO->UpdateData(&lightingData, sizeof(LightingData), 0);
                 m_lightingUBO->Bind(1); // Bind to binding point 1
             }
+        }
+
+        void RenderSystem::BindMaterial(CommandBuffer& cmdBuffer, const Material& material)
+        {
+            // Bind shader
+            if (material.shader) {
+                material.shader->Bind();
+            }
+            
+            // Bind textures to their respective slots
+            if (material.albedoTexture) {
+                material.albedoTexture->Bind(0); // Albedo at slot 0
+            }
+            
+            if (material.normalTexture) {
+                material.normalTexture->Bind(1); // Normal at slot 1
+            }
+            
+            if (material.metallicRoughnessTexture) {
+                material.metallicRoughnessTexture->Bind(2); // MetallicRoughness at slot 2
+            }
+            
+            if (material.aoTexture) {
+                material.aoTexture->Bind(3); // AO at slot 3
+            }
+            
+            if (material.emissiveTexture) {
+                material.emissiveTexture->Bind(4); // Emissive at slot 4
+            }
+            
+            // Material properties can be set as shader uniforms if needed
+            // This will be handled by the render pass when setting per-material uniforms
         }
 
     } // namespace Renderer

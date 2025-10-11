@@ -249,6 +249,7 @@ namespace Pyramid
         private:
             void SetupDefaultRenderPasses();
             void UpdateGlobalUniforms(const Camera& camera);
+            void BindMaterial(CommandBuffer& cmdBuffer, const Material& material);
 
             IGraphicsDevice* m_device = nullptr;
             std::vector<std::shared_ptr<RenderPass>> m_renderPasses;
