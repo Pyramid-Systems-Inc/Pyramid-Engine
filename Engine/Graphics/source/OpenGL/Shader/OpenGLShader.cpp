@@ -1,4 +1,5 @@
 #include <Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp>
+#include <Pyramid/Graphics/OpenGL/OpenGLStateManager.hpp>
 #include <Pyramid/Graphics/Buffer/UniformBuffer.hpp>
 #include <Pyramid/Graphics/Buffer/ShaderStorageBuffer.hpp>
 #include <Pyramid/Util/Log.hpp> // Updated to use Utils logging system
@@ -21,12 +22,12 @@ namespace Pyramid
 
     void OpenGLShader::Bind()
     {
-        glUseProgram(m_programId);
+        OpenGLStateManager::GetInstance().UseProgram(m_programId);
     }
 
     void OpenGLShader::Unbind()
     {
-        glUseProgram(0);
+        OpenGLStateManager::GetInstance().UseProgram(0);
     }
 
     bool OpenGLShader::Compile(const std::string &vertexSrc, const std::string &fragmentSrc)
@@ -205,7 +206,7 @@ namespace Pyramid
 
     void OpenGLShader::SetUniformInt(const std::string &name, int value)
     {
-        Bind(); // Ensure shader is bound
+        OpenGLStateManager::GetInstance().UseProgram(m_programId);
         GLint location = GetUniformLocation(name);
         if (location != -1)
             glUniform1i(location, value);
@@ -213,7 +214,7 @@ namespace Pyramid
 
     void OpenGLShader::SetUniformFloat(const std::string &name, float value)
     {
-        Bind();
+        OpenGLStateManager::GetInstance().UseProgram(m_programId);
         GLint location = GetUniformLocation(name);
         if (location != -1)
             glUniform1f(location, value);
@@ -221,7 +222,7 @@ namespace Pyramid
 
     void OpenGLShader::SetUniformFloat2(const std::string &name, float v0, float v1)
     {
-        Bind();
+        OpenGLStateManager::GetInstance().UseProgram(m_programId);
         GLint location = GetUniformLocation(name);
         if (location != -1)
             glUniform2f(location, v0, v1);
@@ -229,7 +230,7 @@ namespace Pyramid
 
     void OpenGLShader::SetUniformFloat3(const std::string &name, float v0, float v1, float v2)
     {
-        Bind();
+        OpenGLStateManager::GetInstance().UseProgram(m_programId);
         GLint location = GetUniformLocation(name);
         if (location != -1)
             glUniform3f(location, v0, v1, v2);
@@ -237,7 +238,7 @@ namespace Pyramid
 
     void OpenGLShader::SetUniformFloat4(const std::string &name, float v0, float v1, float v2, float v3)
     {
-        Bind();
+        OpenGLStateManager::GetInstance().UseProgram(m_programId);
         GLint location = GetUniformLocation(name);
         if (location != -1)
             glUniform4f(location, v0, v1, v2, v3);
@@ -245,7 +246,7 @@ namespace Pyramid
 
     void OpenGLShader::SetUniformMat3(const std::string &name, const float *matrix_ptr, bool transpose, int count)
     {
-        Bind();
+        OpenGLStateManager::GetInstance().UseProgram(m_programId);
         GLint location = GetUniformLocation(name);
         if (location != -1)
             glUniformMatrix3fv(location, count, transpose ? GL_TRUE : GL_FALSE, matrix_ptr);
@@ -253,7 +254,7 @@ namespace Pyramid
 
     void OpenGLShader::SetUniformMat4(const std::string &name, const float *matrix_ptr, bool transpose, int count)
     {
-        Bind();
+        OpenGLStateManager::GetInstance().UseProgram(m_programId);
         GLint location = GetUniformLocation(name);
         if (location != -1)
             glUniformMatrix4fv(location, count, transpose ? GL_TRUE : GL_FALSE, matrix_ptr);
@@ -562,7 +563,7 @@ namespace Pyramid
             return;
         }
 
-        Bind();
+        OpenGLStateManager::GetInstance().UseProgram(m_programId);
         glDispatchCompute(numGroupsX, numGroupsY, numGroupsZ);
 
         // Add memory barrier to ensure compute shader writes are visible

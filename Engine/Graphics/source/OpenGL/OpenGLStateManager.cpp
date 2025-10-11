@@ -172,12 +172,38 @@ namespace Pyramid
 
     void OpenGLStateManager::BindFramebuffer(GLenum target, GLuint framebuffer)
     {
-        auto it = m_boundFramebuffers.find(target);
-        if (it == m_boundFramebuffers.end() || it->second != framebuffer)
+        // GL_FRAMEBUFFER is an alias that binds to both GL_DRAW_FRAMEBUFFER and GL_READ_FRAMEBUFFER
+        if (target == GL_FRAMEBUFFER)
         {
-            glBindFramebuffer(target, framebuffer);
-            m_boundFramebuffers[target] = framebuffer;
-            m_stateChangeCount++;
+            // Check if either draw or read framebuffer needs updating
+            bool needsUpdate = false;
+            auto drawIt = m_boundFramebuffers.find(GL_DRAW_FRAMEBUFFER);
+            auto readIt = m_boundFramebuffers.find(GL_READ_FRAMEBUFFER);
+            
+            if (drawIt == m_boundFramebuffers.end() || drawIt->second != framebuffer ||
+                readIt == m_boundFramebuffers.end() || readIt->second != framebuffer)
+            {
+                needsUpdate = true;
+            }
+            
+            if (needsUpdate)
+            {
+                glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+                m_boundFramebuffers[GL_DRAW_FRAMEBUFFER] = framebuffer;
+                m_boundFramebuffers[GL_READ_FRAMEBUFFER] = framebuffer;
+                m_stateChangeCount++;
+            }
+        }
+        else
+        {
+            // Handle GL_DRAW_FRAMEBUFFER or GL_READ_FRAMEBUFFER specifically
+            auto it = m_boundFramebuffers.find(target);
+            if (it == m_boundFramebuffers.end() || it->second != framebuffer)
+            {
+                glBindFramebuffer(target, framebuffer);
+                m_boundFramebuffers[target] = framebuffer;
+                m_stateChangeCount++;
+            }
         }
     }
 
@@ -438,6 +464,8 @@ namespace Pyramid
         BindVertexArray(0);
         BindBuffer(GL_ARRAY_BUFFER, 0);
         BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        
+        // Use GL_FRAMEBUFFER to reset both draw and read framebuffers
         BindFramebuffer(GL_FRAMEBUFFER, 0);
 
         EnableBlend(false);
