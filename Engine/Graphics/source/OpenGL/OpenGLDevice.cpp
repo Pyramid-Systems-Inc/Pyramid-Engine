@@ -1,5 +1,5 @@
 #include <Pyramid/Graphics/OpenGL/OpenGLDevice.hpp>
-#include <Pyramid/Util/Log.hpp> // For logging
+#include <Pyramid/Util/Log.hpp>                      // For logging
 #include <Pyramid/Graphics/Buffer/UniformBuffer.hpp> // For BufferUsage enum
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLVertexBuffer.hpp>
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLIndexBuffer.hpp>
@@ -9,6 +9,7 @@
 #include <Pyramid/Graphics/OpenGL/Buffer/OpenGLShaderStorageBuffer.hpp>
 #include <Pyramid/Graphics/OpenGL/OpenGLStateManager.hpp>
 #include <Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp>
+#include <Pyramid/Graphics/OpenGL/OpenGLTexture.hpp>
 #include <Pyramid/Graphics/Texture.hpp> // Added for ITexture2D factory methods
 #include <glad/glad.h>
 
@@ -16,9 +17,7 @@ namespace Pyramid
 {
 
     OpenGLDevice::OpenGLDevice(Window *window)
-        : m_window(window)
-        , m_initialized(false)
-        , m_deviceInfoCached(false)
+        : m_window(window), m_initialized(false), m_deviceInfoCached(false)
     {
     }
 
@@ -30,7 +29,7 @@ namespace Pyramid
     bool OpenGLDevice::Initialize()
     {
         PYRAMID_LOG_INFO("Initializing OpenGL graphics device...");
-        
+
         // Initialize the window
         if (!m_window->Initialize())
         {
@@ -38,12 +37,12 @@ namespace Pyramid
             PYRAMID_LOG_ERROR("Window initialization failed in OpenGLDevice::Initialize()");
             return false;
         }
-        
+
         PYRAMID_LOG_INFO("Window initialized successfully, setting up OpenGL context...");
 
         // Make OpenGL context current
         m_window->MakeContextCurrent();
-        
+
         // Check for OpenGL errors after context creation
         GLenum error = glGetError();
         if (error != GL_NO_ERROR)
@@ -51,11 +50,11 @@ namespace Pyramid
             m_lastError = "OpenGL error after context creation: " + std::to_string(error);
             return false;
         }
-        
+
         m_initialized = true;
         m_deviceInfoCached = false; // Force device info refresh
         m_lastError.clear();
-        
+
         return true;
     }
 
@@ -64,8 +63,9 @@ namespace Pyramid
         if (m_initialized)
         {
             // Clear any OpenGL errors
-            while (glGetError() != GL_NO_ERROR);
-            
+            while (glGetError() != GL_NO_ERROR)
+                ;
+
             m_initialized = false;
             m_deviceInfoCached = false;
             m_deviceInfo.clear();
@@ -205,16 +205,16 @@ namespace Pyramid
         {
             if (m_initialized)
             {
-                const char* vendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
-                const char* renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
-                const char* version = reinterpret_cast<const char*>(glGetString(GL_VERSION));
-                const char* glslVersion = reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION));
-                
+                const char *vendor = reinterpret_cast<const char *>(glGetString(GL_VENDOR));
+                const char *renderer = reinterpret_cast<const char *>(glGetString(GL_RENDERER));
+                const char *version = reinterpret_cast<const char *>(glGetString(GL_VERSION));
+                const char *glslVersion = reinterpret_cast<const char *>(glGetString(GL_SHADING_LANGUAGE_VERSION));
+
                 m_deviceInfo = std::string("OpenGL Device Info:\n") +
-                              "  Vendor: " + (vendor ? vendor : "Unknown") + "\n" +
-                              "  Renderer: " + (renderer ? renderer : "Unknown") + "\n" +
-                              "  Version: " + (version ? version : "Unknown") + "\n" +
-                              "  GLSL Version: " + (glslVersion ? glslVersion : "Unknown");
+                               "  Vendor: " + (vendor ? vendor : "Unknown") + "\n" +
+                               "  Renderer: " + (renderer ? renderer : "Unknown") + "\n" +
+                               "  Version: " + (version ? version : "Unknown") + "\n" +
+                               "  GLSL Version: " + (glslVersion ? glslVersion : "Unknown");
             }
             else
             {
@@ -245,7 +245,7 @@ namespace Pyramid
         {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
-        
+
         GLenum error = glGetError();
         if (error != GL_NO_ERROR)
         {
@@ -256,7 +256,7 @@ namespace Pyramid
     void OpenGLDevice::SetPolygonMode(u32 mode)
     {
         glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(mode));
-        
+
         GLenum error = glGetError();
         if (error != GL_NO_ERROR)
         {
@@ -264,7 +264,7 @@ namespace Pyramid
         }
     }
 
-    void OpenGLDevice::BindFramebuffer(IFramebuffer* framebuffer)
+    void OpenGLDevice::BindFramebuffer(IFramebuffer *framebuffer)
     {
         if (framebuffer)
         {
@@ -274,13 +274,66 @@ namespace Pyramid
         else
         {
             // Bind default framebuffer
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            
-            GLenum error = glGetError();
-            if (error != GL_NO_ERROR)
+            OpenGLStateManager::GetInstance().BindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+    }
+
+    void OpenGLDevice::BindShader(IShader *shader)
+    {
+        if (shader)
+        {
+            shader->Bind();
+        }
+        else
+        {
+            OpenGLStateManager::GetInstance().UseProgram(0);
+        }
+    }
+
+    void OpenGLDevice::BindVertexArray(IVertexArray *vao)
+    {
+        if (vao)
+        {
+            vao->Bind();
+        }
+        else
+        {
+            OpenGLStateManager::GetInstance().BindVertexArray(0);
+        }
+    }
+
+    void OpenGLDevice::BindTexture(ITexture2D *texture, u32 slot)
+    {
+        if (texture)
+        {
+            // Cast to OpenGL texture to access OpenGL-specific binding
+            OpenGLTexture2D *glTexture = dynamic_cast<OpenGLTexture2D *>(texture);
+            if (glTexture)
             {
-                m_lastError = "Failed to bind default framebuffer. OpenGL error: " + std::to_string(error);
+                OpenGLStateManager::GetInstance().ActiveTexture(GL_TEXTURE0 + slot);
+                OpenGLStateManager::GetInstance().BindTexture(GL_TEXTURE_2D, glTexture->GetTextureID());
             }
+            else
+            {
+                PYRAMID_LOG_ERROR("Failed to bind texture: invalid OpenGL texture");
+            }
+        }
+        else
+        {
+            OpenGLStateManager::GetInstance().ActiveTexture(GL_TEXTURE0 + slot);
+            OpenGLStateManager::GetInstance().BindTexture(GL_TEXTURE_2D, 0);
+        }
+    }
+
+    void OpenGLDevice::BindUniformBuffer(IUniformBuffer *buffer, u32 bindingPoint)
+    {
+        if (buffer)
+        {
+            buffer->Bind(bindingPoint);
+        }
+        else
+        {
+            OpenGLStateManager::GetInstance().BindBuffer(GL_UNIFORM_BUFFER, 0);
         }
     }
 

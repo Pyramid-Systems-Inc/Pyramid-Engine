@@ -55,7 +55,11 @@ namespace Pyramid
         std::string GetLastError() const override;
         void SetWireframeMode(bool enable) override;
         void SetPolygonMode(u32 mode) override;
-        void BindFramebuffer(class IFramebuffer* framebuffer) override;
+        void BindFramebuffer(class IFramebuffer *framebuffer) override;
+        void BindShader(IShader *shader) override;
+        void BindVertexArray(class IVertexArray *vao) override;
+        void BindTexture(ITexture2D *texture, u32 slot) override;
+        void BindUniformBuffer(class IUniformBuffer *buffer, u32 bindingPoint) override;
 
         /**
          * @brief Get the window associated with this device

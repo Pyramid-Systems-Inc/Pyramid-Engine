@@ -239,7 +239,33 @@ namespace Pyramid
          * @brief Bind a framebuffer for rendering
          * @param framebuffer Framebuffer to bind (nullptr for default)
          */
-        virtual void BindFramebuffer(class IFramebuffer* framebuffer) = 0;
+        virtual void BindFramebuffer(class IFramebuffer *framebuffer) = 0;
+
+        /**
+         * @brief Bind a shader for rendering
+         * @param shader Shader to bind (nullptr to unbind)
+         */
+        virtual void BindShader(IShader *shader) = 0;
+
+        /**
+         * @brief Bind a vertex array object
+         * @param vao Vertex array to bind (nullptr to unbind)
+         */
+        virtual void BindVertexArray(class IVertexArray *vao) = 0;
+
+        /**
+         * @brief Bind a texture to a specific slot
+         * @param texture Texture to bind (nullptr to unbind)
+         * @param slot Texture slot (0-31 typically)
+         */
+        virtual void BindTexture(ITexture2D *texture, u32 slot) = 0;
+
+        /**
+         * @brief Bind a uniform buffer to a binding point
+         * @param buffer Uniform buffer to bind (nullptr to unbind)
+         * @param bindingPoint Binding point index
+         */
+        virtual void BindUniformBuffer(class IUniformBuffer *buffer, u32 bindingPoint) = 0;
 
         /**
          * @brief Create a graphics device for the specified API
