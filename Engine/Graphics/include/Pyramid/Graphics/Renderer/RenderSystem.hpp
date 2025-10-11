@@ -184,6 +184,7 @@ namespace Pyramid
             f32 ao = 1.0f;
             f32 padding = 0.0f;
 
+            std::shared_ptr<IShader> shader;
             std::shared_ptr<ITexture2D> albedoTexture;
             std::shared_ptr<ITexture2D> normalTexture;
             std::shared_ptr<ITexture2D> metallicRoughnessTexture;
