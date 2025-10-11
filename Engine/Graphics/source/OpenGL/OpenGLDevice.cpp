@@ -311,7 +311,7 @@ namespace Pyramid
             if (glTexture)
             {
                 OpenGLStateManager::GetInstance().ActiveTexture(GL_TEXTURE0 + slot);
-                OpenGLStateManager::GetInstance().BindTexture(GL_TEXTURE_2D, glTexture->GetTextureID());
+                OpenGLStateManager::GetInstance().BindTexture(glTexture->GetRendererID(), GL_TEXTURE_2D);
             }
             else
             {
@@ -321,7 +321,7 @@ namespace Pyramid
         else
         {
             OpenGLStateManager::GetInstance().ActiveTexture(GL_TEXTURE0 + slot);
-            OpenGLStateManager::GetInstance().BindTexture(GL_TEXTURE_2D, 0);
+            OpenGLStateManager::GetInstance().BindTexture(0, GL_TEXTURE_2D);
         }
     }
 
