@@ -36,22 +36,32 @@ namespace Pyramid
         class DeferredGeometryPass : public RenderPass
         {
         public:
-            DeferredGeometryPass();
+            DeferredGeometryPass(const std::string& name, IGraphicsDevice* device, u32 width, u32 height);
             ~DeferredGeometryPass() override = default;
 
             void Begin(CommandBuffer& cmd) override;
             void Execute(CommandBuffer& cmd, const Scene& scene, const Camera& camera) override;
             void End(CommandBuffer& cmd) override;
 
+            void Resize(u32 width, u32 height);
+            
+            std::shared_ptr<class OpenGLFramebuffer> GetGBuffer() const { return m_gBuffer; }
+
             // G-Buffer layout:
-            // RT0: Albedo (RGB) + Metallic (A)
-            // RT1: Normal (RGB) + Roughness (A)
-            // RT2: Motion Vectors (RG) + AO (B) + Material ID (A)
-            // RT3: Emissive (RGB) + Flags (A)
-            // Depth: Depth + Stencil
+            // RT0: Albedo (RGB) + Metallic (A)      - GL_RGBA8
+            // RT1: Normal (RGB) + Roughness (A)     - GL_RGBA16F
+            // RT2: WorldPos (RGB) + AO (A)          - GL_RGBA16F
+            // RT3: Emissive (RGB) + Flags (A)       - GL_RGBA16F
+            // Depth: Depth24Stencil8
 
         private:
-            void SetupGBufferShaders();
+            void CreateGBuffer();
+            
+            IGraphicsDevice* m_device;
+            u32 m_width;
+            u32 m_height;
+            std::shared_ptr<class OpenGLFramebuffer> m_gBuffer;
+            std::shared_ptr<IShader> m_geometryShader;
         };
 
         /**
@@ -60,20 +70,28 @@ namespace Pyramid
         class DeferredLightingPass : public RenderPass
         {
         public:
-            DeferredLightingPass();
+            DeferredLightingPass(const std::string& name, IGraphicsDevice* device);
             ~DeferredLightingPass() override = default;
 
             void Begin(CommandBuffer& cmd) override;
             void Execute(CommandBuffer& cmd, const Scene& scene, const Camera& camera) override;
             void End(CommandBuffer& cmd) override;
 
-            // Lighting techniques
-            void SetAmbientOcclusion(bool enabled) { m_ssaoEnabled = enabled; }
-            void SetImageBasedLighting(bool enabled) { m_iblEnabled = enabled; }
+            void SetGBuffer(std::shared_ptr<class OpenGLFramebuffer> gBuffer);
+            void SetShadowMaps(const std::vector<std::shared_ptr<class OpenGLFramebuffer>>& shadowMaps);
+            void SetEnableSSAO(bool enable) { m_enableSSAO = enable; }
+            void SetEnableIBL(bool enable) { m_enableIBL = enable; }
 
         private:
-            bool m_ssaoEnabled = false;
-            bool m_iblEnabled = false;
+            void CreateFullscreenQuad();
+            
+            IGraphicsDevice* m_device;
+            std::shared_ptr<class OpenGLFramebuffer> m_gBuffer;
+            std::vector<std::shared_ptr<class OpenGLFramebuffer>> m_shadowMaps;
+            std::shared_ptr<IShader> m_lightingShader;
+            std::shared_ptr<class IVertexArray> m_fullscreenQuad;
+            bool m_enableSSAO = false;
+            bool m_enableIBL = false;
         };
 
         /**
