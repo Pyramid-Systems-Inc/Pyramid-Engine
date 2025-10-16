@@ -16,6 +16,7 @@ target_sources(PyramidEngine
         source/OpenGL/OpenGLFramebuffer.cpp # Added - FBO Implementation
         source/Renderer/RenderSystem.cpp
         source/Renderer/ForwardRenderPass.cpp # Added - Forward rendering pass
+        source/Renderer/ShadowMapPass.cpp # Added - Shadow mapping with CSM
         source/Camera.cpp
         source/Scene.cpp
         source/Scene/SceneManager.cpp

@@ -470,15 +470,20 @@ namespace Pyramid
 
         void RenderSystem::SetupDefaultRenderPasses()
         {
+            // Create shadow map pass (renders first)
+            auto shadowPass = std::make_shared<ShadowMapPass>("Shadow", m_device, 4);
+            shadowPass->SetShadowMapResolution(2048);
+            shadowPass->SetDepthBias(0.005f);
+            AddRenderPass(shadowPass);
+            
             // Create forward render pass
             auto forwardPass = std::make_shared<ForwardRenderPass>();
             forwardPass->SetClearColor(Math::Vec4(0.1f, 0.1f, 0.15f, 1.0f));
-            
             AddRenderPass(forwardPass);
             
-            // Future: Add shadow, post-process, UI passes
+            // Future: Add post-process, UI passes
             
-            PYRAMID_LOG_INFO("Default render passes initialized");
+            PYRAMID_LOG_INFO("Default render passes initialized with shadows");
         }
 
         void RenderSystem::UpdateGlobalUniforms(const Camera& camera)
