@@ -2,6 +2,7 @@
 
 #include <Pyramid/Graphics/Renderer/RenderSystem.hpp>
 #include <Pyramid/Graphics/OpenGL/OpenGLFramebuffer.hpp>
+#include <Pyramid/Graphics/Buffer/VertexArray.hpp>
 #include <Pyramid/Math/Math.hpp>
 
 namespace Pyramid
