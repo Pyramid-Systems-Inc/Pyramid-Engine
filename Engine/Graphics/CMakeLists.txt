@@ -17,6 +17,8 @@ target_sources(PyramidEngine
         source/Renderer/RenderSystem.cpp
         source/Renderer/ForwardRenderPass.cpp # Added - Forward rendering pass
         source/Renderer/ShadowMapPass.cpp # Added - Shadow mapping with CSM
+        source/Renderer/DeferredGeometryPass.cpp # Added - Deferred geometry pass (G-Buffer)
+        source/Renderer/DeferredLightingPass.cpp # Added - Deferred lighting pass
         source/Camera.cpp
         source/Scene.cpp
         source/Scene/SceneManager.cpp
