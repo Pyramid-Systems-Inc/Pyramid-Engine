@@ -246,6 +246,9 @@ namespace Pyramid
             };
             const RenderStats& GetStats() const { return m_stats; }
 
+        public:
+            void SetupDeferredPipeline();
+            
         private:
             void SetupDefaultRenderPasses();
             void UpdateGlobalUniforms(const Camera& camera);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Pyramid/Graphics/Renderer/RenderSystem.hpp>
+#include <Pyramid/Graphics/OpenGL/OpenGLFramebuffer.hpp>
 #include <Pyramid/Math/Math.hpp>
 
 namespace Pyramid
@@ -45,7 +46,7 @@ namespace Pyramid
 
             void Resize(u32 width, u32 height);
             
-            std::shared_ptr<class OpenGLFramebuffer> GetGBuffer() const { return m_gBuffer; }
+            std::shared_ptr<Pyramid::OpenGLFramebuffer> GetGBuffer() const { return m_gBuffer; }
 
             // G-Buffer layout:
             // RT0: Albedo (RGB) + Metallic (A)      - GL_RGBA8
@@ -60,7 +61,7 @@ namespace Pyramid
             IGraphicsDevice* m_device;
             u32 m_width;
             u32 m_height;
-            std::shared_ptr<class OpenGLFramebuffer> m_gBuffer;
+            std::shared_ptr<Pyramid::OpenGLFramebuffer> m_gBuffer;
             std::shared_ptr<IShader> m_geometryShader;
         };
 
@@ -77,8 +78,8 @@ namespace Pyramid
             void Execute(CommandBuffer& cmd, const Scene& scene, const Camera& camera) override;
             void End(CommandBuffer& cmd) override;
 
-            void SetGBuffer(std::shared_ptr<class OpenGLFramebuffer> gBuffer);
-            void SetShadowMaps(const std::vector<std::shared_ptr<class OpenGLFramebuffer>>& shadowMaps);
+            void SetGBuffer(std::shared_ptr<Pyramid::OpenGLFramebuffer> gBuffer);
+            void SetShadowMaps(const std::vector<std::shared_ptr<Pyramid::OpenGLFramebuffer>>& shadowMaps);
             void SetEnableSSAO(bool enable) { m_enableSSAO = enable; }
             void SetEnableIBL(bool enable) { m_enableIBL = enable; }
 
@@ -86,10 +87,10 @@ namespace Pyramid
             void CreateFullscreenQuad();
             
             IGraphicsDevice* m_device;
-            std::shared_ptr<class OpenGLFramebuffer> m_gBuffer;
-            std::vector<std::shared_ptr<class OpenGLFramebuffer>> m_shadowMaps;
+            std::shared_ptr<Pyramid::OpenGLFramebuffer> m_gBuffer;
+            std::vector<std::shared_ptr<Pyramid::OpenGLFramebuffer>> m_shadowMaps;
             std::shared_ptr<IShader> m_lightingShader;
-            std::shared_ptr<class IVertexArray> m_fullscreenQuad;
+            std::shared_ptr<IVertexArray> m_fullscreenQuad;
             bool m_enableSSAO = false;
             bool m_enableIBL = false;
         };
@@ -114,7 +115,7 @@ namespace Pyramid
             void SetDepthBias(f32 bias);
 
             // Accessors
-            const std::vector<std::shared_ptr<class OpenGLFramebuffer>>& GetShadowMaps() const { return m_shadowMaps; }
+            const std::vector<std::shared_ptr<Pyramid::OpenGLFramebuffer>>& GetShadowMaps() const { return m_shadowMaps; }
             const std::vector<Math::Mat4>& GetLightSpaceMatrices() const { return m_lightSpaceMatrices; }
 
         private:
@@ -126,7 +127,7 @@ namespace Pyramid
             u32 m_cascadeCount;
             u32 m_shadowMapResolution;
             std::vector<f32> m_cascadeSplits;
-            std::vector<std::shared_ptr<class OpenGLFramebuffer>> m_shadowMaps;
+            std::vector<std::shared_ptr<Pyramid::OpenGLFramebuffer>> m_shadowMaps;
             std::vector<Math::Mat4> m_lightSpaceMatrices;
             f32 m_depthBias;
             std::shared_ptr<IShader> m_shadowShader;

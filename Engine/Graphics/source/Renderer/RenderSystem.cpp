@@ -486,6 +486,39 @@ namespace Pyramid
             PYRAMID_LOG_INFO("Default render passes initialized with shadows");
         }
 
+        void RenderSystem::SetupDeferredPipeline()
+        {
+            // Clear existing render passes
+            m_renderPasses.clear();
+            
+            // Get viewport dimensions (assuming 1920x1080 default, should be updated dynamically)
+            u32 width = 1920;
+            u32 height = 1080;
+            
+            // Shadow pass
+            auto shadowPass = std::make_shared<ShadowMapPass>("Shadow", m_device, 4);
+            shadowPass->SetShadowMapResolution(2048);
+            shadowPass->SetDepthBias(0.005f);
+            AddRenderPass(shadowPass);
+            
+            // Deferred geometry pass
+            auto geometryPass = std::make_shared<DeferredGeometryPass>("DeferredGeometry", m_device, width, height);
+            AddRenderPass(geometryPass);
+            
+            // Deferred lighting pass
+            auto lightingPass = std::make_shared<DeferredLightingPass>("DeferredLighting", m_device);
+            
+            // Connect G-Buffer from geometry pass to lighting pass
+            lightingPass->SetGBuffer(geometryPass->GetGBuffer());
+            
+            // Connect shadow maps from shadow pass to lighting pass
+            lightingPass->SetShadowMaps(shadowPass->GetShadowMaps());
+            
+            AddRenderPass(lightingPass);
+            
+            PYRAMID_LOG_INFO("Deferred rendering pipeline initialized");
+        }
+
         void RenderSystem::UpdateGlobalUniforms(const Camera& camera)
         {
             // Update camera UBO
