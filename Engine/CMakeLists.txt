@@ -32,5 +32,10 @@ target_link_libraries(PyramidEngine
         opengl32
 )
 
+target_compile_definitions(PyramidEngine
+    PRIVATE
+        PYRAMID_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
+)
+
 # IDE organization
 set_target_properties(PyramidEngine PROPERTIES FOLDER "Engine")

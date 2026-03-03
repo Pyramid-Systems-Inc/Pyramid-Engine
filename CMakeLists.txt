@@ -10,6 +10,10 @@ option(PYRAMID_BUILD_TESTS "Build test projects" OFF)
 option(PYRAMID_BUILD_EXAMPLES "Build example projects" ON)
 option(PYRAMID_BUILD_TOOLS "Build tool projects" OFF)
 
+if(PYRAMID_BUILD_TESTS)
+    enable_testing()
+endif()
+
 # Output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -28,11 +32,8 @@ if(PYRAMID_BUILD_TOOLS)
     add_subdirectory(Tools/AssetProcessor)
 endif()
 
-if(PYRAMID_BUILD_TESTS)
-    enable_testing()
-    # add_subdirectory(Tests/Unit)
-    # add_subdirectory(Tests/Integration)
-endif()
+# add_subdirectory(Tests/Unit)
+# add_subdirectory(Tests/Integration)
 
 # Install rules
 include(GNUInstallDirs)

@@ -7,10 +7,9 @@
 #include <Pyramid/Graphics/OpenGL/OpenGLFramebuffer.hpp>
 #include <Pyramid/Graphics/Buffer/VertexArray.hpp>
 #include <Pyramid/Graphics/Buffer/IndexBuffer.hpp>
+#include <Pyramid/Graphics/Renderer/ShaderPathResolver.hpp>
 #include <Pyramid/Util/Log.hpp>
 #include <glad/glad.h>
-#include <fstream>
-#include <sstream>
 
 namespace Pyramid
 {
@@ -28,23 +27,15 @@ namespace Pyramid
             // Create geometry shader
             m_geometryShader = m_device->CreateShader();
             
-            // Load shader source from files
-            std::ifstream vertFile("Engine/Graphics/shaders/deferred_geometry.vert");
-            std::ifstream fragFile("Engine/Graphics/shaders/deferred_geometry.frag");
-            
-            if (!vertFile.is_open() || !fragFile.is_open())
+            const std::string vertSrc = ShaderPathResolver::LoadTextFile("Engine/Graphics/shaders/deferred_geometry.vert");
+            const std::string fragSrc = ShaderPathResolver::LoadTextFile("Engine/Graphics/shaders/deferred_geometry.frag");
+
+            if (vertSrc.empty() || fragSrc.empty())
             {
                 PYRAMID_LOG_ERROR("Failed to open deferred geometry shader files");
             }
             else
             {
-                std::stringstream vertStream, fragStream;
-                vertStream << vertFile.rdbuf();
-                fragStream << fragFile.rdbuf();
-                
-                std::string vertSrc = vertStream.str();
-                std::string fragSrc = fragStream.str();
-                
                 if (!m_geometryShader->Compile(vertSrc, fragSrc))
                 {
                     PYRAMID_LOG_ERROR("Failed to compile deferred geometry shaders");
@@ -141,13 +132,18 @@ namespace Pyramid
             }
             
             // Enable depth testing
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_LESS);
-            glDepthMask(GL_TRUE);
+            if (m_device)
+            {
+                m_device->EnableDepthTest(true);
+                m_device->SetDepthFunc(GL_LESS);
+            }
             
             // Enable back-face culling
-            glEnable(GL_CULL_FACE);
-            glCullFace(GL_BACK);
+            if (m_device)
+            {
+                m_device->EnableCullFace(true);
+                m_device->SetCullFace(GL_BACK);
+            }
             
             PYRAMID_LOG_DEBUG("DeferredGeometryPass::Begin - G-Buffer bound");
         }
@@ -173,8 +169,6 @@ namespace Pyramid
                 // Bind geometry shader
                 if (m_geometryShader)
                 {
-                    m_geometryShader->Bind();
-                    
                     // Calculate matrices
                     Math::Mat4 model = object->GetTransformMatrix();
                     Math::Mat4 viewProj = camera.GetViewProjectionMatrix();
@@ -201,60 +195,66 @@ namespace Pyramid
                         object->material.emissive.y, 
                         object->material.emissive.z);
                     m_geometryShader->SetUniformFloat("u_EmissiveIntensity", object->material.emissive.w);
+                    cmd.SetShader(m_geometryShader.get());
                     
                     // Bind textures if available
                     if (object->material.albedoTexture)
                     {
-                        object->material.albedoTexture->Bind(0);
+                        cmd.SetTexture(object->material.albedoTexture.get(), 0);
                         m_geometryShader->SetUniformInt("u_AlbedoMap", 0);
                         m_geometryShader->SetUniformInt("u_HasAlbedoMap", 1);
                     }
                     else
                     {
+                        cmd.SetTexture(static_cast<ITexture2D*>(nullptr), 0);
                         m_geometryShader->SetUniformInt("u_HasAlbedoMap", 0);
                     }
                     
                     if (object->material.normalTexture)
                     {
-                        object->material.normalTexture->Bind(1);
+                        cmd.SetTexture(object->material.normalTexture.get(), 1);
                         m_geometryShader->SetUniformInt("u_NormalMap", 1);
                         m_geometryShader->SetUniformInt("u_HasNormalMap", 1);
                     }
                     else
                     {
+                        cmd.SetTexture(static_cast<ITexture2D*>(nullptr), 1);
                         m_geometryShader->SetUniformInt("u_HasNormalMap", 0);
                     }
                     
                     if (object->material.metallicRoughnessTexture)
                     {
-                        object->material.metallicRoughnessTexture->Bind(2);
+                        cmd.SetTexture(object->material.metallicRoughnessTexture.get(), 2);
                         m_geometryShader->SetUniformInt("u_MetallicRoughnessMap", 2);
                         m_geometryShader->SetUniformInt("u_HasMetallicRoughnessMap", 1);
                     }
                     else
                     {
+                        cmd.SetTexture(static_cast<ITexture2D*>(nullptr), 2);
                         m_geometryShader->SetUniformInt("u_HasMetallicRoughnessMap", 0);
                     }
                     
                     if (object->material.aoTexture)
                     {
-                        object->material.aoTexture->Bind(3);
+                        cmd.SetTexture(object->material.aoTexture.get(), 3);
                         m_geometryShader->SetUniformInt("u_AOMap", 3);
                         m_geometryShader->SetUniformInt("u_HasAOMap", 1);
                     }
                     else
                     {
+                        cmd.SetTexture(static_cast<ITexture2D*>(nullptr), 3);
                         m_geometryShader->SetUniformInt("u_HasAOMap", 0);
                     }
                     
                     if (object->material.emissiveTexture)
                     {
-                        object->material.emissiveTexture->Bind(4);
+                        cmd.SetTexture(object->material.emissiveTexture.get(), 4);
                         m_geometryShader->SetUniformInt("u_EmissiveMap", 4);
                         m_geometryShader->SetUniformInt("u_HasEmissiveMap", 1);
                     }
                     else
                     {
+                        cmd.SetTexture(static_cast<ITexture2D*>(nullptr), 4);
                         m_geometryShader->SetUniformInt("u_HasEmissiveMap", 0);
                     }
                 }
@@ -264,8 +264,7 @@ namespace Pyramid
                     continue;
                 }
                 
-                // Bind vertex array and draw
-                object->vertexArray->Bind();
+                cmd.SetVertexArray(object->vertexArray.get());
                 u32 indexCount = object->vertexArray->GetIndexBuffer()->GetCount();
                 cmd.DrawIndexed(indexCount);
             }

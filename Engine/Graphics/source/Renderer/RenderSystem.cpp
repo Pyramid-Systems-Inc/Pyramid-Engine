@@ -5,6 +5,7 @@
 #include <Pyramid/Graphics/Shader/Shader.hpp>
 #include <Pyramid/Graphics/Texture.hpp>
 #include <Pyramid/Graphics/Buffer/UniformBuffer.hpp>
+#include <Pyramid/Graphics/Buffer/VertexArray.hpp>
 #include <Pyramid/Util/Log.hpp>
 #include <glad/glad.h>
 #include <algorithm>
@@ -82,6 +83,68 @@ namespace Pyramid
             m_commands.push_back(cmd);
         }
 
+        void CommandBuffer::SetVertexArray(u32 vertexArrayId)
+        {
+            if (!m_recording) return;
+
+            RenderCommand cmd;
+            cmd.type = RenderCommandType::SetVertexArray;
+            cmd.data.setVertexArray.vertexArrayId = vertexArrayId;
+            m_commands.push_back(cmd);
+        }
+
+        void CommandBuffer::SetRenderTarget(RenderTarget* target)
+        {
+            if (!m_recording) return;
+
+            RenderCommand cmd;
+            cmd.type = RenderCommandType::SetRenderTargetPtr;
+            cmd.data.setRenderTargetPtr.target = reinterpret_cast<std::uintptr_t>(target);
+            m_commands.push_back(cmd);
+        }
+
+        void CommandBuffer::SetShader(IShader* shader)
+        {
+            if (!m_recording) return;
+
+            RenderCommand cmd;
+            cmd.type = RenderCommandType::SetShaderPtr;
+            cmd.data.setShaderPtr.shader = reinterpret_cast<std::uintptr_t>(shader);
+            m_commands.push_back(cmd);
+        }
+
+        void CommandBuffer::SetTexture(ITexture2D* texture, u32 slot)
+        {
+            if (!m_recording) return;
+
+            RenderCommand cmd;
+            cmd.type = RenderCommandType::SetTexturePtr;
+            cmd.data.setTexturePtr.texture = reinterpret_cast<std::uintptr_t>(texture);
+            cmd.data.setTexturePtr.slot = slot;
+            m_commands.push_back(cmd);
+        }
+
+        void CommandBuffer::SetUniformBuffer(IUniformBuffer* buffer, u32 bindingPoint)
+        {
+            if (!m_recording) return;
+
+            RenderCommand cmd;
+            cmd.type = RenderCommandType::SetUniformBufferPtr;
+            cmd.data.setUniformBufferPtr.buffer = reinterpret_cast<std::uintptr_t>(buffer);
+            cmd.data.setUniformBufferPtr.bindingPoint = bindingPoint;
+            m_commands.push_back(cmd);
+        }
+
+        void CommandBuffer::SetVertexArray(IVertexArray* vertexArray)
+        {
+            if (!m_recording) return;
+
+            RenderCommand cmd;
+            cmd.type = RenderCommandType::SetVertexArrayPtr;
+            cmd.data.setVertexArrayPtr.vertexArray = reinterpret_cast<std::uintptr_t>(vertexArray);
+            m_commands.push_back(cmd);
+        }
+
         void CommandBuffer::DrawIndexed(u32 indexCount, u32 instanceCount)
         {
             if (!m_recording) return;
@@ -118,6 +181,56 @@ namespace Pyramid
             m_commands.push_back(cmd);
         }
 
+        void CommandBuffer::RegisterRenderTarget(u32 id, RenderTarget* target)
+        {
+            if (!target)
+            {
+                m_renderTargetRegistry.erase(id);
+                return;
+            }
+            m_renderTargetRegistry[id] = target;
+        }
+
+        void CommandBuffer::RegisterShader(u32 id, IShader* shader)
+        {
+            if (!shader)
+            {
+                m_shaderRegistry.erase(id);
+                return;
+            }
+            m_shaderRegistry[id] = shader;
+        }
+
+        void CommandBuffer::RegisterTexture(u32 id, ITexture2D* texture)
+        {
+            if (!texture)
+            {
+                m_textureRegistry.erase(id);
+                return;
+            }
+            m_textureRegistry[id] = texture;
+        }
+
+        void CommandBuffer::RegisterUniformBuffer(u32 id, IUniformBuffer* buffer)
+        {
+            if (!buffer)
+            {
+                m_uniformBufferRegistry.erase(id);
+                return;
+            }
+            m_uniformBufferRegistry[id] = buffer;
+        }
+
+        void CommandBuffer::RegisterVertexArray(u32 id, IVertexArray* vertexArray)
+        {
+            if (!vertexArray)
+            {
+                m_vertexArrayRegistry.erase(id);
+                return;
+            }
+            m_vertexArrayRegistry[id] = vertexArray;
+        }
+
         void CommandBuffer::Execute(IGraphicsDevice* device)
         {
             if (!device) {
@@ -127,25 +240,98 @@ namespace Pyramid
 
             for (const auto& cmd : m_commands) {
                 switch (cmd.type) {
-                    case RenderCommandType::SetRenderTarget:
-                        // Note: RenderTarget binding will be handled through resource lookup
-                        // For now, log that the command was received
-                        PYRAMID_LOG_DEBUG("SetRenderTarget command: targetId=", cmd.data.setRenderTarget.targetId);
+                    case RenderCommandType::SetRenderTarget: {
+                        auto targetIt = m_renderTargetRegistry.find(cmd.data.setRenderTarget.targetId);
+                        if (targetIt != m_renderTargetRegistry.end() && targetIt->second)
+                        {
+                            targetIt->second->Bind();
+                        }
+                        else
+                        {
+                            PYRAMID_LOG_WARN("SetRenderTarget command could not resolve targetId=", cmd.data.setRenderTarget.targetId);
+                        }
+                        break;
+                    }
+
+                    case RenderCommandType::SetRenderTargetPtr: {
+                        auto* target = reinterpret_cast<RenderTarget*>(cmd.data.setRenderTargetPtr.target);
+                        if (target)
+                        {
+                            target->Bind();
+                        }
+                        else
+                        {
+                            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                        }
+                        break;
+                    }
+                        
+                    case RenderCommandType::SetShader: {
+                        auto shaderIt = m_shaderRegistry.find(cmd.data.setShader.shaderId);
+                        if (shaderIt != m_shaderRegistry.end())
+                        {
+                            device->BindShader(shaderIt->second);
+                        }
+                        else
+                        {
+                            PYRAMID_LOG_WARN("SetShader command could not resolve shaderId=", cmd.data.setShader.shaderId);
+                        }
+                        break;
+                    }
+
+                    case RenderCommandType::SetShaderPtr:
+                        device->BindShader(reinterpret_cast<IShader*>(cmd.data.setShaderPtr.shader));
                         break;
                         
-                    case RenderCommandType::SetShader:
-                        // Note: Shader binding will be handled through resource lookup
-                        PYRAMID_LOG_DEBUG("SetShader command: shaderId=", cmd.data.setShader.shaderId);
+                    case RenderCommandType::SetTexture: {
+                        auto textureIt = m_textureRegistry.find(cmd.data.setTexture.textureId);
+                        if (textureIt != m_textureRegistry.end())
+                        {
+                            device->BindTexture(textureIt->second, cmd.data.setTexture.slot);
+                        }
+                        else
+                        {
+                            PYRAMID_LOG_WARN("SetTexture command could not resolve textureId=", cmd.data.setTexture.textureId);
+                        }
+                        break;
+                    }
+
+                    case RenderCommandType::SetTexturePtr:
+                        device->BindTexture(reinterpret_cast<ITexture2D*>(cmd.data.setTexturePtr.texture), cmd.data.setTexturePtr.slot);
                         break;
                         
-                    case RenderCommandType::SetTexture:
-                        // Note: Texture binding will be handled through resource lookup
-                        PYRAMID_LOG_DEBUG("SetTexture command: textureId=", cmd.data.setTexture.textureId, " slot=", cmd.data.setTexture.slot);
+                    case RenderCommandType::SetUniformBuffer: {
+                        auto bufferIt = m_uniformBufferRegistry.find(cmd.data.setUniformBuffer.bufferId);
+                        if (bufferIt != m_uniformBufferRegistry.end())
+                        {
+                            device->BindUniformBuffer(bufferIt->second, cmd.data.setUniformBuffer.bindingPoint);
+                        }
+                        else
+                        {
+                            PYRAMID_LOG_WARN("SetUniformBuffer command could not resolve bufferId=", cmd.data.setUniformBuffer.bufferId);
+                        }
                         break;
-                        
-                    case RenderCommandType::SetUniformBuffer:
-                        // Note: UBO binding will be handled through resource lookup
-                        PYRAMID_LOG_DEBUG("SetUniformBuffer command: bufferId=", cmd.data.setUniformBuffer.bufferId, " bindingPoint=", cmd.data.setUniformBuffer.bindingPoint);
+                    }
+
+                    case RenderCommandType::SetUniformBufferPtr:
+                        device->BindUniformBuffer(reinterpret_cast<IUniformBuffer*>(cmd.data.setUniformBufferPtr.buffer), cmd.data.setUniformBufferPtr.bindingPoint);
+                        break;
+
+                    case RenderCommandType::SetVertexArray: {
+                        auto vaoIt = m_vertexArrayRegistry.find(cmd.data.setVertexArray.vertexArrayId);
+                        if (vaoIt != m_vertexArrayRegistry.end())
+                        {
+                            device->BindVertexArray(vaoIt->second);
+                        }
+                        else
+                        {
+                            PYRAMID_LOG_WARN("SetVertexArray command could not resolve vertexArrayId=", cmd.data.setVertexArray.vertexArrayId);
+                        }
+                        break;
+                    }
+
+                    case RenderCommandType::SetVertexArrayPtr:
+                        device->BindVertexArray(reinterpret_cast<IVertexArray*>(cmd.data.setVertexArrayPtr.vertexArray));
                         break;
                         
                     case RenderCommandType::ClearTarget:
@@ -358,6 +544,12 @@ namespace Pyramid
                 return false;
             }
 
+            // Register global buffers for ID-based command paths.
+            m_mainCommandBuffer->RegisterUniformBuffer(0, m_cameraUBO.get());
+            m_mainCommandBuffer->RegisterUniformBuffer(1, m_lightingUBO.get());
+            m_shadowCommandBuffer->RegisterUniformBuffer(0, m_cameraUBO.get());
+            m_shadowCommandBuffer->RegisterUniformBuffer(1, m_lightingUBO.get());
+
             // Setup default render passes
             SetupDefaultRenderPasses();
 
@@ -397,16 +589,21 @@ namespace Pyramid
 
             auto frameStart = std::chrono::high_resolution_clock::now();
 
-            // Update global uniforms
-            UpdateGlobalUniforms(camera);
-
             // Execute render passes in order
             for (auto& pass : m_renderPasses) {
                 if (!pass->IsEnabled()) continue;
 
+                // Keep global UBO state in sync for each pass execution.
+                UpdateGlobalUniforms(camera);
                 pass->Begin(*m_mainCommandBuffer);
                 pass->Execute(*m_mainCommandBuffer, scene, camera);
+                m_mainCommandBuffer->End();
+                m_mainCommandBuffer->Execute(m_device);
                 pass->End(*m_mainCommandBuffer);
+
+                // Prepare command buffer for next pass.
+                m_mainCommandBuffer->Reset();
+                m_mainCommandBuffer->Begin();
             }
 
             // Calculate frame time
@@ -418,17 +615,58 @@ namespace Pyramid
         {
             if (!m_device) return;
 
-            // End command buffer recording
+            // Execute any trailing commands that were recorded after the last pass.
             m_mainCommandBuffer->End();
-
-            // Execute all commands
-            m_mainCommandBuffer->Execute(m_device);
+            if (m_mainCommandBuffer->GetCommandCount() > 0)
+            {
+                m_mainCommandBuffer->Execute(m_device);
+            }
 
             // Present frame
             m_device->Present(m_vsyncEnabled);
 
             // Reset command buffer for next frame
             m_mainCommandBuffer->Reset();
+        }
+
+        u32 RenderSystem::CreateRenderTarget(const RenderTargetSpec& spec)
+        {
+            if (!m_device)
+            {
+                PYRAMID_LOG_ERROR("Cannot create render target before render system initialization");
+                return 0;
+            }
+
+            auto target = std::make_shared<RenderTarget>(spec);
+            if (!target->Initialize(m_device))
+            {
+                PYRAMID_LOG_ERROR("Failed to initialize render target");
+                return 0;
+            }
+
+            const u32 id = m_nextRenderTargetId++;
+            m_renderTargets[id] = target;
+
+            m_mainCommandBuffer->RegisterRenderTarget(id, target.get());
+            m_shadowCommandBuffer->RegisterRenderTarget(id, target.get());
+
+            return id;
+        }
+
+        std::shared_ptr<RenderTarget> RenderSystem::GetRenderTarget(u32 id)
+        {
+            auto it = m_renderTargets.find(id);
+            if (it == m_renderTargets.end())
+            {
+                return nullptr;
+            }
+            return it->second;
+        }
+
+        void RenderSystem::SetMultisampling(bool enabled, u32 samples)
+        {
+            m_multisamplingEnabled = enabled;
+            m_msaaSamples = (samples == 0) ? 1 : samples;
         }
 
         void RenderSystem::AddRenderPass(std::shared_ptr<RenderPass> pass)
@@ -477,7 +715,7 @@ namespace Pyramid
             AddRenderPass(shadowPass);
             
             // Create forward render pass
-            auto forwardPass = std::make_shared<ForwardRenderPass>();
+            auto forwardPass = std::make_shared<ForwardRenderPass>(m_device);
             forwardPass->SetClearColor(Math::Vec4(0.1f, 0.1f, 0.15f, 1.0f));
             AddRenderPass(forwardPass);
             
@@ -547,7 +785,7 @@ namespace Pyramid
                 cameraData.aspectRatio = camera.GetAspectRatio();
                 
                 m_cameraUBO->UpdateData(&cameraData, sizeof(CameraUniforms), 0);
-                m_cameraUBO->Bind(0); // Bind to binding point 0
+                m_mainCommandBuffer->SetUniformBuffer(m_cameraUBO.get(), 0);
             }
             
             // Update lighting UBO
@@ -555,7 +793,7 @@ namespace Pyramid
                 LightingData lightingData;
                 // Use default lighting for now - can be extended to use scene lights
                 m_lightingUBO->UpdateData(&lightingData, sizeof(LightingData), 0);
-                m_lightingUBO->Bind(1); // Bind to binding point 1
+                m_mainCommandBuffer->SetUniformBuffer(m_lightingUBO.get(), 1);
             }
         }
 
@@ -563,28 +801,38 @@ namespace Pyramid
         {
             // Bind shader
             if (material.shader) {
-                material.shader->Bind();
+                cmdBuffer.SetShader(material.shader.get());
             }
             
             // Bind textures to their respective slots
             if (material.albedoTexture) {
-                material.albedoTexture->Bind(0); // Albedo at slot 0
+                cmdBuffer.SetTexture(material.albedoTexture.get(), 0); // Albedo at slot 0
+            } else {
+                cmdBuffer.SetTexture(static_cast<ITexture2D*>(nullptr), 0);
             }
             
             if (material.normalTexture) {
-                material.normalTexture->Bind(1); // Normal at slot 1
+                cmdBuffer.SetTexture(material.normalTexture.get(), 1); // Normal at slot 1
+            } else {
+                cmdBuffer.SetTexture(static_cast<ITexture2D*>(nullptr), 1);
             }
             
             if (material.metallicRoughnessTexture) {
-                material.metallicRoughnessTexture->Bind(2); // MetallicRoughness at slot 2
+                cmdBuffer.SetTexture(material.metallicRoughnessTexture.get(), 2); // MetallicRoughness at slot 2
+            } else {
+                cmdBuffer.SetTexture(static_cast<ITexture2D*>(nullptr), 2);
             }
             
             if (material.aoTexture) {
-                material.aoTexture->Bind(3); // AO at slot 3
+                cmdBuffer.SetTexture(material.aoTexture.get(), 3); // AO at slot 3
+            } else {
+                cmdBuffer.SetTexture(static_cast<ITexture2D*>(nullptr), 3);
             }
             
             if (material.emissiveTexture) {
-                material.emissiveTexture->Bind(4); // Emissive at slot 4
+                cmdBuffer.SetTexture(material.emissiveTexture.get(), 4); // Emissive at slot 4
+            } else {
+                cmdBuffer.SetTexture(static_cast<ITexture2D*>(nullptr), 4);
             }
             
             // Material properties can be set as shader uniforms if needed

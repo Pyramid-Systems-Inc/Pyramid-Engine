@@ -1,6 +1,8 @@
 # Pyramid Engine - Implementation Roadmap
 
-> **Timeline:** Q3 2025 - Q4 2026 | **Current Focus:** Phase 0-1 (OpenGL Core & Forward Rendering)
+> **Timeline:** Q3 2025 - Q4 2026 | **Current Focus (Updated: March 3, 2026):** Phase 1-3 integration and pipeline hardening
+>
+> **Status Update (March 3, 2026):** Forward/deferred pass implementations, render-target support, and device binding APIs are in-tree. Remaining work is primarily integration quality (command execution consistency, testing automation, and production polish), not initial pipeline bring-up.
 
 ## Navigation
 
@@ -19,7 +21,7 @@ This roadmap outlines the **6-8 week path to production-ready rendering** follow
 - **Phase 5-7** (Q4 2025 - Q1 2026): Scene, input, and GUI systems
 - **Phase 8-10** (Q2-Q4 2026): Physics, audio, asset pipeline
 
-**Current Status:** Advanced Math Library ✅ | Image Loading ✅ | Scene Core ✅ | **Rendering Pipeline 🔴 BLOCKED**
+**Current Status:** Advanced Math Library ✅ | Image Loading ✅ | Scene Core ✅ | **Rendering Pipeline 🟡 PARTIALLY OPERATIONAL**
 
 ---
 

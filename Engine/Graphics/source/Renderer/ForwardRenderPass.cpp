@@ -13,8 +13,9 @@ namespace Pyramid
     namespace Renderer
     {
 
-        ForwardRenderPass::ForwardRenderPass()
+        ForwardRenderPass::ForwardRenderPass(IGraphicsDevice* device)
             : RenderPass(RenderPassType::Forward, "ForwardRenderPass")
+            , m_device(device)
         {
             PYRAMID_LOG_INFO("ForwardRenderPass created");
         }
@@ -25,10 +26,13 @@ namespace Pyramid
             cmd.ClearTarget(m_clearColor.x, m_clearColor.y, m_clearColor.z, m_clearColor.w);
             
             // Set wireframe mode if enabled
-            if (m_wireframe) {
-                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            } else {
-                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            if (m_device)
+            {
+                m_device->SetPolygonMode(m_wireframe ? GL_LINE : GL_FILL);
+                m_device->EnableDepthTest(true);
+                m_device->SetDepthFunc(GL_LESS);
+                m_device->EnableCullFace(true);
+                m_device->SetCullFace(GL_BACK);
             }
             
             PYRAMID_LOG_DEBUG("ForwardRenderPass::Begin - Clear color: ", 
@@ -56,8 +60,6 @@ namespace Pyramid
                 // Bind shader if available
                 if (object->material.shader)
                 {
-                    object->material.shader->Bind();
-                    
                     // Calculate matrices
                     Math::Mat4 model = object->GetTransformMatrix();
                     Math::Mat4 viewProj = camera.GetViewProjectionMatrix();
@@ -76,31 +78,42 @@ namespace Pyramid
                         object->material.albedo.y, 
                         object->material.albedo.z, 
                         object->material.albedo.w);
+
+                    cmd.SetShader(object->material.shader.get());
                     
                     // Bind albedo texture if available
                     if (object->material.albedoTexture)
                     {
-                        object->material.albedoTexture->Bind(0);
+                        cmd.SetTexture(object->material.albedoTexture.get(), 0);
                         object->material.shader->SetUniformInt("u_AlbedoMap", 0);
                         object->material.shader->SetUniformInt("u_HasAlbedoMap", 1);
                     }
                     else
                     {
+                        cmd.SetTexture(static_cast<ITexture2D*>(nullptr), 0);
                         object->material.shader->SetUniformInt("u_HasAlbedoMap", 0);
                     }
                     
                     // Bind normal texture if available
                     if (object->material.normalTexture)
                     {
-                        object->material.normalTexture->Bind(1);
+                        cmd.SetTexture(object->material.normalTexture.get(), 1);
                         object->material.shader->SetUniformInt("u_NormalMap", 1);
+                    }
+                    else
+                    {
+                        cmd.SetTexture(static_cast<ITexture2D*>(nullptr), 1);
                     }
                     
                     // Bind metallic-roughness texture if available
                     if (object->material.metallicRoughnessTexture)
                     {
-                        object->material.metallicRoughnessTexture->Bind(2);
+                        cmd.SetTexture(object->material.metallicRoughnessTexture.get(), 2);
                         object->material.shader->SetUniformInt("u_MetallicRoughnessMap", 2);
+                    }
+                    else
+                    {
+                        cmd.SetTexture(static_cast<ITexture2D*>(nullptr), 2);
                     }
                 }
                 else
@@ -109,8 +122,7 @@ namespace Pyramid
                     continue;
                 }
                 
-                // Bind vertex array
-                object->vertexArray->Bind();
+                cmd.SetVertexArray(object->vertexArray.get());
                 
                 // Get index count and issue draw call
                 u32 indexCount = object->vertexArray->GetIndexBuffer()->GetCount();
@@ -121,8 +133,8 @@ namespace Pyramid
         void ForwardRenderPass::End(CommandBuffer& cmd)
         {
             // Reset wireframe mode to fill
-            if (m_wireframe) {
-                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            if (m_wireframe && m_device) {
+                m_device->SetPolygonMode(GL_FILL);
             }
             
             PYRAMID_LOG_DEBUG("ForwardRenderPass::End");

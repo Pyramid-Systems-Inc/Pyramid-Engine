@@ -8,10 +8,9 @@
 #include <Pyramid/Graphics/Buffer/VertexArray.hpp>
 #include <Pyramid/Graphics/Buffer/VertexBuffer.hpp>
 #include <Pyramid/Graphics/Buffer/BufferLayout.hpp>
+#include <Pyramid/Graphics/Renderer/ShaderPathResolver.hpp>
 #include <Pyramid/Util/Log.hpp>
 #include <glad/glad.h>
-#include <fstream>
-#include <sstream>
 
 namespace Pyramid
 {
@@ -27,23 +26,15 @@ namespace Pyramid
             // Create lighting shader
             m_lightingShader = m_device->CreateShader();
             
-            // Load shader source from files
-            std::ifstream vertFile("Engine/Graphics/shaders/deferred_lighting.vert");
-            std::ifstream fragFile("Engine/Graphics/shaders/deferred_lighting.frag");
-            
-            if (!vertFile.is_open() || !fragFile.is_open())
+            const std::string vertSrc = ShaderPathResolver::LoadTextFile("Engine/Graphics/shaders/deferred_lighting.vert");
+            const std::string fragSrc = ShaderPathResolver::LoadTextFile("Engine/Graphics/shaders/deferred_lighting.frag");
+
+            if (vertSrc.empty() || fragSrc.empty())
             {
                 PYRAMID_LOG_ERROR("Failed to open deferred lighting shader files");
             }
             else
             {
-                std::stringstream vertStream, fragStream;
-                vertStream << vertFile.rdbuf();
-                fragStream << fragFile.rdbuf();
-                
-                std::string vertSrc = vertStream.str();
-                std::string fragSrc = fragStream.str();
-                
                 if (!m_lightingShader->Compile(vertSrc, fragSrc))
                 {
                     PYRAMID_LOG_ERROR("Failed to compile deferred lighting shaders");
@@ -92,10 +83,16 @@ namespace Pyramid
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             
             // Disable depth testing (fullscreen quad doesn't need it)
-            glDisable(GL_DEPTH_TEST);
+            if (m_device)
+            {
+                m_device->EnableDepthTest(false);
+            }
             
             // Disable face culling
-            glDisable(GL_CULL_FACE);
+            if (m_device)
+            {
+                m_device->EnableCullFace(false);
+            }
             
             PYRAMID_LOG_DEBUG("DeferredLightingPass::Begin");
         }
@@ -109,7 +106,7 @@ namespace Pyramid
             }
             
             // Bind lighting shader
-            m_lightingShader->Bind();
+            m_device->BindShader(m_lightingShader.get());
             
             // Bind G-Buffer textures
             GLuint albedoMetallic = m_gBuffer->GetColorAttachmentTexture(0);
@@ -182,8 +179,8 @@ namespace Pyramid
             m_lightingShader->SetUniformInt("u_EnableIBL", m_enableIBL ? 1 : 0);
             
             // Draw fullscreen quad
-            m_fullscreenQuad->Bind();
-            glDrawArrays(GL_TRIANGLES, 0, 3);
+            m_device->BindVertexArray(m_fullscreenQuad.get());
+            m_device->DrawArraysInstanced(3, 1, 0);
             
             PYRAMID_LOG_DEBUG("DeferredLightingPass::Execute - Fullscreen lighting applied");
         }
@@ -191,7 +188,10 @@ namespace Pyramid
         void DeferredLightingPass::End(CommandBuffer& cmd)
         {
             // Re-enable depth testing for subsequent passes
-            glEnable(GL_DEPTH_TEST);
+            if (m_device)
+            {
+                m_device->EnableDepthTest(true);
+            }
             
             // Unbind textures
             for (int i = 0; i < 6; i++)

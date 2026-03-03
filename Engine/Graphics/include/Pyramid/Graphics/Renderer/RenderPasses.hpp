@@ -16,7 +16,7 @@ namespace Pyramid
         class ForwardRenderPass : public RenderPass
         {
         public:
-            ForwardRenderPass();
+            explicit ForwardRenderPass(IGraphicsDevice* device);
             ~ForwardRenderPass() override = default;
 
             void Begin(CommandBuffer& cmd) override;
@@ -28,6 +28,7 @@ namespace Pyramid
             void SetWireframeMode(bool enabled) { m_wireframe = enabled; }
 
         private:
+            IGraphicsDevice* m_device = nullptr;
             Math::Vec4 m_clearColor = Math::Vec4(0.2f, 0.3f, 0.3f, 1.0f);
             bool m_wireframe = false;
         };

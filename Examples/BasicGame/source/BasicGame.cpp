@@ -1,3 +1,13 @@
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifdef _WIN32
+#include <windows.h>  // For GetAsyncKeyState
+#endif
+
 #include "BasicGame.hpp"
 #include <Pyramid/Graphics/GraphicsDevice.hpp>
 #include <Pyramid/Graphics/Buffer/VertexBuffer.hpp>
@@ -19,10 +29,6 @@
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
-#ifdef _WIN32
-#define NOMINMAX  // Prevent Windows min/max macros
-#include <windows.h>  // For GetAsyncKeyState
-#endif
 
 // Vertex structure is now defined in the header
 

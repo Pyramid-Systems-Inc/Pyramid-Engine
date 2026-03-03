@@ -6,6 +6,7 @@
 #include <vector>
 #include <unordered_map>
 #include <functional>
+#include <cstdint>
 
 namespace Pyramid
 {
@@ -14,11 +15,13 @@ namespace Pyramid
     class IShader;
     class ITexture2D;
     class IUniformBuffer;
+    class IVertexArray;
     class Camera;
     class Scene;
 
     namespace Renderer
     {
+        class RenderTarget;
 
         /**
          * @brief Render pass types for different rendering stages
@@ -40,9 +43,15 @@ namespace Pyramid
         enum class RenderCommandType
         {
             SetRenderTarget,
+            SetRenderTargetPtr,
             SetShader,
+            SetShaderPtr,
             SetTexture,
+            SetTexturePtr,
             SetUniformBuffer,
+            SetUniformBufferPtr,
+            SetVertexArray,
+            SetVertexArrayPtr,
             DrawIndexed,
             DrawInstanced,
             Dispatch,       // Compute shader dispatch
@@ -60,6 +69,12 @@ namespace Pyramid
                 struct { u32 shaderId; } setShader;
                 struct { u32 textureId; u32 slot; } setTexture;
                 struct { u32 bufferId; u32 bindingPoint; } setUniformBuffer;
+                struct { u32 vertexArrayId; } setVertexArray;
+                struct { std::uintptr_t target; } setRenderTargetPtr;
+                struct { std::uintptr_t shader; } setShaderPtr;
+                struct { std::uintptr_t texture; u32 slot; } setTexturePtr;
+                struct { std::uintptr_t buffer; u32 bindingPoint; } setUniformBufferPtr;
+                struct { std::uintptr_t vertexArray; } setVertexArrayPtr;
                 struct { u32 indexCount; u32 instanceCount; } draw;
                 struct { u32 x, y, z; } dispatch;
                 struct { f32 r, g, b, a; } clear;
@@ -85,9 +100,22 @@ namespace Pyramid
             void SetShader(u32 shaderId);
             void SetTexture(u32 textureId, u32 slot);
             void SetUniformBuffer(u32 bufferId, u32 bindingPoint);
+            void SetVertexArray(u32 vertexArrayId);
+            void SetRenderTarget(RenderTarget* target);
+            void SetShader(IShader* shader);
+            void SetTexture(ITexture2D* texture, u32 slot);
+            void SetUniformBuffer(IUniformBuffer* buffer, u32 bindingPoint);
+            void SetVertexArray(IVertexArray* vertexArray);
             void DrawIndexed(u32 indexCount, u32 instanceCount = 1);
             void Dispatch(u32 x, u32 y, u32 z);
             void ClearTarget(f32 r, f32 g, f32 b, f32 a);
+
+            // Resource registration for ID-based commands
+            void RegisterRenderTarget(u32 id, RenderTarget* target);
+            void RegisterShader(u32 id, IShader* shader);
+            void RegisterTexture(u32 id, ITexture2D* texture);
+            void RegisterUniformBuffer(u32 id, IUniformBuffer* buffer);
+            void RegisterVertexArray(u32 id, IVertexArray* vertexArray);
 
             // Execution
             void Execute(IGraphicsDevice* device);
@@ -99,6 +127,11 @@ namespace Pyramid
         private:
             std::vector<RenderCommand> m_commands;
             bool m_recording = false;
+            std::unordered_map<u32, RenderTarget*> m_renderTargetRegistry;
+            std::unordered_map<u32, IShader*> m_shaderRegistry;
+            std::unordered_map<u32, ITexture2D*> m_textureRegistry;
+            std::unordered_map<u32, IUniformBuffer*> m_uniformBufferRegistry;
+            std::unordered_map<u32, IVertexArray*> m_vertexArrayRegistry;
         };
 
         /**

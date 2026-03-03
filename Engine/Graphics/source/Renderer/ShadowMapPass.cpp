@@ -6,12 +6,11 @@
 #include <Pyramid/Graphics/OpenGL/OpenGLFramebuffer.hpp>
 #include <Pyramid/Graphics/Buffer/VertexArray.hpp>
 #include <Pyramid/Graphics/Buffer/IndexBuffer.hpp>
+#include <Pyramid/Graphics/Renderer/ShaderPathResolver.hpp>
 #include <Pyramid/Util/Log.hpp>
 #include <glad/glad.h>
 #include <cmath>
 #include <algorithm>
-#include <fstream>
-#include <sstream>
 
 namespace Pyramid
 {
@@ -34,23 +33,15 @@ namespace Pyramid
             // Create shadow shader
             m_shadowShader = m_device->CreateShader();
             
-            // Load shader source from files
-            std::ifstream vertFile("Engine/Graphics/shaders/shadow.vert");
-            std::ifstream fragFile("Engine/Graphics/shaders/shadow.frag");
-            
-            if (!vertFile.is_open() || !fragFile.is_open())
+            const std::string vertSrc = ShaderPathResolver::LoadTextFile("Engine/Graphics/shaders/shadow.vert");
+            const std::string fragSrc = ShaderPathResolver::LoadTextFile("Engine/Graphics/shaders/shadow.frag");
+
+            if (vertSrc.empty() || fragSrc.empty())
             {
                 PYRAMID_LOG_ERROR("Failed to open shadow shader files");
             }
             else
             {
-                std::stringstream vertStream, fragStream;
-                vertStream << vertFile.rdbuf();
-                fragStream << fragFile.rdbuf();
-                
-                std::string vertSrc = vertStream.str();
-                std::string fragSrc = fragStream.str();
-                
                 if (!m_shadowShader->Compile(vertSrc, fragSrc))
                 {
                     PYRAMID_LOG_ERROR("Failed to compile shadow shaders");
@@ -242,15 +233,21 @@ namespace Pyramid
         void ShadowMapPass::Begin(CommandBuffer& cmd)
         {
             // Enable depth testing for shadow rendering
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_LESS);
+            if (m_device)
+            {
+                m_device->EnableDepthTest(true);
+                m_device->SetDepthFunc(GL_LESS);
+            }
             
             // Enable depth clamping to prevent shadow acne at far distances
             glEnable(GL_DEPTH_CLAMP);
             
             // Enable front face culling to reduce peter-panning
-            glEnable(GL_CULL_FACE);
-            glCullFace(GL_FRONT);
+            if (m_device)
+            {
+                m_device->EnableCullFace(true);
+                m_device->SetCullFace(GL_FRONT);
+            }
             
             PYRAMID_LOG_DEBUG("ShadowMapPass::Begin");
         }
@@ -305,13 +302,16 @@ namespace Pyramid
                 glClear(GL_DEPTH_BUFFER_BIT);
                 
                 // Set viewport to shadow map resolution
-                glViewport(0, 0, m_shadowMapResolution, m_shadowMapResolution);
+                if (m_device)
+                {
+                    m_device->SetViewport(0, 0, m_shadowMapResolution, m_shadowMapResolution);
+                }
                 
                 // Bind shadow shader
                 if (m_shadowShader)
                 {
-                    m_shadowShader->Bind();
                     m_shadowShader->SetUniformMat4("u_LightSpaceMatrix", m_lightSpaceMatrices[i].m);
+                    m_device->BindShader(m_shadowShader.get());
                 }
                 
                 // Render shadow casters
@@ -326,10 +326,9 @@ namespace Pyramid
                         m_shadowShader->SetUniformMat4("u_Model", model.m);
                     }
                     
-                    // Bind vertex array and draw
-                    object->vertexArray->Bind();
+                    m_device->BindVertexArray(object->vertexArray.get());
                     u32 indexCount = object->vertexArray->GetIndexBuffer()->GetCount();
-                    cmd.DrawIndexed(indexCount);
+                    m_device->DrawIndexed(indexCount);
                 }
                 
                 // Unbind shadow map framebuffer
@@ -342,7 +341,10 @@ namespace Pyramid
         void ShadowMapPass::End(CommandBuffer& cmd)
         {
             // Reset culling to back face
-            glCullFace(GL_BACK);
+            if (m_device)
+            {
+                m_device->SetCullFace(GL_BACK);
+            }
             
             // Disable depth clamping
             glDisable(GL_DEPTH_CLAMP);

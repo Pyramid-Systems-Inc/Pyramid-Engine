@@ -15,6 +15,7 @@ target_sources(PyramidEngine
         source/OpenGL/OpenGLTexture.cpp # Added
         source/OpenGL/OpenGLFramebuffer.cpp # Added - FBO Implementation
         source/Renderer/RenderSystem.cpp
+        source/Renderer/ShaderPathResolver.cpp
         source/Renderer/ForwardRenderPass.cpp # Added - Forward rendering pass
         source/Renderer/ShadowMapPass.cpp # Added - Shadow mapping with CSM
         source/Renderer/DeferredGeometryPass.cpp # Added - Deferred geometry pass (G-Buffer)
@@ -36,6 +37,7 @@ target_sources(PyramidEngine
         include/Pyramid/Graphics/Texture.hpp # Added
         include/Pyramid/Graphics/Geometry/Vertex.hpp
         include/Pyramid/Graphics/Renderer/RenderSystem.hpp
+        include/Pyramid/Graphics/Renderer/ShaderPathResolver.hpp
         include/Pyramid/Graphics/Renderer/RenderPasses.hpp
         include/Pyramid/Graphics/Camera.hpp
         include/Pyramid/Graphics/Scene.hpp

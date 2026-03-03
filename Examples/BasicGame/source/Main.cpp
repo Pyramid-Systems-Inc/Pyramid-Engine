@@ -6,8 +6,14 @@
  * It initializes the game engine, handles exceptions, and starts the main game loop.
  */
 
-#include "BasicGame.hpp"
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
+#include "BasicGame.hpp"
 
 /**
  * @brief Main entry point for the Pyramid Game Engine
