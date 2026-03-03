@@ -46,6 +46,7 @@ namespace Pyramid
 
         // Depth state
         void EnableDepthTest(bool enable);
+        void EnableDepthClamp(bool enable);
         void SetDepthFunc(GLenum func);
         void SetDepthMask(bool flag);
 
@@ -58,6 +59,7 @@ namespace Pyramid
         void EnableCullFace(bool enable);
         void SetCullFace(GLenum mode);
         void SetFrontFace(GLenum mode);
+        void SetPolygonMode(GLenum mode);
 
         // Scissor state
         void EnableScissorTest(bool enable);
@@ -92,6 +94,7 @@ namespace Pyramid
         // Texture state
         GLenum m_activeTexture = GL_TEXTURE0;
         static constexpr u32 MAX_TEXTURE_UNITS = 32;
+        u32 m_runtimeTextureUnitCount = MAX_TEXTURE_UNITS;
         std::array<std::unordered_map<GLenum, GLuint>, MAX_TEXTURE_UNITS> m_boundTextures;
 
         // Framebuffer state
@@ -116,6 +119,7 @@ namespace Pyramid
         struct DepthState
         {
             bool testEnabled = false;
+            bool clampEnabled = false;
             GLenum func = GL_LESS;
             bool maskEnabled = true;
         } m_depthState;
@@ -136,6 +140,7 @@ namespace Pyramid
             bool enabled = false;
             GLenum mode = GL_BACK;
             GLenum frontFace = GL_CCW;
+            GLenum polygonMode = GL_FILL;
         } m_cullState;
 
         // Scissor state

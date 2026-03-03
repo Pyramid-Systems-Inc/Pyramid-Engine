@@ -1,4 +1,5 @@
 #include <Pyramid/Graphics/OpenGL/OpenGLFramebuffer.hpp>
+#include <Pyramid/Graphics/OpenGL/OpenGLStateManager.hpp>
 #include <Pyramid/Util/Log.hpp>
 #include <algorithm>
 #include <fstream>
@@ -84,7 +85,7 @@ namespace Pyramid
 
         // Generate framebuffer
         glGenFramebuffers(1, &m_framebufferID);
-        glBindFramebuffer(GL_FRAMEBUFFER, m_framebufferID);
+        OpenGLStateManager::GetInstance().BindFramebuffer(GL_FRAMEBUFFER, m_framebufferID);
 
         // Create attachments
         CreateAttachments();
@@ -94,7 +95,7 @@ namespace Pyramid
         if (status != GL_FRAMEBUFFER_COMPLETE)
         {
             PYRAMID_LOG_ERROR("Framebuffer not complete: ", GetFramebufferStatusString(status));
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            OpenGLStateManager::GetInstance().BindFramebuffer(GL_FRAMEBUFFER, 0);
             return false;
         }
 
@@ -119,7 +120,7 @@ namespace Pyramid
             glReadBuffer(GL_NONE);
         }
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        OpenGLStateManager::GetInstance().BindFramebuffer(GL_FRAMEBUFFER, 0);
 
         m_initialized = true;
         PYRAMID_LOG_INFO("Framebuffer created successfully: ", m_spec.width, "x", m_spec.height,
@@ -131,24 +132,24 @@ namespace Pyramid
     {
         if (m_spec.swapChainTarget)
         {
-            glBindFramebuffer(GL_FRAMEBUFFER, 0); // Bind default framebuffer
+            OpenGLStateManager::GetInstance().BindFramebuffer(GL_FRAMEBUFFER, 0);
         }
         else
         {
-            glBindFramebuffer(GL_FRAMEBUFFER, m_framebufferID);
+            OpenGLStateManager::GetInstance().BindFramebuffer(GL_FRAMEBUFFER, m_framebufferID);
         }
-        glViewport(0, 0, m_spec.width, m_spec.height);
+        OpenGLStateManager::GetInstance().SetViewport(0, 0, static_cast<i32>(m_spec.width), static_cast<i32>(m_spec.height));
     }
 
     void OpenGLFramebuffer::Unbind() const
     {
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        OpenGLStateManager::GetInstance().BindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
     void OpenGLFramebuffer::Clear(f32 r, f32 g, f32 b, f32 a) const
     {
         Bind();
-        glClearColor(r, g, b, a);
+        OpenGLStateManager::GetInstance().SetClearColor(r, g, b, a);
 
         GLbitfield clearMask = 0;
 
@@ -313,14 +314,14 @@ namespace Pyramid
                                    u32 dstX0, u32 dstY0, u32 dstX1, u32 dstY1,
                                    GLbitfield mask, GLenum filter) const
     {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, m_framebufferID);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target.GetFramebufferID());
+        OpenGLStateManager::GetInstance().BindFramebuffer(GL_READ_FRAMEBUFFER, m_framebufferID);
+        OpenGLStateManager::GetInstance().BindFramebuffer(GL_DRAW_FRAMEBUFFER, target.GetFramebufferID());
 
         glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1,
                           dstX0, dstY0, dstX1, dstY1,
                           mask, filter);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        OpenGLStateManager::GetInstance().BindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
     void OpenGLFramebuffer::ResolveMultisampleTo(const OpenGLFramebuffer &target) const
@@ -344,8 +345,8 @@ namespace Pyramid
         }
 
         // Set specific read and draw buffers for the color attachment
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, m_framebufferID);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target.GetFramebufferID());
+        OpenGLStateManager::GetInstance().BindFramebuffer(GL_READ_FRAMEBUFFER, m_framebufferID);
+        OpenGLStateManager::GetInstance().BindFramebuffer(GL_DRAW_FRAMEBUFFER, target.GetFramebufferID());
 
         glReadBuffer(GetColorAttachmentEnum(colorAttachment));
         glDrawBuffer(GetColorAttachmentEnum(colorAttachment));
@@ -354,7 +355,7 @@ namespace Pyramid
                           0, 0, target.GetWidth(), target.GetHeight(),
                           GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        OpenGLStateManager::GetInstance().BindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
     void OpenGLFramebuffer::BlitColorAttachmentTo(const OpenGLFramebuffer &target, u32 srcAttachment, u32 dstAttachment,
@@ -362,8 +363,8 @@ namespace Pyramid
                                                   u32 dstX0, u32 dstY0, u32 dstX1, u32 dstY1,
                                                   GLenum filter) const
     {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, m_framebufferID);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target.GetFramebufferID());
+        OpenGLStateManager::GetInstance().BindFramebuffer(GL_READ_FRAMEBUFFER, m_framebufferID);
+        OpenGLStateManager::GetInstance().BindFramebuffer(GL_DRAW_FRAMEBUFFER, target.GetFramebufferID());
 
         glReadBuffer(GetColorAttachmentEnum(srcAttachment));
         glDrawBuffer(GetColorAttachmentEnum(dstAttachment));
@@ -372,21 +373,21 @@ namespace Pyramid
                           dstX0, dstY0, dstX1, dstY1,
                           GL_COLOR_BUFFER_BIT, filter);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        OpenGLStateManager::GetInstance().BindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
     void OpenGLFramebuffer::BlitDepthTo(const OpenGLFramebuffer &target,
                                         u32 srcX0, u32 srcY0, u32 srcX1, u32 srcY1,
                                         u32 dstX0, u32 dstY0, u32 dstX1, u32 dstY1) const
     {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, m_framebufferID);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target.GetFramebufferID());
+        OpenGLStateManager::GetInstance().BindFramebuffer(GL_READ_FRAMEBUFFER, m_framebufferID);
+        OpenGLStateManager::GetInstance().BindFramebuffer(GL_DRAW_FRAMEBUFFER, target.GetFramebufferID());
 
         glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1,
                           dstX0, dstY0, dstX1, dstY1,
                           GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        OpenGLStateManager::GetInstance().BindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
     bool OpenGLFramebuffer::IsComplete() const
@@ -396,9 +397,9 @@ namespace Pyramid
             return true;
         }
 
-        glBindFramebuffer(GL_FRAMEBUFFER, m_framebufferID);
+        OpenGLStateManager::GetInstance().BindFramebuffer(GL_FRAMEBUFFER, m_framebufferID);
         GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        OpenGLStateManager::GetInstance().BindFramebuffer(GL_FRAMEBUFFER, 0);
 
         return status == GL_FRAMEBUFFER_COMPLETE;
     }

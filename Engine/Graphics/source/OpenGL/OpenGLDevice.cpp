@@ -12,9 +12,66 @@
 #include <Pyramid/Graphics/OpenGL/OpenGLTexture.hpp>
 #include <Pyramid/Graphics/Texture.hpp> // Added for ITexture2D factory methods
 #include <glad/glad.h>
+#include <sstream>
 
 namespace Pyramid
 {
+    namespace
+    {
+        constexpr u32 kMaxTextureSlots = 32;
+
+        const char *ToGlErrorName(GLenum errorCode)
+        {
+            switch (errorCode)
+            {
+            case GL_INVALID_ENUM:
+                return "GL_INVALID_ENUM";
+            case GL_INVALID_VALUE:
+                return "GL_INVALID_VALUE";
+            case GL_INVALID_OPERATION:
+                return "GL_INVALID_OPERATION";
+            case GL_STACK_OVERFLOW:
+                return "GL_STACK_OVERFLOW";
+            case GL_STACK_UNDERFLOW:
+                return "GL_STACK_UNDERFLOW";
+            case GL_OUT_OF_MEMORY:
+                return "GL_OUT_OF_MEMORY";
+            case GL_INVALID_FRAMEBUFFER_OPERATION:
+                return "GL_INVALID_FRAMEBUFFER_OPERATION";
+            default:
+                return "GL_UNKNOWN_ERROR";
+            }
+        }
+
+        void DrainOpenGLErrors()
+        {
+            while (glGetError() != GL_NO_ERROR)
+            {
+            }
+        }
+
+        bool CaptureOpenGLError(const char *operation, std::string &lastError, bool logFailure = true)
+        {
+            const GLenum error = glGetError();
+            if (error == GL_NO_ERROR)
+            {
+                return true;
+            }
+
+            std::ostringstream errorStream;
+            errorStream << operation << " failed with OpenGL error 0x" << std::hex << error
+                        << " (" << ToGlErrorName(error) << ")";
+            lastError = errorStream.str();
+
+            if (logFailure)
+            {
+                PYRAMID_LOG_ERROR(lastError);
+            }
+
+            return false;
+        }
+    } // namespace
+
 
     OpenGLDevice::OpenGLDevice(Window *window)
         : m_window(window), m_initialized(false), m_deviceInfoCached(false)
@@ -30,24 +87,39 @@ namespace Pyramid
     {
         PYRAMID_LOG_INFO("Initializing OpenGL graphics device...");
 
-        // Initialize the window
-        if (!m_window->Initialize())
+        if (m_initialized)
+        {
+            return true;
+        }
+
+        if (!m_window)
+        {
+            m_lastError = "Cannot initialize OpenGL device: window is null";
+            PYRAMID_LOG_ERROR(m_lastError);
+            return false;
+        }
+
+        // Initialize the window only if it does not already exist.
+        if (!m_window->GetHandle() && !m_window->Initialize())
         {
             m_lastError = "Failed to initialize window";
             PYRAMID_LOG_ERROR("Window initialization failed in OpenGLDevice::Initialize()");
             return false;
         }
 
-        PYRAMID_LOG_INFO("Window initialized successfully, setting up OpenGL context...");
+        PYRAMID_LOG_INFO("Window ready, setting up OpenGL context...");
 
         // Make OpenGL context current
         m_window->MakeContextCurrent();
+        DrainOpenGLErrors();
 
-        // Check for OpenGL errors after context creation
-        GLenum error = glGetError();
-        if (error != GL_NO_ERROR)
+        auto &stateManager = OpenGLStateManager::GetInstance();
+        stateManager.InvalidateState();
+        stateManager.ResetToDefaults();
+        stateManager.SetViewport(0, 0, m_window->GetWidth(), m_window->GetHeight());
+
+        if (!CaptureOpenGLError("OpenGLDevice::Initialize", m_lastError))
         {
-            m_lastError = "OpenGL error after context creation: " + std::to_string(error);
             return false;
         }
 
@@ -62,9 +134,8 @@ namespace Pyramid
     {
         if (m_initialized)
         {
-            // Clear any OpenGL errors
-            while (glGetError() != GL_NO_ERROR)
-                ;
+            OpenGLStateManager::GetInstance().InvalidateState();
+            DrainOpenGLErrors();
 
             m_initialized = false;
             m_deviceInfoCached = false;
@@ -75,28 +146,39 @@ namespace Pyramid
 
     void OpenGLDevice::Clear(const Color &color)
     {
-        glClearColor(color.r, color.g, color.b, color.a);
+        OpenGLStateManager::GetInstance().SetClearColor(color.r, color.g, color.b, color.a);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        CaptureOpenGLError("OpenGLDevice::Clear", m_lastError, false);
     }
 
     void OpenGLDevice::Present(bool vsync)
     {
+        if (!m_window)
+        {
+            m_lastError = "Cannot present frame: window is null";
+            PYRAMID_LOG_ERROR(m_lastError);
+            return;
+        }
+
         m_window->Present(vsync);
     }
 
     void OpenGLDevice::DrawIndexed(u32 count)
     {
         glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
+        CaptureOpenGLError("OpenGLDevice::DrawIndexed", m_lastError, false);
     }
 
     void OpenGLDevice::DrawIndexedInstanced(u32 indexCount, u32 instanceCount)
     {
         glDrawElementsInstanced(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, nullptr, instanceCount);
+        CaptureOpenGLError("OpenGLDevice::DrawIndexedInstanced", m_lastError, false);
     }
 
     void OpenGLDevice::DrawArraysInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex)
     {
         glDrawArraysInstanced(GL_TRIANGLES, firstVertex, vertexCount, instanceCount);
+        CaptureOpenGLError("OpenGLDevice::DrawArraysInstanced", m_lastError, false);
     }
 
     void OpenGLDevice::SetViewport(u32 x, u32 y, u32 width, u32 height)
@@ -176,14 +258,7 @@ namespace Pyramid
 
     void OpenGLDevice::EnableDepthClamp(bool enable)
     {
-        if (enable)
-        {
-            glEnable(GL_DEPTH_CLAMP);
-        }
-        else
-        {
-            glDisable(GL_DEPTH_CLAMP);
-        }
+        OpenGLStateManager::GetInstance().EnableDepthClamp(enable);
     }
 
     void OpenGLDevice::EnableCullFace(bool enable)
@@ -239,7 +314,7 @@ namespace Pyramid
 
     bool OpenGLDevice::IsValid() const
     {
-        return m_initialized && m_window && glGetError() == GL_NO_ERROR;
+        return m_initialized && m_window && m_window->GetHandle();
     }
 
     std::string OpenGLDevice::GetLastError() const
@@ -249,31 +324,14 @@ namespace Pyramid
 
     void OpenGLDevice::SetWireframeMode(bool enable)
     {
-        if (enable)
-        {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        }
-        else
-        {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        }
-
-        GLenum error = glGetError();
-        if (error != GL_NO_ERROR)
-        {
-            m_lastError = "Failed to set wireframe mode. OpenGL error: " + std::to_string(error);
-        }
+        OpenGLStateManager::GetInstance().SetPolygonMode(enable ? GL_LINE : GL_FILL);
+        CaptureOpenGLError("OpenGLDevice::SetWireframeMode", m_lastError, false);
     }
 
     void OpenGLDevice::SetPolygonMode(u32 mode)
     {
-        glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(mode));
-
-        GLenum error = glGetError();
-        if (error != GL_NO_ERROR)
-        {
-            m_lastError = "Failed to set polygon mode. OpenGL error: " + std::to_string(error);
-        }
+        OpenGLStateManager::GetInstance().SetPolygonMode(static_cast<GLenum>(mode));
+        CaptureOpenGLError("OpenGLDevice::SetPolygonMode", m_lastError, false);
     }
 
     void OpenGLDevice::BindFramebuffer(IFramebuffer *framebuffer)
@@ -321,39 +379,51 @@ namespace Pyramid
 
     void OpenGLDevice::BindTexture(ITexture2D *texture, u32 slot)
     {
+        if (slot >= kMaxTextureSlots)
+        {
+            m_lastError = "Texture slot out of range: " + std::to_string(slot);
+            PYRAMID_LOG_ERROR(m_lastError);
+            return;
+        }
+
         if (texture)
         {
             // Cast to OpenGL texture to access OpenGL-specific binding
             OpenGLTexture2D *glTexture = dynamic_cast<OpenGLTexture2D *>(texture);
             if (glTexture)
             {
-                OpenGLStateManager::GetInstance().ActiveTexture(GL_TEXTURE0 + slot);
-                OpenGLStateManager::GetInstance().BindTexture(GL_TEXTURE_2D, glTexture->GetRendererID());
+                OpenGLStateManager::GetInstance().BindTextureUnit(slot, GL_TEXTURE_2D, glTexture->GetRendererID());
             }
             else
             {
-                PYRAMID_LOG_ERROR("Failed to bind texture: invalid OpenGL texture");
+                m_lastError = "Failed to bind texture: invalid OpenGL texture";
+                PYRAMID_LOG_ERROR(m_lastError);
             }
         }
         else
         {
-            OpenGLStateManager::GetInstance().ActiveTexture(GL_TEXTURE0 + slot);
-            OpenGLStateManager::GetInstance().BindTexture(GL_TEXTURE_2D, 0);
+            OpenGLStateManager::GetInstance().BindTextureUnit(slot, GL_TEXTURE_2D, 0);
         }
     }
 
     void OpenGLDevice::BindNativeTexture(u32 textureId, u32 slot, u32 target)
     {
-        OpenGLStateManager::GetInstance().ActiveTexture(GL_TEXTURE0 + slot);
-        OpenGLStateManager::GetInstance().BindTexture(static_cast<GLenum>(target), textureId);
+        if (slot >= kMaxTextureSlots)
+        {
+            m_lastError = "Native texture slot out of range: " + std::to_string(slot);
+            PYRAMID_LOG_ERROR(m_lastError);
+            return;
+        }
+
+        OpenGLStateManager::GetInstance().BindTextureUnit(slot, static_cast<GLenum>(target), textureId);
     }
 
     void OpenGLDevice::SetTextureBorderColor(u32 textureId, u32 target, f32 r, f32 g, f32 b, f32 a)
     {
         const GLfloat borderColor[] = {r, g, b, a};
-        OpenGLStateManager::GetInstance().ActiveTexture(GL_TEXTURE0);
-        OpenGLStateManager::GetInstance().BindTexture(static_cast<GLenum>(target), textureId);
+        OpenGLStateManager::GetInstance().BindTextureUnit(0, static_cast<GLenum>(target), textureId);
         glTexParameterfv(static_cast<GLenum>(target), GL_TEXTURE_BORDER_COLOR, borderColor);
+        CaptureOpenGLError("OpenGLDevice::SetTextureBorderColor", m_lastError);
     }
 
     void OpenGLDevice::BindUniformBuffer(IUniformBuffer *buffer, u32 bindingPoint)
@@ -364,6 +434,7 @@ namespace Pyramid
         }
         else
         {
+            glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, 0);
             OpenGLStateManager::GetInstance().BindBuffer(GL_UNIFORM_BUFFER, 0);
         }
     }
@@ -371,6 +442,7 @@ namespace Pyramid
     void OpenGLDevice::ClearBuffers(u32 clearMask)
     {
         glClear(static_cast<GLbitfield>(clearMask));
+        CaptureOpenGLError("OpenGLDevice::ClearBuffers", m_lastError, false);
     }
 
 } // namespace Pyramid

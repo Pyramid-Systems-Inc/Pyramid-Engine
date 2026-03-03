@@ -6,6 +6,7 @@
 #include <Pyramid/Graphics/Texture.hpp>
 #include <Pyramid/Graphics/Buffer/UniformBuffer.hpp>
 #include <Pyramid/Graphics/Buffer/VertexArray.hpp>
+#include <Pyramid/Graphics/OpenGL/OpenGLStateManager.hpp>
 #include <Pyramid/Util/Log.hpp>
 #include <glad/glad.h>
 #include <algorithm>
@@ -261,7 +262,7 @@ namespace Pyramid
                         }
                         else
                         {
-                            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                            device->BindFramebufferHandle(0);
                         }
                         break;
                     }
@@ -397,7 +398,7 @@ namespace Pyramid
 
             // Generate framebuffer
             glGenFramebuffers(1, &m_framebuffer);
-            glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+            OpenGLStateManager::GetInstance().BindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
 
             // Create color attachments
             m_colorTextures.resize(m_spec.colorAttachments);
@@ -443,11 +444,11 @@ namespace Pyramid
             if (status != GL_FRAMEBUFFER_COMPLETE)
             {
                 PYRAMID_LOG_ERROR("Render target framebuffer not complete: ", status);
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                OpenGLStateManager::GetInstance().BindFramebuffer(GL_FRAMEBUFFER, 0);
                 return false;
             }
 
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            OpenGLStateManager::GetInstance().BindFramebuffer(GL_FRAMEBUFFER, 0);
             m_initialized = true;
             
             PYRAMID_LOG_INFO("Render target initialized: ", m_spec.width, "x", m_spec.height,
@@ -457,19 +458,19 @@ namespace Pyramid
 
         void RenderTarget::Bind()
         {
-            glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
-            glViewport(0, 0, m_spec.width, m_spec.height);
+            OpenGLStateManager::GetInstance().BindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+            OpenGLStateManager::GetInstance().SetViewport(0, 0, static_cast<i32>(m_spec.width), static_cast<i32>(m_spec.height));
         }
 
         void RenderTarget::Unbind()
         {
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            OpenGLStateManager::GetInstance().BindFramebuffer(GL_FRAMEBUFFER, 0);
         }
 
         void RenderTarget::Clear(f32 r, f32 g, f32 b, f32 a)
         {
             Bind();
-            glClearColor(r, g, b, a);
+            OpenGLStateManager::GetInstance().SetClearColor(r, g, b, a);
             GLbitfield clearMask = GL_COLOR_BUFFER_BIT;
             if (m_spec.hasDepthStencil)
             {

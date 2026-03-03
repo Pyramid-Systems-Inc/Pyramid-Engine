@@ -1,5 +1,6 @@
 #include <Pyramid/Graphics/OpenGL/OpenGLStateManager.hpp>
 #include <Pyramid/Util/Log.hpp>
+#include <algorithm>
 
 namespace Pyramid
 {
@@ -16,10 +17,28 @@ namespace Pyramid
 
     void OpenGLStateManager::InitializeState()
     {
+        m_boundBuffers.clear();
+        m_boundFramebuffers.clear();
+        for (auto &unitBindings : m_boundTextures)
+        {
+            unitBindings.clear();
+        }
+
         // Query current OpenGL state to initialize cache
         glGetIntegerv(GL_CURRENT_PROGRAM, reinterpret_cast<GLint *>(&m_currentProgram));
         glGetIntegerv(GL_VERTEX_ARRAY_BINDING, reinterpret_cast<GLint *>(&m_currentVAO));
         glGetIntegerv(GL_ACTIVE_TEXTURE, reinterpret_cast<GLint *>(&m_activeTexture));
+
+        GLint maxTextureUnits = 0;
+        glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &maxTextureUnits);
+        if (maxTextureUnits > 0)
+        {
+            m_runtimeTextureUnitCount = (std::min)(static_cast<u32>(maxTextureUnits), MAX_TEXTURE_UNITS);
+        }
+        else
+        {
+            m_runtimeTextureUnitCount = MAX_TEXTURE_UNITS;
+        }
 
         // Initialize buffer bindings
         GLint arrayBuffer, elementArrayBuffer;
@@ -53,6 +72,7 @@ namespace Pyramid
 
         // Initialize depth state
         m_depthState.testEnabled = glIsEnabled(GL_DEPTH_TEST);
+        m_depthState.clampEnabled = glIsEnabled(GL_DEPTH_CLAMP);
         glGetIntegerv(GL_DEPTH_FUNC, reinterpret_cast<GLint *>(&m_depthState.func));
         GLboolean depthMask;
         glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMask);
@@ -68,6 +88,9 @@ namespace Pyramid
         m_cullState.enabled = glIsEnabled(GL_CULL_FACE);
         glGetIntegerv(GL_CULL_FACE_MODE, reinterpret_cast<GLint *>(&m_cullState.mode));
         glGetIntegerv(GL_FRONT_FACE, reinterpret_cast<GLint *>(&m_cullState.frontFace));
+        GLint polygonMode[2] = {GL_FILL, GL_FILL};
+        glGetIntegerv(GL_POLYGON_MODE, polygonMode);
+        m_cullState.polygonMode = static_cast<GLenum>(polygonMode[0]);
 
         // Initialize scissor state
         m_scissorState.enabled = glIsEnabled(GL_SCISSOR_TEST);
@@ -142,7 +165,7 @@ namespace Pyramid
     void OpenGLStateManager::BindTexture(GLenum target, GLuint texture)
     {
         u32 unit = m_activeTexture - GL_TEXTURE0;
-        if (unit < MAX_TEXTURE_UNITS)
+        if (unit < m_runtimeTextureUnitCount && unit < MAX_TEXTURE_UNITS)
         {
             auto &unitTextures = m_boundTextures[unit];
             auto it = unitTextures.find(target);
@@ -163,11 +186,15 @@ namespace Pyramid
 
     void OpenGLStateManager::BindTextureUnit(u32 unit, GLenum target, GLuint texture)
     {
-        if (unit < MAX_TEXTURE_UNITS)
+        if (unit < m_runtimeTextureUnitCount && unit < MAX_TEXTURE_UNITS)
         {
             ActiveTexture(GL_TEXTURE0 + unit);
             BindTexture(target, texture);
+            return;
         }
+
+        PYRAMID_LOG_WARN("OpenGLStateManager::BindTextureUnit ignored invalid unit ", unit,
+                         " (max cached units: ", m_runtimeTextureUnitCount, ")");
     }
 
     void OpenGLStateManager::BindFramebuffer(GLenum target, GLuint framebuffer)
@@ -299,6 +326,19 @@ namespace Pyramid
         }
     }
 
+    void OpenGLStateManager::EnableDepthClamp(bool enable)
+    {
+        if (m_depthState.clampEnabled != enable)
+        {
+            if (enable)
+                glEnable(GL_DEPTH_CLAMP);
+            else
+                glDisable(GL_DEPTH_CLAMP);
+            m_depthState.clampEnabled = enable;
+            m_stateChangeCount++;
+        }
+    }
+
     void OpenGLStateManager::SetDepthFunc(GLenum func)
     {
         if (m_depthState.func != func)
@@ -389,6 +429,16 @@ namespace Pyramid
         }
     }
 
+    void OpenGLStateManager::SetPolygonMode(GLenum mode)
+    {
+        if (m_cullState.polygonMode != mode)
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, mode);
+            m_cullState.polygonMode = mode;
+            m_stateChangeCount++;
+        }
+    }
+
     void OpenGLStateManager::EnableScissorTest(bool enable)
     {
         if (m_scissorState.enabled != enable)
@@ -453,6 +503,16 @@ namespace Pyramid
     void OpenGLStateManager::InvalidateState()
     {
         // Force refresh of all cached state on next access
+        m_currentProgram = 0;
+        m_currentVAO = 0;
+        m_activeTexture = GL_TEXTURE0;
+        m_runtimeTextureUnitCount = MAX_TEXTURE_UNITS;
+        m_boundBuffers.clear();
+        m_boundFramebuffers.clear();
+        for (auto &unitBindings : m_boundTextures)
+        {
+            unitBindings.clear();
+        }
         m_initialized = false;
         PYRAMID_LOG_INFO("OpenGL state cache invalidated");
     }
@@ -464,6 +524,9 @@ namespace Pyramid
         BindVertexArray(0);
         BindBuffer(GL_ARRAY_BUFFER, 0);
         BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        ActiveTexture(GL_TEXTURE0);
+        BindTexture(GL_TEXTURE_2D, 0);
+        BindTexture(GL_TEXTURE_CUBE_MAP, 0);
         
         // Use GL_FRAMEBUFFER to reset both draw and read framebuffers
         BindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -473,6 +536,7 @@ namespace Pyramid
         SetBlendEquation(GL_FUNC_ADD);
 
         EnableDepthTest(false);
+        EnableDepthClamp(false);
         SetDepthFunc(GL_LESS);
         SetDepthMask(true);
 
@@ -483,6 +547,7 @@ namespace Pyramid
         EnableCullFace(false);
         SetCullFace(GL_BACK);
         SetFrontFace(GL_CCW);
+        SetPolygonMode(GL_FILL);
 
         EnableScissorTest(false);
 
