@@ -43,6 +43,7 @@ namespace Pyramid
         void SetBlendFunc(u32 sfactor, u32 dfactor) override;
         void EnableDepthTest(bool enable) override;
         void SetDepthFunc(u32 func) override;
+        void EnableDepthClamp(bool enable) override;
         void EnableCullFace(bool enable) override;
         void SetCullFace(u32 mode) override;
         void SetClearColor(f32 r, f32 g, f32 b, f32 a) override;
@@ -56,10 +57,14 @@ namespace Pyramid
         void SetWireframeMode(bool enable) override;
         void SetPolygonMode(u32 mode) override;
         void BindFramebuffer(class IFramebuffer *framebuffer) override;
+        void BindFramebufferHandle(u32 framebufferId) override;
         void BindShader(IShader *shader) override;
         void BindVertexArray(class IVertexArray *vao) override;
         void BindTexture(ITexture2D *texture, u32 slot) override;
+        void BindNativeTexture(u32 textureId, u32 slot, u32 target) override;
+        void SetTextureBorderColor(u32 textureId, u32 target, f32 r, f32 g, f32 b, f32 a) override;
         void BindUniformBuffer(class IUniformBuffer *buffer, u32 bindingPoint) override;
+        void ClearBuffers(u32 clearMask) override;
 
         /**
          * @brief Get the window associated with this device

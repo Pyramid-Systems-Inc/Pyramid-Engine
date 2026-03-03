@@ -171,6 +171,11 @@ namespace Pyramid
          * @param func Depth comparison function
          */
         virtual void SetDepthFunc(u32 func) = 0;
+        /**
+         * @brief Enable or disable depth clamping
+         * @param enable True to enable depth clamping, false to disable
+         */
+        virtual void EnableDepthClamp(bool enable) = 0;
 
         /**
          * @brief Enable or disable face culling
@@ -240,6 +245,11 @@ namespace Pyramid
          * @param framebuffer Framebuffer to bind (nullptr for default)
          */
         virtual void BindFramebuffer(class IFramebuffer *framebuffer) = 0;
+        /**
+         * @brief Bind a native framebuffer handle
+         * @param framebufferId OpenGL framebuffer ID (0 for default)
+         */
+        virtual void BindFramebufferHandle(u32 framebufferId) = 0;
 
         /**
          * @brief Bind a shader for rendering
@@ -259,6 +269,23 @@ namespace Pyramid
          * @param slot Texture slot (0-31 typically)
          */
         virtual void BindTexture(ITexture2D *texture, u32 slot) = 0;
+        /**
+         * @brief Bind a native texture handle
+         * @param textureId API-native texture ID
+         * @param slot Texture unit slot
+         * @param target API-native texture target (e.g. GL_TEXTURE_2D)
+         */
+        virtual void BindNativeTexture(u32 textureId, u32 slot, u32 target) = 0;
+        /**
+         * @brief Set texture border color for a native texture
+         * @param textureId API-native texture ID
+         * @param target API-native texture target
+         * @param r Red channel
+         * @param g Green channel
+         * @param b Blue channel
+         * @param a Alpha channel
+         */
+        virtual void SetTextureBorderColor(u32 textureId, u32 target, f32 r, f32 g, f32 b, f32 a) = 0;
 
         /**
          * @brief Bind a uniform buffer to a binding point
@@ -266,6 +293,11 @@ namespace Pyramid
          * @param bindingPoint Binding point index
          */
         virtual void BindUniformBuffer(class IUniformBuffer *buffer, u32 bindingPoint) = 0;
+        /**
+         * @brief Clear selected framebuffer attachments
+         * @param clearMask API-native clear bit mask
+         */
+        virtual void ClearBuffers(u32 clearMask) = 0;
 
         /**
          * @brief Create a graphics device for the specified API

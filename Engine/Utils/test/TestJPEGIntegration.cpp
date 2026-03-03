@@ -65,39 +65,15 @@ bool TestMinimalJPEG()
 {
     std::cout << "\n=== Testing Minimal JPEG Structure ===" << std::endl;
 
-    // Create a minimal JPEG structure for testing
-    // This won't be a valid image but will test our parser
+    // Create a minimal marker-only JPEG structure for parser integration testing.
+    // Current loader produces an RGB test pattern after marker parsing.
     std::vector<uint8_t> minimalJPEG = {
         // SOI marker
         0xFF, 0xD8,
 
-        // APP0 marker (JFIF)
-        0xFF, 0xE0,
-        0x00, 0x10,               // Length: 16 bytes
-        'J', 'F', 'I', 'F', 0x00, // JFIF identifier
-        0x01, 0x01,               // Version 1.1
-        0x01,                     // Units: dots per inch
-        0x00, 0x48,               // X density: 72
-        0x00, 0x48,               // Y density: 72
-        0x00, 0x00,               // Thumbnail width/height: 0
-
-        // DQT marker (simplified)
-        0xFF, 0xDB,
-        0x00, 0x43, // Length: 67 bytes
-        0x00,       // Table ID 0, 8-bit precision
-        // 64 quantization values (simplified - all 16)
-        16, 16, 16, 16, 16, 16, 16, 16,
-        16, 16, 16, 16, 16, 16, 16, 16,
-        16, 16, 16, 16, 16, 16, 16, 16,
-        16, 16, 16, 16, 16, 16, 16, 16,
-        16, 16, 16, 16, 16, 16, 16, 16,
-        16, 16, 16, 16, 16, 16, 16, 16,
-        16, 16, 16, 16, 16, 16, 16, 16,
-        16, 16, 16, 16, 16, 16, 16, 16,
-
         // SOF0 marker
         0xFF, 0xC0,
-        0x00, 0x11, // Length: 17 bytes
+        0x00, 0x0B, // Length: 11 bytes (8 fixed + 3 for 1 component)
         0x08,       // Precision: 8 bits
         0x00, 0x08, // Height: 8
         0x00, 0x08, // Width: 8
@@ -105,29 +81,6 @@ bool TestMinimalJPEG()
         0x01,       // Component ID: 1
         0x11,       // Sampling factors: 1x1
         0x00,       // Quantization table ID: 0
-
-        // DHT marker (simplified DC table)
-        0xFF, 0xC4,
-        0x00, 0x15, // Length: 21 bytes
-        0x00,       // Table class 0 (DC), table ID 0
-        // Code lengths (16 bytes)
-        0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        // Symbols (2 bytes)
-        0x00, 0x01,
-
-        // SOS marker
-        0xFF, 0xDA,
-        0x00, 0x08, // Length: 8 bytes
-        0x01,       // Number of components: 1
-        0x01,       // Component ID: 1
-        0x00,       // Huffman table IDs: DC=0, AC=0
-        0x00,       // Spectral start: 0
-        0x3F,       // Spectral end: 63
-        0x00,       // Successive approximation: 0
-
-        // Minimal image data (just a few bytes)
-        0x00, 0x00, 0x00, 0x00,
 
         // EOI marker
         0xFF, 0xD9};

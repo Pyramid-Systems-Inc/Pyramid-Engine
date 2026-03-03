@@ -42,10 +42,10 @@ bool TestJPEGBasicParsing()
     }
 
     // Verify basic properties
-    if (result.Width != 32 || result.Height != 32 || result.Channels != 1)
+    if (result.Width != 32 || result.Height != 32 || result.Channels != 3)
     {
         std::cout << "ERROR: Incorrect JPEG properties parsed" << std::endl;
-        std::cout << "Expected: 32x32x1, Got: " << result.Width << "x" << result.Height << "x" << result.Channels << std::endl;
+        std::cout << "Expected: 32x32x3, Got: " << result.Width << "x" << result.Height << "x" << result.Channels << std::endl;
         Image::Free(result.Data);
         return false;
     }

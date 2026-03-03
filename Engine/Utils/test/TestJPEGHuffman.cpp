@@ -169,9 +169,10 @@ bool TestDCPrediction()
 {
     std::cout << "\n=== Testing DC Prediction ===" << std::endl;
 
-    // Create a simple DC table
+    // Create simple canonical DC/AC tables where 1-bit codes map directly:
+    // code 0 -> category 0 (or EOB), code 1 -> category 1
     uint8_t dcCodeLengths[16] = {
-        1, 1, 0, 0, 0, 0, 0, 0,
+        2, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0};
     uint8_t dcSymbols[2] = {0x00, 0x01}; // Categories 0 and 1
 
@@ -195,8 +196,8 @@ bool TestDCPrediction()
     // Test data for two blocks (need 6 bits total):
     // Block 1: DC category 1 (code 1), DC diff +1 (1 bit), EOB (code 0)
     // Block 2: DC category 1 (code 1), DC diff +1 (1 bit), EOB (code 0)
-    // Pattern: 1 1 0 1 1 0 = LSB order: 0b00110011 (6 bits in one byte)
-    uint8_t testData[] = {0x33}; // 0b00110011
+    // Pattern: 1 1 0 1 1 0 = LSB order in first 6 bits of byte => 0x1B
+    uint8_t testData[] = {0x1B}; // 0b00011011
     BitReader bitReader(testData, 1);
 
     int16_t coefficients1[64], coefficients2[64];
