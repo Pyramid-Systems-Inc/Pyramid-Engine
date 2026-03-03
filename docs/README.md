@@ -10,6 +10,7 @@ Welcome to the Pyramid Game Engine documentation! Pyramid is a modern, multi-pla
 - [API Reference](API_Reference/) - Detailed API documentation
 - [Examples and Tutorials](Examples/) - Example projects and tutorials
 - [Contributing](Contributing.md) - Contributing guidelines and development setup
+- [Smoke Tests](SmokeTests.md) - Quick runtime sanity checks for examples
 
 ## Engine Overview
 

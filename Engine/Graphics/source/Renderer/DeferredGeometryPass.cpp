@@ -125,10 +125,12 @@ namespace Pyramid
         void DeferredGeometryPass::Begin(CommandBuffer& cmd)
         {
             // Bind G-Buffer
-            if (m_gBuffer)
+            if (m_gBuffer && m_device)
             {
-                m_gBuffer->Bind();
-                m_gBuffer->Clear(0.0f, 0.0f, 0.0f, 0.0f);
+                m_device->BindFramebufferHandle(m_gBuffer->GetFramebufferID());
+                m_device->SetViewport(0, 0, m_width, m_height);
+                m_device->SetClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+                m_device->ClearBuffers(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
             }
             
             // Enable depth testing
@@ -273,9 +275,9 @@ namespace Pyramid
         void DeferredGeometryPass::End(CommandBuffer& cmd)
         {
             // Unbind G-Buffer
-            if (m_gBuffer)
+            if (m_gBuffer && m_device)
             {
-                m_gBuffer->Unbind();
+                m_device->BindFramebufferHandle(0);
             }
             
             PYRAMID_LOG_DEBUG("DeferredGeometryPass::End");

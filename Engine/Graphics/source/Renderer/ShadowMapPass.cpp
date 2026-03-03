@@ -92,13 +92,8 @@ namespace Pyramid
                 }
                 
                 // Set border color to 1.0 (outside shadow = not in shadow)
-                shadowMap->Bind();
                 GLuint depthTexture = shadowMap->GetDepthAttachmentTexture();
-                glBindTexture(GL_TEXTURE_2D, depthTexture);
-                float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-                glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-                glBindTexture(GL_TEXTURE_2D, 0);
-                shadowMap->Unbind();
+                m_device->SetTextureBorderColor(depthTexture, GL_TEXTURE_2D, 1.0f, 1.0f, 1.0f, 1.0f);
                 
                 m_shadowMaps.push_back(shadowMap);
                 
@@ -240,7 +235,10 @@ namespace Pyramid
             }
             
             // Enable depth clamping to prevent shadow acne at far distances
-            glEnable(GL_DEPTH_CLAMP);
+            if (m_device)
+            {
+                m_device->EnableDepthClamp(true);
+            }
             
             // Enable front face culling to reduce peter-panning
             if (m_device)
@@ -296,10 +294,10 @@ namespace Pyramid
                 m_lightSpaceMatrices[i] = CalculateLightSpaceMatrix(camera, nearPlane, farPlane, lightDir);
                 
                 // Bind shadow map framebuffer
-                m_shadowMaps[i]->Bind();
+                m_device->BindFramebufferHandle(m_shadowMaps[i]->GetFramebufferID());
                 
                 // Clear depth buffer
-                glClear(GL_DEPTH_BUFFER_BIT);
+                m_device->ClearBuffers(GL_DEPTH_BUFFER_BIT);
                 
                 // Set viewport to shadow map resolution
                 if (m_device)
@@ -332,7 +330,7 @@ namespace Pyramid
                 }
                 
                 // Unbind shadow map framebuffer
-                m_shadowMaps[i]->Unbind();
+                m_device->BindFramebufferHandle(0);
                 
                 PYRAMID_LOG_DEBUG("Cascade ", i, " rendered (", nearPlane, " - ", farPlane, ")");
             }
@@ -347,7 +345,10 @@ namespace Pyramid
             }
             
             // Disable depth clamping
-            glDisable(GL_DEPTH_CLAMP);
+            if (m_device)
+            {
+                m_device->EnableDepthClamp(false);
+            }
             
             PYRAMID_LOG_DEBUG("ShadowMapPass::End");
         }

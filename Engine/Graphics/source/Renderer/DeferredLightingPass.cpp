@@ -76,11 +76,11 @@ namespace Pyramid
         void DeferredLightingPass::Begin(CommandBuffer& cmd)
         {
             // Bind default framebuffer (render to screen)
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            m_device->BindFramebufferHandle(0);
             
             // Clear screen
-            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            m_device->SetClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            m_device->ClearBuffers(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             
             // Disable depth testing (fullscreen quad doesn't need it)
             if (m_device)
@@ -115,24 +115,19 @@ namespace Pyramid
             GLuint emissive = m_gBuffer->GetColorAttachmentTexture(3);
             GLuint depth = m_gBuffer->GetDepthAttachmentTexture();
             
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, albedoMetallic);
+            m_device->BindNativeTexture(albedoMetallic, 0, GL_TEXTURE_2D);
             m_lightingShader->SetUniformInt("u_GAlbedoMetallic", 0);
             
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, normalRoughness);
+            m_device->BindNativeTexture(normalRoughness, 1, GL_TEXTURE_2D);
             m_lightingShader->SetUniformInt("u_GNormalRoughness", 1);
             
-            glActiveTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, positionAO);
+            m_device->BindNativeTexture(positionAO, 2, GL_TEXTURE_2D);
             m_lightingShader->SetUniformInt("u_GPositionAO", 2);
             
-            glActiveTexture(GL_TEXTURE3);
-            glBindTexture(GL_TEXTURE_2D, emissive);
+            m_device->BindNativeTexture(emissive, 3, GL_TEXTURE_2D);
             m_lightingShader->SetUniformInt("u_GEmissive", 3);
             
-            glActiveTexture(GL_TEXTURE4);
-            glBindTexture(GL_TEXTURE_2D, depth);
+            m_device->BindNativeTexture(depth, 4, GL_TEXTURE_2D);
             m_lightingShader->SetUniformInt("u_GDepth", 4);
             
             // Bind shadow maps if available
@@ -141,8 +136,7 @@ namespace Pyramid
                 // For now, bind first shadow map cascade
                 // TODO: Implement shadow map array binding
                 GLuint shadowMap = m_shadowMaps[0]->GetDepthAttachmentTexture();
-                glActiveTexture(GL_TEXTURE5);
-                glBindTexture(GL_TEXTURE_2D, shadowMap);
+                m_device->BindNativeTexture(shadowMap, 5, GL_TEXTURE_2D);
                 m_lightingShader->SetUniformInt("u_ShadowMaps", 5);
             }
             
@@ -196,8 +190,7 @@ namespace Pyramid
             // Unbind textures
             for (int i = 0; i < 6; i++)
             {
-                glActiveTexture(GL_TEXTURE0 + i);
-                glBindTexture(GL_TEXTURE_2D, 0);
+                m_device->BindNativeTexture(0, static_cast<u32>(i), GL_TEXTURE_2D);
             }
             
             PYRAMID_LOG_DEBUG("DeferredLightingPass::End");

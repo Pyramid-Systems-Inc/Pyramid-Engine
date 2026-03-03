@@ -174,6 +174,18 @@ namespace Pyramid
         OpenGLStateManager::GetInstance().SetDepthFunc(static_cast<GLenum>(func));
     }
 
+    void OpenGLDevice::EnableDepthClamp(bool enable)
+    {
+        if (enable)
+        {
+            glEnable(GL_DEPTH_CLAMP);
+        }
+        else
+        {
+            glDisable(GL_DEPTH_CLAMP);
+        }
+    }
+
     void OpenGLDevice::EnableCullFace(bool enable)
     {
         OpenGLStateManager::GetInstance().EnableCullFace(enable);
@@ -278,6 +290,11 @@ namespace Pyramid
         }
     }
 
+    void OpenGLDevice::BindFramebufferHandle(u32 framebufferId)
+    {
+        OpenGLStateManager::GetInstance().BindFramebuffer(GL_FRAMEBUFFER, framebufferId);
+    }
+
     void OpenGLDevice::BindShader(IShader *shader)
     {
         if (shader)
@@ -325,6 +342,20 @@ namespace Pyramid
         }
     }
 
+    void OpenGLDevice::BindNativeTexture(u32 textureId, u32 slot, u32 target)
+    {
+        OpenGLStateManager::GetInstance().ActiveTexture(GL_TEXTURE0 + slot);
+        OpenGLStateManager::GetInstance().BindTexture(static_cast<GLenum>(target), textureId);
+    }
+
+    void OpenGLDevice::SetTextureBorderColor(u32 textureId, u32 target, f32 r, f32 g, f32 b, f32 a)
+    {
+        const GLfloat borderColor[] = {r, g, b, a};
+        OpenGLStateManager::GetInstance().ActiveTexture(GL_TEXTURE0);
+        OpenGLStateManager::GetInstance().BindTexture(static_cast<GLenum>(target), textureId);
+        glTexParameterfv(static_cast<GLenum>(target), GL_TEXTURE_BORDER_COLOR, borderColor);
+    }
+
     void OpenGLDevice::BindUniformBuffer(IUniformBuffer *buffer, u32 bindingPoint)
     {
         if (buffer)
@@ -335,6 +366,11 @@ namespace Pyramid
         {
             OpenGLStateManager::GetInstance().BindBuffer(GL_UNIFORM_BUFFER, 0);
         }
+    }
+
+    void OpenGLDevice::ClearBuffers(u32 clearMask)
+    {
+        glClear(static_cast<GLbitfield>(clearMask));
     }
 
 } // namespace Pyramid
