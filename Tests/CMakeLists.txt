@@ -112,3 +112,8 @@ add_executable(ResourceHandleTests ResourceHandleTests.cpp)
 target_link_libraries(ResourceHandleTests PRIVATE Pyramid::Engine)
 set_target_properties(ResourceHandleTests PROPERTIES FOLDER "Tests/Graphics")
 add_test(NAME Graphics.ResourceHandles COMMAND $<TARGET_FILE:ResourceHandleTests>)
+
+add_executable(ResourceManifestTests ResourceManifestTests.cpp)
+target_link_libraries(ResourceManifestTests PRIVATE Pyramid::Engine)
+set_target_properties(ResourceManifestTests PROPERTIES FOLDER "Tests/Graphics")
+add_test(NAME Graphics.ResourceManifest COMMAND $<TARGET_FILE:ResourceManifestTests>)

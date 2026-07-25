@@ -4,6 +4,13 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### Versioned resource manifests
+
+- Added dependency-free `ResourceManifest` serialization for typed mesh, shader, texture, and material handles using a deterministic versioned text format.
+- Added transactional manifest parsing with schema, resource-type, key, asset-ID, generation, duplicate-key, and unsupported-version diagnostics.
+- Added registry restoration reports that distinguish missing assets from stale generations without silently remapping serialized references.
+- Added `Graphics.ResourceManifest` coverage for deterministic round trips, typed restoration, parser rollback, malformed data, missing assets, and stale generations.
+
 ### Typed generation-checked resource handles
 
 - Added serializable, non-owning `MeshHandle`, `ShaderHandle`, `TextureHandle`, and `MaterialHandle` value types containing a stable asset ID and alias generation.

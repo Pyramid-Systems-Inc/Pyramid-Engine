@@ -70,6 +70,7 @@ Primary headers:
 - `Pyramid/Graphics/Material/Material.hpp`
 - `Pyramid/Graphics/Material/MaterialCache.hpp`
 - `Pyramid/Graphics/Resources/ResourceHandle.hpp`
+- `Pyramid/Graphics/Resources/ResourceManifest.hpp`
 - `Pyramid/Graphics/Resources/ResourceRegistry.hpp`
 
 ### Shader programs
@@ -266,6 +267,36 @@ object->SetMaterialHandle(materialHandle, *resources);
 Register the render system through `Game::SetRenderSystem()` so render passes receive the same registry and resolve handles at submission time. A stale mesh or material handle causes that object to be skipped rather than bound to unrelated replacement content. Assigning a newly issued mesh handle refreshes the cached local bounds.
 
 Standalone cache construction remains available for tooling and focused tests, but a registry must always be destroyed before its graphics device and native context.
+
+### Resource manifests
+
+`ResourceManifest` serializes a named set of typed handles without a JSON dependency. The current format is deterministic and versioned:
+
+```text
+PYRAMID_RESOURCE_MANIFEST	1
+mesh	player.mesh	0123456789abcdef0123456789abcdef	4
+material	player.material	fedcba9876543210fedcba9876543210	2
+```
+
+```cpp
+Pyramid::ResourceManifest manifest;
+manifest.Add("player.mesh", meshHandle);
+manifest.Add("player.material", materialHandle);
+
+const std::string serialized = manifest.Serialize();
+
+Pyramid::ResourceManifest restored;
+std::vector<Pyramid::ResourceManifestDiagnostic> diagnostics;
+if (!Pyramid::ResourceManifest::Deserialize(serialized, restored, diagnostics))
+{
+    // Unsupported versions and malformed entries leave `restored` unchanged.
+}
+
+auto restoredMesh = restored.GetMeshHandle("player.mesh");
+const auto report = restored.Restore(*resources);
+```
+
+Manifest keys are caller-owned stable reference names containing letters, digits, `.`, `_`, `-`, or `/`. The serialized 128-bit asset ID is restored exactly; it is not re-hashed from a path. `Restore()` validates the current registry and reports `MissingAsset` separately from `StaleGeneration`. It never updates a serialized generation automatically.
 
 ## Renderer
 

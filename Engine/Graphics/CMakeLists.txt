@@ -20,6 +20,7 @@ target_sources(PyramidEngine
         source/Material/Material.cpp
         source/Material/MaterialCache.cpp
         source/Resources/ResourceRegistry.cpp
+        source/Resources/ResourceManifest.cpp
         source/OpenGL/Shader/OpenGLShader.cpp
         source/Texture.cpp
         source/Texture/TextureResource.cpp
@@ -53,6 +54,7 @@ target_sources(PyramidEngine
         include/Pyramid/Graphics/Material/MaterialCache.hpp
         include/Pyramid/Graphics/Resources/ResourceHandle.hpp
         include/Pyramid/Graphics/Resources/ResourceRegistry.hpp
+        include/Pyramid/Graphics/Resources/ResourceManifest.hpp
         include/Pyramid/Graphics/Texture.hpp
         include/Pyramid/Graphics/Texture/TextureResource.hpp
         include/Pyramid/Graphics/Texture/TextureCache.hpp

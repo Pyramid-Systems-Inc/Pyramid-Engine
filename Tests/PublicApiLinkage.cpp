@@ -17,6 +17,7 @@
 #include <Pyramid/Graphics/Material/MaterialCache.hpp>
 #include <Pyramid/Graphics/Resources/ResourceHandle.hpp>
 #include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
+#include <Pyramid/Graphics/Resources/ResourceManifest.hpp>
 
 #include <memory>
 #include <string>
@@ -281,6 +282,18 @@ namespace
         &Pyramid::ResourceRegistry::Clear;
     volatile decltype(&Pyramid::ResourceRegistry::GetStats) g_getResourceRegistryStats =
         &Pyramid::ResourceRegistry::GetStats;
+    using AddMeshManifestEntry = bool (Pyramid::ResourceManifest::*)(
+        std::string, Pyramid::MeshHandle);
+    volatile AddMeshManifestEntry g_addMeshManifestEntry =
+        static_cast<AddMeshManifestEntry>(&Pyramid::ResourceManifest::Add);
+    volatile decltype(&Pyramid::ResourceManifest::Serialize) g_serializeResourceManifest =
+        &Pyramid::ResourceManifest::Serialize;
+    volatile decltype(&Pyramid::ResourceManifest::Deserialize) g_deserializeResourceManifest =
+        &Pyramid::ResourceManifest::Deserialize;
+    volatile decltype(&Pyramid::ResourceManifest::Restore) g_restoreResourceManifest =
+        &Pyramid::ResourceManifest::Restore;
+    volatile decltype(&Pyramid::ResourceManifest::GetMeshHandle) g_getManifestMeshHandle =
+        &Pyramid::ResourceManifest::GetMeshHandle;
     using GetRegistryMeshes = Pyramid::MeshCache& (Pyramid::ResourceRegistry::*)();
     using GetRegistryShaders = Pyramid::ShaderCache& (Pyramid::ResourceRegistry::*)();
     using GetRegistryTextures = Pyramid::TextureCache& (Pyramid::ResourceRegistry::*)();
@@ -437,6 +450,11 @@ int main()
                    g_collectUnusedResources &&
                    g_clearResourceRegistry &&
                    g_getResourceRegistryStats &&
+                   g_addMeshManifestEntry &&
+                   g_serializeResourceManifest &&
+                   g_deserializeResourceManifest &&
+                   g_restoreResourceManifest &&
+                   g_getManifestMeshHandle &&
                    g_getRegistryMeshes &&
                    g_getRegistryShaders &&
                    g_getRegistryTextures &&

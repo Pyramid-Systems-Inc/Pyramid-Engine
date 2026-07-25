@@ -91,11 +91,12 @@ Target outcome: a trustworthy rendering SDK rather than a larger feature list.
 ## P2 — scene and asset foundation
 
 - [x] Stable typed resource handles with persistent generation checks, stale-reference rejection, registry resolution, and handle-backed scene renderables.
+- [x] Versioned resource manifests with deterministic typed-handle serialization, transactional validation, and missing/stale diagnostics.
 - [x] Add an engine-owned immutable material resource for shader/texture references, typed uniforms, and fixed render state.
 - [x] Add exact-content material caching with stable aliases, transactional replacement, eviction, and residency statistics.
 - Mesh/material asset import built on the engine-owned `Mesh` and `Material` resources and their caches.
 - Shader preprocessing, dependency tracking, and reload.
-- Scene serialization with versioning and validation.
+- Scene serialization with versioning and validation, built on resource manifests.
 - Asset packaging and path abstraction independent of the source checkout.
 - Debug UI and frame inspection tools.
 
