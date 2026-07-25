@@ -23,6 +23,7 @@ namespace Pyramid
     class Scene;
     class Mesh;
     class Material;
+    class ResourceRegistry;
 
     namespace Renderer
     {
@@ -227,6 +228,8 @@ namespace Pyramid
             // Configuration
             void SetRenderTarget(std::shared_ptr<RenderTarget> target) { m_renderTarget = target; }
             void SetEnabled(bool enabled) { m_enabled = enabled; }
+            void SetResourceRegistry(ResourceRegistry* registry) { m_resources = registry; }
+            ResourceRegistry* GetResourceRegistry() const { return m_resources; }
 
             // Accessors
             RenderPassType GetType() const { return m_type; }
@@ -238,6 +241,7 @@ namespace Pyramid
             std::string m_name;
             bool m_enabled = true;
             std::shared_ptr<RenderTarget> m_renderTarget;
+            ResourceRegistry* m_resources = nullptr;
         };
 
         /**
@@ -281,6 +285,8 @@ namespace Pyramid
             // Resource management
             u32 CreateRenderTarget(const RenderTargetSpec& spec);
             std::shared_ptr<RenderTarget> GetRenderTarget(u32 id);
+            void SetResourceRegistry(ResourceRegistry* registry);
+            ResourceRegistry* GetResourceRegistry() const { return m_resources; }
 
             // Configuration
             void SetVSync(bool enabled) { m_vsyncEnabled = enabled; }
@@ -306,6 +312,7 @@ namespace Pyramid
             void BindMaterial(CommandBuffer& cmdBuffer, const Material& material);
 
             IGraphicsDevice* m_device = nullptr;
+            ResourceRegistry* m_resources = nullptr;
             std::vector<std::shared_ptr<RenderPass>> m_renderPasses;
             std::unordered_map<u32, std::shared_ptr<RenderTarget>> m_renderTargets;
 

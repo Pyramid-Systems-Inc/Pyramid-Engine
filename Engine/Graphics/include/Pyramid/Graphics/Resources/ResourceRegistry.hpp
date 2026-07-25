@@ -5,6 +5,7 @@
 #include <Pyramid/Graphics/Material/MaterialCache.hpp>
 #include <Pyramid/Graphics/Shader/ShaderCache.hpp>
 #include <Pyramid/Graphics/Texture/TextureCache.hpp>
+#include <Pyramid/Graphics/Resources/ResourceHandle.hpp>
 
 namespace Pyramid
 {
@@ -77,6 +78,47 @@ namespace Pyramid
 
         MaterialCache& Materials() { return m_materials; }
         const MaterialCache& Materials() const { return m_materials; }
+
+        // Handle-first acquisition. Returned handles never own GPU resources.
+        MeshHandle AcquireMesh(const MeshSpecification& specification);
+        ShaderHandle AcquireShader(const ShaderProgramSpecification& specification);
+        TextureHandle AcquireTexture(const TextureResourceSpecification& specification);
+        TextureHandle AcquireTexture(const TextureFileSpecification& specification);
+        MaterialHandle AcquireMaterial(const MaterialSpecification& specification);
+
+        // Convert a resident asset identifier into its current typed generation.
+        MeshHandle GetHandle(MeshAssetId assetId) const;
+        ShaderHandle GetHandle(ShaderAssetId assetId) const;
+        TextureHandle GetHandle(TextureAssetId assetId) const;
+        MaterialHandle GetHandle(MaterialAssetId assetId) const;
+
+        // Generation-checked resolution. Stale or mismatched handles return nullptr.
+        std::shared_ptr<Mesh> Resolve(MeshHandle handle) const;
+        std::shared_ptr<ShaderProgram> Resolve(ShaderHandle handle) const;
+        std::shared_ptr<TextureResource> Resolve(TextureHandle handle) const;
+        std::shared_ptr<Material> Resolve(MaterialHandle handle) const;
+
+        bool IsAlive(MeshHandle handle) const;
+        bool IsAlive(ShaderHandle handle) const;
+        bool IsAlive(TextureHandle handle) const;
+        bool IsAlive(MaterialHandle handle) const;
+
+        bool Evict(MeshHandle handle);
+        bool Evict(ShaderHandle handle);
+        bool Evict(TextureHandle handle);
+        bool Evict(MaterialHandle handle);
+
+        /** Replace a current stable alias and return its new generation. */
+        ShaderHandle RecompileShader(
+            ShaderHandle handle,
+            const ShaderProgramSpecification& replacement);
+        TextureHandle ReloadTexture(TextureHandle handle);
+        TextureHandle ReloadTexture(
+            TextureHandle handle,
+            const TextureFileSpecification& replacement);
+        MaterialHandle ReplaceMaterial(
+            MaterialHandle handle,
+            const MaterialSpecification& replacement);
 
         /**
          * Collect cache-only resources in dependency-safe order.

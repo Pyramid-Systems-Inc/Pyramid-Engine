@@ -90,7 +90,7 @@ Target outcome: a trustworthy rendering SDK rather than a larger feature list.
 
 ## P2 — scene and asset foundation
 
-- Stable resource handles with generation checks.
+- [x] Stable typed resource handles with persistent generation checks, stale-reference rejection, registry resolution, and handle-backed scene renderables.
 - [x] Add an engine-owned immutable material resource for shader/texture references, typed uniforms, and fixed render state.
 - [x] Add exact-content material caching with stable aliases, transactional replacement, eviction, and residency statistics.
 - Mesh/material asset import built on the engine-owned `Mesh` and `Material` resources and their caches.

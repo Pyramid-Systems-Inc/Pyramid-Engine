@@ -2,6 +2,7 @@
 #include <Pyramid/Graphics/Camera.hpp>
 #include <Pyramid/Graphics/Geometry/Vertex.hpp>
 #include <Pyramid/Graphics/Geometry/Mesh.hpp>
+#include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
 #include <algorithm>
 #include <vector>
 #include <cmath>
@@ -36,15 +37,74 @@ namespace Pyramid
         boundsMode = RenderBoundsMode::Manual;
     }
 
-    bool RenderObject::TryGetGeometryBounds(Math::Vec3 &minPoint, Math::Vec3 &maxPoint) const
+    bool RenderObject::SetMeshHandle(
+        MeshHandle handle,
+        const ResourceRegistry& registry)
     {
-        if (!mesh || !mesh->IsValid())
+        const auto resolved = registry.Resolve(handle);
+        if (!resolved || !resolved->IsValid())
         {
             return false;
         }
 
-        mesh->GetLocalBounds(minPoint, maxPoint);
+        resolved->GetLocalBounds(handleBoundsMin, handleBoundsMax);
+        hasHandleBounds = true;
+        meshHandle = handle;
+        mesh.reset();
         return true;
+    }
+
+    bool RenderObject::SetMaterialHandle(
+        MaterialHandle handle,
+        const ResourceRegistry& registry)
+    {
+        const auto resolved = registry.Resolve(handle);
+        if (!resolved || !resolved->IsValid())
+        {
+            return false;
+        }
+
+        materialHandle = handle;
+        material.reset();
+        return true;
+    }
+
+    std::shared_ptr<Mesh> RenderObject::ResolveMesh(
+        const ResourceRegistry* registry) const
+    {
+        if (mesh)
+        {
+            return mesh;
+        }
+        return registry ? registry->Resolve(meshHandle) : nullptr;
+    }
+
+    std::shared_ptr<Material> RenderObject::ResolveMaterial(
+        const ResourceRegistry* registry) const
+    {
+        if (material)
+        {
+            return material;
+        }
+        return registry ? registry->Resolve(materialHandle) : nullptr;
+    }
+
+    bool RenderObject::TryGetGeometryBounds(Math::Vec3 &minPoint, Math::Vec3 &maxPoint) const
+    {
+        if (mesh && mesh->IsValid())
+        {
+            mesh->GetLocalBounds(minPoint, maxPoint);
+            return true;
+        }
+
+        if (meshHandle.IsValid() && hasHandleBounds)
+        {
+            minPoint = handleBoundsMin;
+            maxPoint = handleBoundsMax;
+            return true;
+        }
+
+        return false;
     }
 
     bool RenderObject::GetLocalBounds(Math::Vec3 &minPoint, Math::Vec3 &maxPoint) const

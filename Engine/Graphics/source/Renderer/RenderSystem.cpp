@@ -1,4 +1,5 @@
 #include <Pyramid/Graphics/Renderer/RenderSystem.hpp>
+#include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
 #include <Pyramid/Graphics/Renderer/RenderPasses.hpp>
 #include <Pyramid/Graphics/GraphicsDevice.hpp>
 #include <Pyramid/Graphics/Camera.hpp>
@@ -398,6 +399,18 @@ namespace Pyramid
             return it->second;
         }
 
+        void RenderSystem::SetResourceRegistry(ResourceRegistry* registry)
+        {
+            m_resources = registry;
+            for (const auto& pass : m_renderPasses)
+            {
+                if (pass)
+                {
+                    pass->SetResourceRegistry(registry);
+                }
+            }
+        }
+
         void RenderSystem::SetMultisampling(bool enabled, u32 samples)
         {
             m_multisamplingEnabled = enabled;
@@ -407,6 +420,8 @@ namespace Pyramid
         void RenderSystem::AddRenderPass(std::shared_ptr<RenderPass> pass)
         {
             if (!pass) return;
+
+            pass->SetResourceRegistry(m_resources);
 
             // Insert pass in correct order based on type
             auto insertPos = std::lower_bound(m_renderPasses.begin(), m_renderPasses.end(), pass,

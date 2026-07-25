@@ -66,6 +66,7 @@ namespace Pyramid
 
         std::shared_ptr<Material> Find(MaterialAssetId assetId) const;
         bool Contains(MaterialAssetId assetId) const;
+        u32 GetGeneration(MaterialAssetId assetId) const;
 
         /** Evict the resolved material and every alias that references it. */
         bool Evict(MaterialAssetId assetId);
@@ -86,9 +87,13 @@ namespace Pyramid
         };
 
         void RemoveAliasesForContent(MaterialAssetId contentId);
+        void BindAlias(MaterialAssetId assetId, MaterialAssetId contentId);
+        void InvalidateAlias(MaterialAssetId assetId);
+        void AdvanceGeneration(MaterialAssetId assetId);
 
         std::unordered_map<MaterialAssetId, MaterialAssetId, MaterialAssetIdHash>
             m_assetToContent;
+        std::unordered_map<MaterialAssetId, u32, MaterialAssetIdHash> m_generations;
         std::unordered_map<MaterialAssetId, Resident, MaterialAssetIdHash> m_residents;
 
         u64 m_cacheHits = 0;

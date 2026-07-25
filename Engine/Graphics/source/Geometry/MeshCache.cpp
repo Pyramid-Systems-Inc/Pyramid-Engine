@@ -45,14 +45,14 @@ namespace Pyramid
             }
 
             // Repair an impossible stale alias defensively.
-            m_assetToContent.erase(alias);
+            InvalidateAlias(assetId);
         }
 
         const auto matchingContent = m_residents.find(contentId);
         if (matchingContent != m_residents.end())
         {
-            m_assetToContent.emplace(contentId, contentId);
-            m_assetToContent.emplace(assetId, contentId);
+            BindAlias(contentId, contentId);
+            BindAlias(assetId, contentId);
             ++m_cacheHits;
             return matchingContent->second.mesh;
         }
@@ -66,8 +66,8 @@ namespace Pyramid
         }
 
         m_residents.emplace(contentId, Resident{mesh});
-        m_assetToContent.emplace(contentId, contentId);
-        m_assetToContent.emplace(assetId, contentId);
+        BindAlias(contentId, contentId);
+        BindAlias(assetId, contentId);
         ++m_meshesCreated;
         return mesh;
     }
@@ -92,6 +92,12 @@ namespace Pyramid
     bool MeshCache::Contains(MeshAssetId assetId) const
     {
         return Find(assetId) != nullptr;
+    }
+
+    u32 MeshCache::GetGeneration(MeshAssetId assetId) const
+    {
+        const auto generation = m_generations.find(assetId);
+        return generation == m_generations.end() ? 0 : generation->second;
     }
 
     bool MeshCache::Evict(MeshAssetId assetId)
@@ -134,6 +140,10 @@ namespace Pyramid
     u32 MeshCache::Clear()
     {
         const u32 removed = static_cast<u32>(m_residents.size());
+        for (const auto& alias : m_assetToContent)
+        {
+            AdvanceGeneration(alias.first);
+        }
         m_residents.clear();
         m_assetToContent.clear();
         m_evictions += removed;
@@ -171,12 +181,47 @@ namespace Pyramid
         return stats;
     }
 
+    void MeshCache::BindAlias(MeshAssetId assetId, MeshAssetId contentId)
+    {
+        const auto existing = m_assetToContent.find(assetId);
+        if (existing != m_assetToContent.end() && existing->second == contentId)
+        {
+            return;
+        }
+
+        m_assetToContent[assetId] = contentId;
+        AdvanceGeneration(assetId);
+    }
+
+    void MeshCache::InvalidateAlias(MeshAssetId assetId)
+    {
+        const auto existing = m_assetToContent.find(assetId);
+        if (existing == m_assetToContent.end())
+        {
+            return;
+        }
+
+        AdvanceGeneration(assetId);
+        m_assetToContent.erase(existing);
+    }
+
+    void MeshCache::AdvanceGeneration(MeshAssetId assetId)
+    {
+        u32& generation = m_generations[assetId];
+        ++generation;
+        if (generation == 0)
+        {
+            ++generation;
+        }
+    }
+
     void MeshCache::RemoveAliasesForContent(MeshAssetId contentId)
     {
         for (auto iterator = m_assetToContent.begin(); iterator != m_assetToContent.end();)
         {
             if (iterator->second == contentId)
             {
+                AdvanceGeneration(iterator->first);
                 iterator = m_assetToContent.erase(iterator);
             }
             else

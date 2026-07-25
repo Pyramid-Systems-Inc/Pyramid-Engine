@@ -99,6 +99,7 @@ void BasicGame::onCreate()
         quit();
         return;
     }
+    SetRenderSystem(m_renderSystem.get());
 
     m_scene = std::make_shared<Pyramid::Scene>("BasicGame Scene");
     m_camera = std::make_unique<Pyramid::Camera>(
@@ -288,19 +289,28 @@ bool BasicGame::SetupScene()
         return false;
     }
 
+    const auto cubeMeshHandle = resources->GetHandle(cubeGeometry->GetAssetId());
+    const auto floorMeshHandle = resources->GetHandle(floorGeometry->GetAssetId());
+    const auto cubeMaterialHandle = resources->GetHandle(m_cubeMaterial->GetAssetId());
+    const auto floorMaterialHandle = resources->GetHandle(m_floorMaterial->GetAssetId());
+
     m_cube = std::make_shared<Pyramid::RenderObject>();
     m_cube->name = "DemoCube";
-    m_cube->mesh = cubeGeometry;
     m_cube->position = Pyramid::Math::Vec3::Zero;
     m_cube->scale = Pyramid::Math::Vec3::One;
-    m_cube->material = m_cubeMaterial;
 
     auto floorObject = std::make_shared<Pyramid::RenderObject>();
     floorObject->name = "Floor";
-    floorObject->mesh = floorGeometry;
     floorObject->position = Pyramid::Math::Vec3(0.0f, -1.2f, 0.0f);
     floorObject->scale = Pyramid::Math::Vec3(6.0f, 0.15f, 6.0f);
-    floorObject->material = m_floorMaterial;
+
+    if (!m_cube->SetMeshHandle(cubeMeshHandle, *resources) ||
+        !m_cube->SetMaterialHandle(cubeMaterialHandle, *resources) ||
+        !floorObject->SetMeshHandle(floorMeshHandle, *resources) ||
+        !floorObject->SetMaterialHandle(floorMaterialHandle, *resources))
+    {
+        return false;
+    }
 
     m_scene->AddRenderObject(m_cube);
     m_scene->AddRenderObject(floorObject);

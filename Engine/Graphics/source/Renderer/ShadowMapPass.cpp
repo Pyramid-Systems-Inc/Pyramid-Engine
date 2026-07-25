@@ -271,7 +271,8 @@ namespace Pyramid
             std::vector<std::shared_ptr<RenderObject>> shadowCasters;
             for (const auto& obj : allObjects)
             {
-                if (obj && obj->visible && obj->castShadows && obj->mesh && obj->mesh->IsValid())
+                const auto mesh = obj ? obj->ResolveMesh(m_resources) : nullptr;
+                if (obj && obj->visible && obj->castShadows && mesh && mesh->IsValid())
                 {
                     shadowCasters.push_back(obj);
                 }
@@ -325,19 +326,25 @@ namespace Pyramid
                         m_shadowShader->SetUniformMat4("u_Model", model.m);
                     }
 
-                    object->mesh->Bind();
-                    if (object->mesh->IsIndexed())
+                    const auto mesh = object->ResolveMesh(m_resources);
+                    if (!mesh || !mesh->IsValid())
+                    {
+                        continue;
+                    }
+
+                    mesh->Bind();
+                    if (mesh->IsIndexed())
                     {
                         m_device->DrawIndexed(
-                            object->mesh->GetIndexCount(),
-                            object->mesh->GetTopology());
+                            mesh->GetIndexCount(),
+                            mesh->GetTopology());
                     }
                     else
                     {
                         m_device->DrawArrays(
-                            object->mesh->GetVertexCount(),
+                            mesh->GetVertexCount(),
                             0,
-                            object->mesh->GetTopology());
+                            mesh->GetTopology());
                     }
                 }
 

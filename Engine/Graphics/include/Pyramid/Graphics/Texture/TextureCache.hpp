@@ -64,6 +64,7 @@ namespace Pyramid
 
         std::shared_ptr<TextureResource> Find(TextureAssetId assetId) const;
         bool Contains(TextureAssetId assetId) const;
+        u32 GetGeneration(TextureAssetId assetId) const;
         bool Evict(TextureAssetId assetId);
         u32 CollectUnused();
         u32 Clear();
@@ -93,9 +94,13 @@ namespace Pyramid
             TextureResource::PreparedData&& prepared,
             const TextureFileSpecification& fileSource);
         void RemoveAliasesForContent(TextureAssetId contentId);
+        void BindAlias(TextureAssetId assetId, AliasRecord record);
+        void InvalidateAlias(TextureAssetId assetId);
+        void AdvanceGeneration(TextureAssetId assetId);
 
         IGraphicsDevice* m_device = nullptr;
         std::unordered_map<TextureAssetId, AliasRecord, TextureAssetIdHash> m_aliases;
+        std::unordered_map<TextureAssetId, u32, TextureAssetIdHash> m_generations;
         std::unordered_map<TextureAssetId, Resident, TextureAssetIdHash> m_residents;
 
         u64 m_cacheHits = 0;

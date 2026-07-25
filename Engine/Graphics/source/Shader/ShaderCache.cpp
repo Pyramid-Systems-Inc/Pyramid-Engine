@@ -44,14 +44,14 @@ namespace Pyramid
                 return resident->second.program;
             }
 
-            m_assetToContent.erase(alias);
+            InvalidateAlias(assetId);
         }
 
         const auto matchingContent = m_residents.find(contentId);
         if (matchingContent != m_residents.end())
         {
-            m_assetToContent.emplace(contentId, contentId);
-            m_assetToContent.emplace(assetId, contentId);
+            BindAlias(contentId, contentId);
+            BindAlias(assetId, contentId);
             ++m_cacheHits;
             return matchingContent->second.program;
         }
@@ -65,8 +65,8 @@ namespace Pyramid
         }
 
         m_residents.emplace(contentId, Resident{program});
-        m_assetToContent.emplace(contentId, contentId);
-        m_assetToContent.emplace(assetId, contentId);
+        BindAlias(contentId, contentId);
+        BindAlias(assetId, contentId);
         ++m_programsCreated;
         return program;
     }
@@ -133,8 +133,8 @@ namespace Pyramid
         const auto matchingContent = m_residents.find(replacementContentId);
         if (matchingContent != m_residents.end())
         {
-            m_assetToContent[stableAssetId] = replacementContentId;
-            m_assetToContent.emplace(replacementContentId, replacementContentId);
+            BindAlias(stableAssetId, replacementContentId);
+            BindAlias(replacementContentId, replacementContentId);
             ++m_cacheHits;
             ++m_recompilationSuccesses;
             ++m_recompilationReuses;
@@ -150,8 +150,8 @@ namespace Pyramid
         }
 
         m_residents.emplace(replacementContentId, Resident{replacementProgram});
-        m_assetToContent.emplace(replacementContentId, replacementContentId);
-        m_assetToContent[stableAssetId] = replacementContentId;
+        BindAlias(replacementContentId, replacementContentId);
+        BindAlias(stableAssetId, replacementContentId);
         ++m_programsCreated;
         ++m_recompilationSuccesses;
         return true;
@@ -177,6 +177,12 @@ namespace Pyramid
     bool ShaderCache::Contains(ShaderAssetId assetId) const
     {
         return Find(assetId) != nullptr;
+    }
+
+    u32 ShaderCache::GetGeneration(ShaderAssetId assetId) const
+    {
+        const auto generation = m_generations.find(assetId);
+        return generation == m_generations.end() ? 0 : generation->second;
     }
 
     bool ShaderCache::Evict(ShaderAssetId assetId)
@@ -219,6 +225,10 @@ namespace Pyramid
     u32 ShaderCache::Clear()
     {
         const u32 removed = static_cast<u32>(m_residents.size());
+        for (const auto& alias : m_assetToContent)
+        {
+            AdvanceGeneration(alias.first);
+        }
         m_residents.clear();
         m_assetToContent.clear();
         m_evictions += removed;
@@ -259,12 +269,39 @@ namespace Pyramid
         return stats;
     }
 
+    void ShaderCache::BindAlias(ShaderAssetId assetId, ShaderAssetId contentId)
+    {
+        const auto existing = m_assetToContent.find(assetId);
+        if (existing != m_assetToContent.end() && existing->second == contentId)
+        {
+            return;
+        }
+        m_assetToContent[assetId] = contentId;
+        AdvanceGeneration(assetId);
+    }
+
+    void ShaderCache::InvalidateAlias(ShaderAssetId assetId)
+    {
+        const auto existing = m_assetToContent.find(assetId);
+        if (existing == m_assetToContent.end()) return;
+        AdvanceGeneration(assetId);
+        m_assetToContent.erase(existing);
+    }
+
+    void ShaderCache::AdvanceGeneration(ShaderAssetId assetId)
+    {
+        u32& generation = m_generations[assetId];
+        ++generation;
+        if (generation == 0) ++generation;
+    }
+
     void ShaderCache::RemoveAliasesForContent(ShaderAssetId contentId)
     {
         for (auto iterator = m_assetToContent.begin(); iterator != m_assetToContent.end();)
         {
             if (iterator->second == contentId)
             {
+                AdvanceGeneration(iterator->first);
                 iterator = m_assetToContent.erase(iterator);
             }
             else

@@ -61,6 +61,7 @@ namespace Pyramid
 
         std::shared_ptr<ShaderProgram> Find(ShaderAssetId assetId) const;
         bool Contains(ShaderAssetId assetId) const;
+        u32 GetGeneration(ShaderAssetId assetId) const;
         bool Evict(ShaderAssetId assetId);
         u32 CollectUnused();
         u32 Clear();
@@ -75,9 +76,13 @@ namespace Pyramid
         };
 
         void RemoveAliasesForContent(ShaderAssetId contentId);
+        void BindAlias(ShaderAssetId assetId, ShaderAssetId contentId);
+        void InvalidateAlias(ShaderAssetId assetId);
+        void AdvanceGeneration(ShaderAssetId assetId);
 
         IGraphicsDevice* m_device = nullptr;
         std::unordered_map<ShaderAssetId, ShaderAssetId, ShaderAssetIdHash> m_assetToContent;
+        std::unordered_map<ShaderAssetId, u32, ShaderAssetIdHash> m_generations;
         std::unordered_map<ShaderAssetId, Resident, ShaderAssetIdHash> m_residents;
 
         u64 m_cacheHits = 0;

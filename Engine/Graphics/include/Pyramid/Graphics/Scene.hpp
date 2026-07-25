@@ -4,6 +4,7 @@
 #include <Pyramid/Core/Prerequisites.hpp>
 #include <Pyramid/Graphics/Renderer/RenderSystem.hpp>
 #include <Pyramid/Graphics/Material/Material.hpp>
+#include <Pyramid/Graphics/Resources/ResourceHandle.hpp>
 #include <vector>
 #include <memory>
 #include <string>
@@ -13,6 +14,7 @@ namespace Pyramid
     // Forward declarations
     class Mesh;
     class ITexture2D;
+    class ResourceRegistry;
 
     enum class RenderBoundsMode
     {
@@ -30,14 +32,20 @@ namespace Pyramid
         Math::Quat rotation = Math::Quat::Identity;
         Math::Vec3 scale = Math::Vec3::One;
 
-        // Rendering data
+        // Rendering data. Direct owners remain supported for compatibility;
+        // handle-backed objects resolve through ResourceRegistry at render time.
         std::shared_ptr<Mesh> mesh;
         std::shared_ptr<Material> material;
+        MeshHandle meshHandle;
+        MaterialHandle materialHandle;
 
         // Fallback/manual local-space bounds. Automatic mode uses immutable mesh bounds.
         Math::Vec3 localBoundsMin = Math::Vec3(-0.5f);
         Math::Vec3 localBoundsMax = Math::Vec3(0.5f);
         RenderBoundsMode boundsMode = RenderBoundsMode::Automatic;
+        Math::Vec3 handleBoundsMin = Math::Vec3(-0.5f);
+        Math::Vec3 handleBoundsMax = Math::Vec3(0.5f);
+        bool hasHandleBounds = false;
 
         // Metadata
         std::string name;
@@ -52,6 +60,10 @@ namespace Pyramid
         void SetLocalBounds(const Math::Vec3 &minPoint, const Math::Vec3 &maxPoint);
         void UseAutomaticBounds() { boundsMode = RenderBoundsMode::Automatic; }
         RenderBoundsMode GetBoundsMode() const { return boundsMode; }
+        bool SetMeshHandle(MeshHandle handle, const ResourceRegistry& registry);
+        bool SetMaterialHandle(MaterialHandle handle, const ResourceRegistry& registry);
+        std::shared_ptr<Mesh> ResolveMesh(const ResourceRegistry* registry) const;
+        std::shared_ptr<Material> ResolveMaterial(const ResourceRegistry* registry) const;
         bool TryGetGeometryBounds(Math::Vec3 &minPoint, Math::Vec3 &maxPoint) const;
         bool GetLocalBounds(Math::Vec3 &minPoint, Math::Vec3 &maxPoint) const;
         void GetWorldBounds(Math::Vec3 &minPoint, Math::Vec3 &maxPoint) const;

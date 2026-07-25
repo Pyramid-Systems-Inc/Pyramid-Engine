@@ -75,19 +75,19 @@ namespace Pyramid
                 ++m_cacheHits;
                 return resident->second.texture;
             }
-            m_aliases.erase(alias);
+            InvalidateAlias(assetId);
         }
 
         const auto matching = m_residents.find(contentId);
         if (matching != m_residents.end())
         {
-            m_aliases.emplace(contentId, AliasRecord{contentId, false, {}});
+            BindAlias(contentId, AliasRecord{contentId, false, {}});
             AliasRecord requested{contentId, fileSource != nullptr, {}};
             if (fileSource)
             {
                 requested.fileSource = *fileSource;
             }
-            m_aliases[assetId] = std::move(requested);
+            BindAlias(assetId, std::move(requested));
             ++m_cacheHits;
             return matching->second.texture;
         }
@@ -101,13 +101,13 @@ namespace Pyramid
         }
 
         m_residents.emplace(contentId, Resident{texture});
-        m_aliases.emplace(contentId, AliasRecord{contentId, false, {}});
+        BindAlias(contentId, AliasRecord{contentId, false, {}});
         AliasRecord requested{contentId, fileSource != nullptr, {}};
         if (fileSource)
         {
             requested.fileSource = *fileSource;
         }
-        m_aliases[assetId] = std::move(requested);
+        BindAlias(assetId, std::move(requested));
         ++m_texturesCreated;
         return texture;
     }
@@ -210,10 +210,10 @@ namespace Pyramid
         const auto existing = m_residents.find(replacementContentId);
         if (existing != m_residents.end())
         {
-            alias->second.contentId = replacementContentId;
-            alias->second.hasFileSource = true;
-            alias->second.fileSource = fileSource;
-            m_aliases.emplace(
+            BindAlias(
+                stableAssetId,
+                AliasRecord{replacementContentId, true, fileSource});
+            BindAlias(
                 replacementContentId,
                 AliasRecord{replacementContentId, false, {}});
             ++m_cacheHits;
@@ -234,13 +234,12 @@ namespace Pyramid
         }
 
         m_residents.emplace(replacementContentId, Resident{replacement});
-        m_aliases.emplace(
+        BindAlias(
             replacementContentId,
             AliasRecord{replacementContentId, false, {}});
-        alias = m_aliases.find(stableAssetId);
-        alias->second.contentId = replacementContentId;
-        alias->second.hasFileSource = true;
-        alias->second.fileSource = fileSource;
+        BindAlias(
+            stableAssetId,
+            AliasRecord{replacementContentId, true, fileSource});
         ++m_texturesCreated;
         ++m_reloadSuccesses;
         return true;
@@ -264,6 +263,12 @@ namespace Pyramid
     bool TextureCache::Contains(TextureAssetId assetId) const
     {
         return Find(assetId) != nullptr;
+    }
+
+    u32 TextureCache::GetGeneration(TextureAssetId assetId) const
+    {
+        const auto generation = m_generations.find(assetId);
+        return generation == m_generations.end() ? 0 : generation->second;
     }
 
     bool TextureCache::Evict(TextureAssetId assetId)
@@ -304,6 +309,10 @@ namespace Pyramid
     u32 TextureCache::Clear()
     {
         const u32 removed = static_cast<u32>(m_residents.size());
+        for (const auto& alias : m_aliases)
+        {
+            AdvanceGeneration(alias.first);
+        }
         m_residents.clear();
         m_aliases.clear();
         m_evictions += removed;
@@ -343,12 +352,42 @@ namespace Pyramid
         return stats;
     }
 
+    void TextureCache::BindAlias(TextureAssetId assetId, AliasRecord record)
+    {
+        const auto existing = m_aliases.find(assetId);
+        if (existing != m_aliases.end() &&
+            existing->second.contentId == record.contentId)
+        {
+            existing->second = std::move(record);
+            return;
+        }
+
+        m_aliases[assetId] = std::move(record);
+        AdvanceGeneration(assetId);
+    }
+
+    void TextureCache::InvalidateAlias(TextureAssetId assetId)
+    {
+        const auto existing = m_aliases.find(assetId);
+        if (existing == m_aliases.end()) return;
+        AdvanceGeneration(assetId);
+        m_aliases.erase(existing);
+    }
+
+    void TextureCache::AdvanceGeneration(TextureAssetId assetId)
+    {
+        u32& generation = m_generations[assetId];
+        ++generation;
+        if (generation == 0) ++generation;
+    }
+
     void TextureCache::RemoveAliasesForContent(TextureAssetId contentId)
     {
         for (auto iterator = m_aliases.begin(); iterator != m_aliases.end();)
         {
             if (iterator->second.contentId == contentId)
             {
+                AdvanceGeneration(iterator->first);
                 iterator = m_aliases.erase(iterator);
             }
             else

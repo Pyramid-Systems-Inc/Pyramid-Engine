@@ -23,7 +23,7 @@ namespace Pyramid
         , m_renderSurfaceAvailable(false)
     {
         PYRAMID_LOG_INFO("Initializing Pyramid Game Engine...");
-        
+
         // Create window first
         if (api == GraphicsAPI::OpenGL)
         {
@@ -84,7 +84,7 @@ namespace Pyramid
         {
             m_window->SetResizeCallback({});
         }
-        
+
         // Release materials before textures/shaders/meshes, then shut down
         // the graphics device while the native context is still alive.
         m_resourceRegistry.reset();
@@ -94,17 +94,17 @@ namespace Pyramid
         {
             m_graphicsDevice->Shutdown();
         }
-        
+
         // Smart pointers will handle cleanup automatically
         // Order: m_graphicsDevice first, then m_window (based on declaration order)
-        
+
         PYRAMID_LOG_INFO("Game engine shutdown complete");
     }
 
     void Game::onCreate()
     {
         PYRAMID_LOG_INFO("Calling Game::onCreate()");
-        
+
         // Validate that construction was successful
         if (!m_window)
         {
@@ -112,14 +112,14 @@ namespace Pyramid
             m_isRunning = false;
             return;
         }
-        
+
         if (!m_graphicsDevice)
         {
             PYRAMID_LOG_CRITICAL("Graphics device is null - constructor may have failed");
             m_isRunning = false;
             return;
         }
-        
+
         // Initialize graphics device
         if (!m_graphicsDevice->Initialize())
         {
@@ -128,7 +128,7 @@ namespace Pyramid
             m_initialized = false;  // Mark as not initialized
             return;
         }
-        
+
         PYRAMID_LOG_INFO("Game onCreate completed successfully");
         m_isRunning = true;
     }
@@ -171,6 +171,10 @@ namespace Pyramid
     void Game::SetRenderSystem(Renderer::RenderSystem* renderSystem)
     {
         m_renderSystem = renderSystem;
+        if (m_renderSystem)
+        {
+            m_renderSystem->SetResourceRegistry(m_resourceRegistry.get());
+        }
         if (!m_renderSystem || !m_window)
         {
             return;
@@ -231,14 +235,14 @@ namespace Pyramid
     void Game::run()
     {
         PYRAMID_LOG_INFO("Starting game loop...");
-        
+
         // Check if the game was properly initialized
         if (!IsInitialized())
         {
             PYRAMID_LOG_ERROR("Game engine not properly initialized. Cannot start game loop.");
             return;
         }
-        
+
         // Call onCreate which handles graphics device initialization
         onCreate();
 
@@ -274,7 +278,7 @@ namespace Pyramid
 
             // Update game logic
             onUpdate(deltaTime);
-            
+
             // Render only while the client area is valid. Minimized Win32
             // windows report a zero-sized surface; skipping presentation avoids
             // invalid viewport/projection work and prevents a busy render loop.

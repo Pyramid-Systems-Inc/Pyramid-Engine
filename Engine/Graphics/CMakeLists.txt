@@ -51,6 +51,7 @@ target_sources(PyramidEngine
         include/Pyramid/Graphics/Shader/ShaderCache.hpp
         include/Pyramid/Graphics/Material/Material.hpp
         include/Pyramid/Graphics/Material/MaterialCache.hpp
+        include/Pyramid/Graphics/Resources/ResourceHandle.hpp
         include/Pyramid/Graphics/Resources/ResourceRegistry.hpp
         include/Pyramid/Graphics/Texture.hpp
         include/Pyramid/Graphics/Texture/TextureResource.hpp

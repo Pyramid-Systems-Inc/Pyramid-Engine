@@ -10,7 +10,7 @@ Demonstrates:
 
 - deriving from `Pyramid::Game`;
 - base lifecycle initialization;
-- game-owned mesh/shader/texture/material cache access through `ResourceRegistry`;
+- game-owned cache access and generation-checked mesh/material handles through `ResourceRegistry`;
 - stable shader-program compilation and reuse through the registry shader cache;
 - engine-owned indexed mesh creation with validated layout, topology, draw count, and local bounds;
 - content-derived mesh-cache reuse: the cube and floor request identical geometry but perform one GPU upload;
@@ -41,6 +41,7 @@ Location: `Examples/BasicRendering`
 This is the lower-level reference rendering path. It demonstrates:
 
 - one game-owned `ResourceRegistry` instead of four manually ordered cache owners;
+- typed resource handles suitable for scene-facing references without long-lived mesh/material ownership;
 - inline GLSL 3.30 shaders compiled through a stable shader-cache asset ID;
 - an engine-owned cube mesh with position, normal, texture-coordinate, and color attributes;
 - caller-defined stable mesh and shader asset identifiers resolved through their graphics-device-bound caches;

@@ -4,6 +4,14 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### Typed generation-checked resource handles
+
+- Added serializable, non-owning `MeshHandle`, `ShaderHandle`, `TextureHandle`, and `MaterialHandle` value types containing a stable asset ID and alias generation.
+- Added handle-first registry acquisition, generation-checked resolution, liveness checks, eviction, shader recompilation, texture reload, and material replacement; stale handles resolve to `nullptr` instead of silently adopting replacement content.
+- Added persistent per-alias generation tombstones to all four caches so eviction, collection, clearing, direct cache mutation, and alias replacement invalidate previously issued handles even when the same stable ID is later reused.
+- Added handle-backed `RenderObject` mesh/material references and renderer resolution through the registered `ResourceRegistry`; cached mesh bounds preserve culling data without retaining a resource owner.
+- Added `Graphics.ResourceHandles` coverage for typed identity, non-owning lifetime, direct-cache invalidation, replacement generations, forged/stale handle rejection, scene integration, and registry clearing.
+
 ### Central graphics resource registry
 
 - Added `ResourceRegistry`, the authoritative owner of mesh, shader, texture, and material caches for one graphics device.

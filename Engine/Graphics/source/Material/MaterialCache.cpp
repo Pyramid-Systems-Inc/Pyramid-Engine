@@ -65,14 +65,14 @@ namespace Pyramid
             }
 
             // Repair a stale alias defensively.
-            m_assetToContent.erase(alias);
+            InvalidateAlias(assetId);
         }
 
         const auto matchingContent = m_residents.find(contentId);
         if (matchingContent != m_residents.end())
         {
-            m_assetToContent.emplace(contentId, contentId);
-            m_assetToContent.emplace(assetId, contentId);
+            BindAlias(contentId, contentId);
+            BindAlias(assetId, contentId);
             ++m_cacheHits;
             return matchingContent->second.material;
         }
@@ -86,8 +86,8 @@ namespace Pyramid
         }
 
         m_residents.emplace(contentId, Resident{material});
-        m_assetToContent.emplace(contentId, contentId);
-        m_assetToContent.emplace(assetId, contentId);
+        BindAlias(contentId, contentId);
+        BindAlias(assetId, contentId);
         ++m_materialsCreated;
         return material;
     }
@@ -155,8 +155,8 @@ namespace Pyramid
         const auto matchingContent = m_residents.find(replacementContentId);
         if (matchingContent != m_residents.end())
         {
-            m_assetToContent[stableAssetId] = replacementContentId;
-            m_assetToContent.emplace(replacementContentId, replacementContentId);
+            BindAlias(stableAssetId, replacementContentId);
+            BindAlias(replacementContentId, replacementContentId);
             ++m_cacheHits;
             ++m_replacementSuccesses;
             ++m_replacementReuses;
@@ -172,8 +172,8 @@ namespace Pyramid
         }
 
         m_residents.emplace(replacementContentId, Resident{replacementMaterial});
-        m_assetToContent.emplace(replacementContentId, replacementContentId);
-        m_assetToContent[stableAssetId] = replacementContentId;
+        BindAlias(replacementContentId, replacementContentId);
+        BindAlias(stableAssetId, replacementContentId);
         ++m_materialsCreated;
         ++m_replacementSuccesses;
         return true;
@@ -199,6 +199,12 @@ namespace Pyramid
     bool MaterialCache::Contains(MaterialAssetId assetId) const
     {
         return Find(assetId) != nullptr;
+    }
+
+    u32 MaterialCache::GetGeneration(MaterialAssetId assetId) const
+    {
+        const auto generation = m_generations.find(assetId);
+        return generation == m_generations.end() ? 0 : generation->second;
     }
 
     bool MaterialCache::Evict(MaterialAssetId assetId)
@@ -241,6 +247,10 @@ namespace Pyramid
     u32 MaterialCache::Clear()
     {
         const u32 removed = static_cast<u32>(m_residents.size());
+        for (const auto& alias : m_assetToContent)
+        {
+            AdvanceGeneration(alias.first);
+        }
         m_residents.clear();
         m_assetToContent.clear();
         m_evictions += removed;
@@ -285,12 +295,39 @@ namespace Pyramid
         return stats;
     }
 
+    void MaterialCache::BindAlias(MaterialAssetId assetId, MaterialAssetId contentId)
+    {
+        const auto existing = m_assetToContent.find(assetId);
+        if (existing != m_assetToContent.end() && existing->second == contentId)
+        {
+            return;
+        }
+        m_assetToContent[assetId] = contentId;
+        AdvanceGeneration(assetId);
+    }
+
+    void MaterialCache::InvalidateAlias(MaterialAssetId assetId)
+    {
+        const auto existing = m_assetToContent.find(assetId);
+        if (existing == m_assetToContent.end()) return;
+        AdvanceGeneration(assetId);
+        m_assetToContent.erase(existing);
+    }
+
+    void MaterialCache::AdvanceGeneration(MaterialAssetId assetId)
+    {
+        u32& generation = m_generations[assetId];
+        ++generation;
+        if (generation == 0) ++generation;
+    }
+
     void MaterialCache::RemoveAliasesForContent(MaterialAssetId contentId)
     {
         for (auto iterator = m_assetToContent.begin(); iterator != m_assetToContent.end();)
         {
             if (iterator->second == contentId)
             {
+                AdvanceGeneration(iterator->first);
                 iterator = m_assetToContent.erase(iterator);
             }
             else

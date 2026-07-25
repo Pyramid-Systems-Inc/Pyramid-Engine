@@ -17,7 +17,7 @@ namespace Renderer { class RenderSystem; }
 /**
  * @class Game
  * @brief Core game engine class that manages the game loop and graphics device
- * 
+ *
  * This class serves as the main entry point for the game engine functionality.
  * It manages the graphics device and main game loop.
  * Inherit from this class to create your own game implementation.

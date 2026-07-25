@@ -69,6 +69,7 @@ Primary headers:
 - `Pyramid/Graphics/Geometry/MeshCache.hpp`
 - `Pyramid/Graphics/Material/Material.hpp`
 - `Pyramid/Graphics/Material/MaterialCache.hpp`
+- `Pyramid/Graphics/Resources/ResourceHandle.hpp`
 - `Pyramid/Graphics/Resources/ResourceRegistry.hpp`
 
 ### Shader programs
@@ -226,6 +227,43 @@ auto material = resources->Materials().GetOrCreate(materialSpec);
 ```
 
 The registry is the preferred application-level entry point for reusable graphics assets. It guarantees dependency-safe teardown and maintenance ordering: materials first, then textures, shaders, and meshes. `CollectUnused()` removes cache-only resources while preserving dependencies referenced by externally owned materials. `Clear()` removes every cached alias/resource without invalidating external `shared_ptr` owners. Those external owners must still be released before the graphics device/context. `GetStats()` aggregates all four cache snapshots and reports estimated total resident bytes.
+
+For scene, serialization, and long-lived asset references, acquire typed non-owning handles instead of retaining cache identifiers or resource owners:
+
+```cpp
+auto meshHandle = resources->AcquireMesh(meshSpec);
+auto materialHandle = resources->AcquireMaterial(materialSpec);
+
+if (auto mesh = resources->Resolve(meshHandle))
+{
+    // The alias still exists and its generation matches the handle.
+}
+
+if (!resources->IsAlive(materialHandle))
+{
+    // The resource was evicted, collected, cleared, or replaced.
+}
+```
+
+`MeshHandle`, `ShaderHandle`, `TextureHandle`, and `MaterialHandle` contain a stable asset identifier and a non-zero alias generation. They are small serializable value types and do not keep GPU resources alive. Alias creation, remapping, eviction, collection, and clearing advance persistent generation tombstones; therefore a stale handle never resolves to a later resource that reused the same stable ID. `FromParts()` reconstructs a handle from serialized ID/generation data.
+
+Mutations return a new current-generation handle and leave the previous handle stale when content changes:
+
+```cpp
+shaderHandle = resources->RecompileShader(shaderHandle, replacementShader);
+textureHandle = resources->ReloadTexture(textureHandle);
+materialHandle = resources->ReplaceMaterial(materialHandle, replacementMaterial);
+```
+
+Handle-backed scene objects avoid long-lived resource ownership while retaining mesh bounds for culling:
+
+```cpp
+auto object = std::make_shared<Pyramid::RenderObject>();
+object->SetMeshHandle(meshHandle, *resources);
+object->SetMaterialHandle(materialHandle, *resources);
+```
+
+Register the render system through `Game::SetRenderSystem()` so render passes receive the same registry and resolve handles at submission time. A stale mesh or material handle causes that object to be skipped rather than bound to unrelated replacement content. Assigning a newly issued mesh handle refreshes the cached local bounds.
 
 Standalone cache construction remains available for tooling and focused tests, but a registry must always be destroyed before its graphics device and native context.
 

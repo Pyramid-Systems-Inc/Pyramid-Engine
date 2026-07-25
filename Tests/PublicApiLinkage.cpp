@@ -15,6 +15,7 @@
 #include <Pyramid/Graphics/Renderer/RenderSystem.hpp>
 #include <Pyramid/Graphics/Material/Material.hpp>
 #include <Pyramid/Graphics/Material/MaterialCache.hpp>
+#include <Pyramid/Graphics/Resources/ResourceHandle.hpp>
 #include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
 
 #include <memory>
@@ -92,6 +93,8 @@ namespace
         &Pyramid::TextureCache::Clear;
     volatile decltype(&Pyramid::TextureCache::GetStats) g_getTextureCacheStats =
         &Pyramid::TextureCache::GetStats;
+    volatile decltype(&Pyramid::TextureCache::GetGeneration) g_getTextureGeneration =
+        &Pyramid::TextureCache::GetGeneration;
 
     volatile decltype(&SceneManager::LoadScene) g_loadScene = &SceneManager::LoadScene;
     volatile decltype(&SceneManager::SaveScene) g_saveScene = &SceneManager::SaveScene;
@@ -149,6 +152,14 @@ namespace
         &Pyramid::RenderObject::UseAutomaticBounds;
     volatile decltype(&Pyramid::RenderObject::GetWorldBounds) g_getRenderObjectWorldBounds =
         &Pyramid::RenderObject::GetWorldBounds;
+    volatile decltype(&Pyramid::RenderObject::SetMeshHandle) g_setRenderObjectMeshHandle =
+        &Pyramid::RenderObject::SetMeshHandle;
+    volatile decltype(&Pyramid::RenderObject::SetMaterialHandle) g_setRenderObjectMaterialHandle =
+        &Pyramid::RenderObject::SetMaterialHandle;
+    volatile decltype(&Pyramid::RenderObject::ResolveMesh) g_resolveRenderObjectMesh =
+        &Pyramid::RenderObject::ResolveMesh;
+    volatile decltype(&Pyramid::RenderObject::ResolveMaterial) g_resolveRenderObjectMaterial =
+        &Pyramid::RenderObject::ResolveMaterial;
     volatile decltype(&Pyramid::Geometry::CalculateLocalBounds) g_calculateGeometryBounds =
         &Pyramid::Geometry::CalculateLocalBounds;
     using MeshAssetIdFromString = Pyramid::MeshAssetId (*)(std::string_view);
@@ -174,6 +185,8 @@ namespace
         &Pyramid::MeshCache::Clear;
     volatile decltype(&Pyramid::MeshCache::GetStats) g_getMeshCacheStats =
         &Pyramid::MeshCache::GetStats;
+    volatile decltype(&Pyramid::MeshCache::GetGeneration) g_getMeshGeneration =
+        &Pyramid::MeshCache::GetGeneration;
     using ShaderAssetIdFromString = Pyramid::ShaderAssetId (*)(std::string_view);
     volatile ShaderAssetIdFromString g_shaderAssetIdFromString =
         static_cast<ShaderAssetIdFromString>(&Pyramid::ShaderAssetId::FromString);
@@ -199,6 +212,8 @@ namespace
         &Pyramid::ShaderCache::Clear;
     volatile decltype(&Pyramid::ShaderCache::GetStats) g_getShaderCacheStats =
         &Pyramid::ShaderCache::GetStats;
+    volatile decltype(&Pyramid::ShaderCache::GetGeneration) g_getShaderGeneration =
+        &Pyramid::ShaderCache::GetGeneration;
     using MaterialAssetIdFromString = Pyramid::MaterialAssetId (*)(std::string_view);
     volatile MaterialAssetIdFromString g_materialAssetIdFromString =
         static_cast<MaterialAssetIdFromString>(&Pyramid::MaterialAssetId::FromString);
@@ -224,6 +239,42 @@ namespace
         &Pyramid::MaterialCache::Clear;
     volatile decltype(&Pyramid::MaterialCache::GetStats) g_getMaterialCacheStats =
         &Pyramid::MaterialCache::GetStats;
+    volatile decltype(&Pyramid::MaterialCache::GetGeneration) g_getMaterialGeneration =
+        &Pyramid::MaterialCache::GetGeneration;
+    using AcquireTextureMemory = Pyramid::TextureHandle (Pyramid::ResourceRegistry::*)(
+        const Pyramid::TextureResourceSpecification&);
+    using AcquireTextureFile = Pyramid::TextureHandle (Pyramid::ResourceRegistry::*)(
+        const Pyramid::TextureFileSpecification&);
+    volatile decltype(&Pyramid::ResourceRegistry::AcquireMesh) g_acquireMeshHandle =
+        &Pyramid::ResourceRegistry::AcquireMesh;
+    volatile decltype(&Pyramid::ResourceRegistry::AcquireShader) g_acquireShaderHandle =
+        &Pyramid::ResourceRegistry::AcquireShader;
+    volatile AcquireTextureMemory g_acquireMemoryTextureHandle =
+        static_cast<AcquireTextureMemory>(&Pyramid::ResourceRegistry::AcquireTexture);
+    volatile AcquireTextureFile g_acquireFileTextureHandle =
+        static_cast<AcquireTextureFile>(&Pyramid::ResourceRegistry::AcquireTexture);
+    volatile decltype(&Pyramid::ResourceRegistry::AcquireMaterial) g_acquireMaterialHandle =
+        &Pyramid::ResourceRegistry::AcquireMaterial;
+    using ResolveMeshHandle = std::shared_ptr<Pyramid::Mesh>
+        (Pyramid::ResourceRegistry::*)(Pyramid::MeshHandle) const;
+    using ResolveShaderHandle = std::shared_ptr<Pyramid::ShaderProgram>
+        (Pyramid::ResourceRegistry::*)(Pyramid::ShaderHandle) const;
+    using ResolveTextureHandle = std::shared_ptr<Pyramid::TextureResource>
+        (Pyramid::ResourceRegistry::*)(Pyramid::TextureHandle) const;
+    using ResolveMaterialHandle = std::shared_ptr<Pyramid::Material>
+        (Pyramid::ResourceRegistry::*)(Pyramid::MaterialHandle) const;
+    volatile ResolveMeshHandle g_resolveMeshHandle =
+        static_cast<ResolveMeshHandle>(&Pyramid::ResourceRegistry::Resolve);
+    volatile ResolveShaderHandle g_resolveShaderHandle =
+        static_cast<ResolveShaderHandle>(&Pyramid::ResourceRegistry::Resolve);
+    volatile ResolveTextureHandle g_resolveTextureHandle =
+        static_cast<ResolveTextureHandle>(&Pyramid::ResourceRegistry::Resolve);
+    volatile ResolveMaterialHandle g_resolveMaterialHandle =
+        static_cast<ResolveMaterialHandle>(&Pyramid::ResourceRegistry::Resolve);
+    volatile decltype(&Pyramid::ResourceRegistry::RecompileShader) g_recompileShaderHandle =
+        &Pyramid::ResourceRegistry::RecompileShader;
+    volatile decltype(&Pyramid::ResourceRegistry::ReplaceMaterial) g_replaceMaterialHandle =
+        &Pyramid::ResourceRegistry::ReplaceMaterial;
     volatile decltype(&Pyramid::ResourceRegistry::CollectUnused) g_collectUnusedResources =
         &Pyramid::ResourceRegistry::CollectUnused;
     volatile decltype(&Pyramid::ResourceRegistry::Clear) g_clearResourceRegistry =
@@ -256,6 +307,8 @@ namespace
         &Pyramid::Renderer::RenderTarget::Resize;
     volatile decltype(&Pyramid::Renderer::RenderSystem::Resize) g_resizeRenderSystem =
         &Pyramid::Renderer::RenderSystem::Resize;
+    volatile decltype(&Pyramid::Renderer::RenderSystem::SetResourceRegistry) g_setRenderResourceRegistry =
+        &Pyramid::Renderer::RenderSystem::SetResourceRegistry;
     volatile decltype(&GameLinkageProbe::SetRenderSystem) g_setRenderSystem =
         &GameLinkageProbe::SetRenderSystem;
     volatile decltype(&Pyramid::SceneNode::SetLocalPosition) g_setNodeLocalPosition =
@@ -293,6 +346,7 @@ int main()
                    g_collectUnusedTextures &&
                    g_clearTextureCache &&
                    g_getTextureCacheStats &&
+                   g_getTextureGeneration &&
                    g_loadScene &&
                    g_saveScene &&
                    g_getObjectsInBox &&
@@ -325,6 +379,10 @@ int main()
                    g_getRenderObjectLocalBounds &&
                    g_useAutomaticBounds &&
                    g_getRenderObjectWorldBounds &&
+                   g_setRenderObjectMeshHandle &&
+                   g_setRenderObjectMaterialHandle &&
+                   g_resolveRenderObjectMesh &&
+                   g_resolveRenderObjectMaterial &&
                    g_calculateGeometryBounds &&
                    g_meshAssetIdFromString &&
                    g_meshAssetIdToString &&
@@ -338,6 +396,7 @@ int main()
                    g_collectUnusedMeshes &&
                    g_clearMeshCache &&
                    g_getMeshCacheStats &&
+                   g_getMeshGeneration &&
                    g_shaderAssetIdFromString &&
                    g_shaderAssetIdToString &&
                    g_calculateShaderContentId &&
@@ -350,6 +409,7 @@ int main()
                    g_collectUnusedShaders &&
                    g_clearShaderCache &&
                    g_getShaderCacheStats &&
+                   g_getShaderGeneration &&
                    g_materialAssetIdFromString &&
                    g_materialAssetIdToString &&
                    g_calculateMaterialContentId &&
@@ -362,6 +422,18 @@ int main()
                    g_collectUnusedMaterials &&
                    g_clearMaterialCache &&
                    g_getMaterialCacheStats &&
+                   g_getMaterialGeneration &&
+                   g_acquireMeshHandle &&
+                   g_acquireShaderHandle &&
+                   g_acquireMemoryTextureHandle &&
+                   g_acquireFileTextureHandle &&
+                   g_acquireMaterialHandle &&
+                   g_resolveMeshHandle &&
+                   g_resolveShaderHandle &&
+                   g_resolveTextureHandle &&
+                   g_resolveMaterialHandle &&
+                   g_recompileShaderHandle &&
+                   g_replaceMaterialHandle &&
                    g_collectUnusedResources &&
                    g_clearResourceRegistry &&
                    g_getResourceRegistryStats &&
@@ -376,6 +448,7 @@ int main()
                    g_resizeFramebuffer &&
                    g_resizeRenderTarget &&
                    g_resizeRenderSystem &&
+                   g_setRenderResourceRegistry &&
                    g_setRenderSystem &&
                    g_setNodeLocalPosition &&
                    g_setNodeLocalRotation &&

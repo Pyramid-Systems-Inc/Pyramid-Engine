@@ -68,6 +68,7 @@ namespace Pyramid
 
         std::shared_ptr<Mesh> Find(MeshAssetId assetId) const;
         bool Contains(MeshAssetId assetId) const;
+        u32 GetGeneration(MeshAssetId assetId) const;
 
         /**
          * @brief Evict the resolved mesh and all identifiers that alias it.
@@ -97,9 +98,13 @@ namespace Pyramid
         };
 
         void RemoveAliasesForContent(MeshAssetId contentId);
+        void BindAlias(MeshAssetId assetId, MeshAssetId contentId);
+        void InvalidateAlias(MeshAssetId assetId);
+        void AdvanceGeneration(MeshAssetId assetId);
 
         IGraphicsDevice* m_device = nullptr;
         std::unordered_map<MeshAssetId, MeshAssetId, MeshAssetIdHash> m_assetToContent;
+        std::unordered_map<MeshAssetId, u32, MeshAssetIdHash> m_generations;
         std::unordered_map<MeshAssetId, Resident, MeshAssetIdHash> m_residents;
 
         u64 m_cacheHits = 0;

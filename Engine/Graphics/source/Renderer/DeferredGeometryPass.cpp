@@ -162,8 +162,9 @@ namespace Pyramid
             {
                 if (!object || !object->visible) continue;
 
-                // Skip objects without geometry
-                if (!object->mesh || !object->mesh->IsValid()) {
+                const auto mesh = object->ResolveMesh(m_resources);
+                if (!mesh || !mesh->IsValid())
+                {
                     PYRAMID_LOG_WARN("Object '", object->name, "' has no valid mesh, skipping");
                     continue;
                 }
@@ -173,7 +174,8 @@ namespace Pyramid
                     PYRAMID_LOG_WARN("Geometry shader not available");
                     continue;
                 }
-                if (!object->material || !object->material->IsValid())
+                const auto material = object->ResolveMaterial(m_resources);
+                if (!material || !material->IsValid())
                 {
                     PYRAMID_LOG_WARN("Object '", object->name, "' has no valid material, skipping");
                     continue;
@@ -189,8 +191,8 @@ namespace Pyramid
                 cmd.SetUniformInt("u_HasMetallicRoughnessMap", 0);
                 cmd.SetUniformInt("u_HasAOMap", 0);
                 cmd.SetUniformInt("u_HasEmissiveMap", 0);
-                cmd.SetMaterial(object->material.get(), false);
-                for (const auto& binding : object->material->GetTextures())
+                cmd.SetMaterial(material.get(), false);
+                for (const auto& binding : material->GetTextures())
                 {
                     if (binding.uniformName == "u_AlbedoMap") cmd.SetUniformInt("u_HasAlbedoMap", 1);
                     else if (binding.uniformName == "u_NormalMap") cmd.SetUniformInt("u_HasNormalMap", 1);
@@ -202,7 +204,7 @@ namespace Pyramid
                 cmd.SetUniformMat4("u_ViewProjection", viewProj);
                 cmd.SetUniformMat4("u_NormalMatrix", normalMatrix);
 
-                cmd.DrawMesh(*object->mesh);
+                cmd.DrawMesh(*mesh);
             }
         }
 
