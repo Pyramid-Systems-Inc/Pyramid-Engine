@@ -18,14 +18,14 @@ The project is intended for engine development and experimentation. It is not ye
 | Scene | Scene graph, render objects, lights, scene manager, and octree queries |
 | Math | Vectors, matrices, quaternions, geometry helpers, and SIMD-oriented utilities |
 | Images | TGA/BMP subsets, custom non-interlaced PNG, and libjpeg-turbo JPEG decoding |
-| Tests | 28 CTest targets: 5 image/utility tests plus API linkage and focused graphics/platform coverage |
+| Tests | 29 CTest targets: 5 image/utility tests plus API linkage and focused graphics/platform coverage |
 | CI | GCC and Clang, Debug and Release, package install, and external-consumer validation |
 
 ## Implemented
 
 - Application lifecycle and frame loop through `Pyramid::Game`.
 - Win32 window creation, resize-event delivery, resize-safe viewport updates, visibility, positioning, and WGL context management.
-- OpenGL device, a game-owned `ResourceRegistry`, generation-checked typed resource handles, versioned resource manifests, engine-owned mesh and material resources, stable resource identifiers, content-deduplicating mesh, shader-program, texture, and material caches, buffers, vertex arrays, shaders, textures, resize-safe framebuffers, and state caching.
+- OpenGL device, a game-owned `ResourceRegistry`, generation-checked typed resource handles, versioned resource manifests and render-object scene serialization, engine-owned mesh and material resources, stable resource identifiers, content-deduplicating mesh, shader-program, texture, and material caches, buffers, vertex arrays, shaders, textures, resize-safe framebuffers, and state caching.
 - Forward, cascaded-shadow, deferred-geometry, and deferred-lighting passes.
 - Perspective and orthographic cameras with normalized world-space frusta and point/sphere/AABB visibility tests.
 - Bounds-aware point, sphere, box, ray, nearest-object, and K-nearest scene queries with octree/linear parity.
@@ -39,7 +39,7 @@ The project is intended for engine development and experimentation. It is not ye
 - DirectX and Vulkan enum values are reserved; only OpenGL is implemented.
 - Linux and macOS builds are rejected explicitly.
 - Compute dispatch is recorded by the command buffer but is not executed by OpenGL.
-- Scene persistence methods fail explicitly because serialization is not implemented.
+- `SceneSerializer` persists the flat render-object list; `SceneManager` JSON/XML/Binary convenience methods and scene-node/light/environment persistence remain unsupported.
 - Occlusion culling remains a placeholder and is disabled by default.
 - `ITexture2D::CreateDepthTarget` fails explicitly; use the framebuffer API for depth attachments.
 - JPEG decoding requires the open-source libjpeg-turbo package installed by the MSYS2 bootstrap script.

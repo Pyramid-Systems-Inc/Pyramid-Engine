@@ -72,7 +72,8 @@ The current `0.6.0-pre-alpha` baseline includes:
 - [x] Use full object bounds and branch pruning for nearest-object and K-nearest queries.
 - [x] Add focused octree tests for transactional bounds, depth, and capacity changes.
 - [x] Add automatic octree branch compaction and structural health metrics.
-- Implement scene persistence only after a stable resource identity model exists.
+- [x] Add versioned flat render-object scene serialization using resource-manifest keys, transactional parsing, and missing/stale resource diagnostics.
+- Add scene-node hierarchy, light, environment, and editor metadata persistence on top of the versioned scene format.
 
 ## P1 — stable OpenGL core
 

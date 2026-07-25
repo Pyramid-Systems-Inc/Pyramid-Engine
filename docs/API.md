@@ -72,6 +72,7 @@ Primary headers:
 - `Pyramid/Graphics/Resources/ResourceHandle.hpp`
 - `Pyramid/Graphics/Resources/ResourceManifest.hpp`
 - `Pyramid/Graphics/Resources/ResourceRegistry.hpp`
+- `Pyramid/Graphics/Scene/SceneSerializer.hpp`
 
 ### Shader programs
 
@@ -298,6 +299,38 @@ const auto report = restored.Restore(*resources);
 
 Manifest keys are caller-owned stable reference names containing letters, digits, `.`, `_`, `-`, or `/`. The serialized 128-bit asset ID is restored exactly; it is not re-hashed from a path. `Restore()` validates the current registry and reports `MissingAsset` separately from `StaleGeneration`. It never updates a serialized generation automatically.
 
+### Scene serialization
+
+`SceneSerializer` persists the scene name and flat `RenderObject` list. Mesh and material references are written as exact keys from a `ResourceManifest`, never as owning pointers or silently refreshed asset generations:
+
+```cpp
+const auto saved = Pyramid::SceneSerializer::Serialize(
+    scene,
+    resourceManifest,
+    *resources);
+
+if (!saved.Succeeded())
+{
+    // Inspect saved.diagnostics; saved.text remains empty on failure.
+}
+```
+
+```cpp
+const auto loaded = Pyramid::SceneSerializer::Deserialize(
+    saved.text,
+    resourceManifest,
+    *resources);
+
+if (loaded.Succeeded())
+{
+    std::shared_ptr<Pyramid::Scene> scene = loaded.scene;
+}
+```
+
+The version-1 format stores object name, position, normalized quaternion, scale, visibility, cast/receive-shadow flags, automatic/manual bounds mode, fallback/manual bounds, and optional mesh/material manifest keys. Loading is transactional: malformed fields, missing manifest keys, wrong resource types, missing assets, or stale generations return no partial scene. When several manifest aliases reference the same handle, serialization chooses the lexicographically smallest key for deterministic output.
+
+Current scope is intentionally limited to the flat render-object list. Scene-node hierarchy, lights, environment settings, and the legacy `SceneManager` JSON/XML/Binary file APIs are not serialized yet.
+
 ## Renderer
 
 Headers:
@@ -397,7 +430,7 @@ auto nearestFive = manager->GetKNearestObjects(position, 5);
 
 Event callbacks, scene and octree query entry points, visibility-stat updates, test-scene creation, and octree configuration have definitions and are covered by linkage validation.
 
-`LoadScene` and `SaveScene` deliberately return `false`; serialization is not implemented. Scene-node attachment does not yet replace the renderer's separate `RenderObject` transform path. Occlusion culling remains unimplemented and disabled by default.
+`SceneManager::LoadScene` and `SaveScene` still return `false` for their legacy JSON/XML/Binary format enum. Use `SceneSerializer` for the implemented versioned render-object format. Scene-node attachment does not yet replace the renderer's separate `RenderObject` transform path. Occlusion culling remains unimplemented and disabled by default.
 
 ## Math
 

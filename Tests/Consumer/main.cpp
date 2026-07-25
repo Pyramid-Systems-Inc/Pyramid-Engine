@@ -8,6 +8,7 @@
 #include <Pyramid/Graphics/Resources/ResourceHandle.hpp>
 #include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
 #include <Pyramid/Graphics/Resources/ResourceManifest.hpp>
+#include <Pyramid/Graphics/Scene/SceneSerializer.hpp>
 
 #include <iostream>
 
@@ -24,6 +25,7 @@ int main()
     const auto materialHandle = Pyramid::MaterialHandle::FromParts(materialId, 1);
     Pyramid::ResourceManifest manifest;
     manifest.Add("consumer.mesh", meshHandle);
+    Pyramid::SceneSerializationResult sceneSerialization;
     std::cout << "Pyramid Engine " << PYRAMID_VERSION_STRING
               << " | vector length: " << value.Length()
               << " | mesh id: " << meshId.ToString()
@@ -34,6 +36,7 @@ int main()
               << " | material generation: " << materialHandle.GetGeneration()
               << " | cached materials: " << materialCache.GetResidentCount()
               << " | manifest entries: " << manifest.GetEntryCount()
+              << " | serialized scene objects: " << sceneSerialization.serializedObjects
               << " | released resources: " << released.GetTotal() << '\n';
     return value.LengthSquared() > 0.0f && meshId.IsValid() && shaderId.IsValid() &&
         textureId.IsValid() && materialId.IsValid() && meshHandle.IsValid() &&

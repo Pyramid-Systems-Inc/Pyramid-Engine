@@ -4,6 +4,13 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### Versioned render-object scene serialization
+
+- Added dependency-free `SceneSerializer` persistence for scene names and flat render-object lists using a deterministic versioned text format.
+- Added exact `ResourceManifest` key references for mesh and material handles, including direct-owner conversion through the live `ResourceRegistry`.
+- Added transactional loading with transform, quaternion, visibility, shadow-flag, bounds-mode, manifest-key, resource-type, missing-asset, and stale-generation diagnostics.
+- Added `Graphics.SceneSerialization` coverage for deterministic round trips, encoded names, manual/automatic bounds, direct and handle-backed resources, parser rejection, and registry validation.
+
 ### Versioned resource manifests
 
 - Added dependency-free `ResourceManifest` serialization for typed mesh, shader, texture, and material handles using a deterministic versioned text format.

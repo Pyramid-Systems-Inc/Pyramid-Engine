@@ -18,6 +18,7 @@
 #include <Pyramid/Graphics/Resources/ResourceHandle.hpp>
 #include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
 #include <Pyramid/Graphics/Resources/ResourceManifest.hpp>
+#include <Pyramid/Graphics/Scene/SceneSerializer.hpp>
 
 #include <memory>
 #include <string>
@@ -294,6 +295,10 @@ namespace
         &Pyramid::ResourceManifest::Restore;
     volatile decltype(&Pyramid::ResourceManifest::GetMeshHandle) g_getManifestMeshHandle =
         &Pyramid::ResourceManifest::GetMeshHandle;
+    volatile decltype(&Pyramid::SceneSerializer::Serialize) g_serializeScene =
+        &Pyramid::SceneSerializer::Serialize;
+    volatile decltype(&Pyramid::SceneSerializer::Deserialize) g_deserializeScene =
+        &Pyramid::SceneSerializer::Deserialize;
     using GetRegistryMeshes = Pyramid::MeshCache& (Pyramid::ResourceRegistry::*)();
     using GetRegistryShaders = Pyramid::ShaderCache& (Pyramid::ResourceRegistry::*)();
     using GetRegistryTextures = Pyramid::TextureCache& (Pyramid::ResourceRegistry::*)();
@@ -455,6 +460,8 @@ int main()
                    g_deserializeResourceManifest &&
                    g_restoreResourceManifest &&
                    g_getManifestMeshHandle &&
+                   g_serializeScene &&
+                   g_deserializeScene &&
                    g_getRegistryMeshes &&
                    g_getRegistryShaders &&
                    g_getRegistryTextures &&

@@ -117,3 +117,8 @@ add_executable(ResourceManifestTests ResourceManifestTests.cpp)
 target_link_libraries(ResourceManifestTests PRIVATE Pyramid::Engine)
 set_target_properties(ResourceManifestTests PROPERTIES FOLDER "Tests/Graphics")
 add_test(NAME Graphics.ResourceManifest COMMAND $<TARGET_FILE:ResourceManifestTests>)
+
+add_executable(SceneSerializationTests SceneSerializationTests.cpp)
+target_link_libraries(SceneSerializationTests PRIVATE Pyramid::Engine)
+set_target_properties(SceneSerializationTests PROPERTIES FOLDER "Tests/Graphics")
+add_test(NAME Graphics.SceneSerialization COMMAND $<TARGET_FILE:SceneSerializationTests>)
