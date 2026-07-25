@@ -6,6 +6,15 @@
 #include <vector>
 #include <windowsx.h>
 
+// windowsx.h defines IsMinimized and IsMaximized as compatibility macros.
+// They collide with the platform-neutral Window virtual method names below.
+#ifdef IsMinimized
+#undef IsMinimized
+#endif
+#ifdef IsMaximized
+#undef IsMaximized
+#endif
+
 namespace Pyramid
 {
     Key Win32OpenGLWindow::TranslateKey(WPARAM virtualKey, LPARAM keyData)
