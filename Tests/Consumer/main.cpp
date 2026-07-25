@@ -8,6 +8,7 @@
 #include <Pyramid/Graphics/Resources/ResourceHandle.hpp>
 #include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
 #include <Pyramid/Graphics/Resources/ResourceManifest.hpp>
+#include <Pyramid/Graphics/Scene.hpp>
 #include <Pyramid/Graphics/Scene/SceneSerializer.hpp>
 
 #include <iostream>
@@ -25,6 +26,10 @@ int main()
     const auto materialHandle = Pyramid::MaterialHandle::FromParts(materialId, 1);
     Pyramid::ResourceManifest manifest;
     manifest.Add("consumer.mesh", meshHandle);
+    Pyramid::Scene scene("Consumer Scene");
+    const Pyramid::Entity entity = scene.CreateEntityWithId(
+        Pyramid::EntityId(42),
+        "Consumer Entity");
     Pyramid::SceneSerializationResult sceneSerialization;
     std::cout << "Pyramid Engine " << PYRAMID_VERSION_STRING
               << " | vector length: " << value.Length()
@@ -40,7 +45,8 @@ int main()
               << " | released resources: " << released.GetTotal() << '\n';
     return value.LengthSquared() > 0.0f && meshId.IsValid() && shaderId.IsValid() &&
         textureId.IsValid() && materialId.IsValid() && meshHandle.IsValid() &&
-        materialHandle.IsValid() && manifest.GetMeshHandle("consumer.mesh") == meshHandle
+        materialHandle.IsValid() && entity.IsValid() && entity.GetId() == Pyramid::EntityId(42) &&
+        manifest.GetMeshHandle("consumer.mesh") == meshHandle
         ? 0
         : 1;
 }

@@ -1,52 +1,135 @@
 #include <Pyramid/Graphics/Scene.hpp>
 #include <Pyramid/Graphics/Camera.hpp>
-#include <Pyramid/Graphics/Geometry/Vertex.hpp>
 #include <Pyramid/Graphics/Geometry/Mesh.hpp>
+#include <Pyramid/Graphics/Geometry/Vertex.hpp>
 #include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
+
 #include <algorithm>
-#include <vector>
+#include <charconv>
 #include <cmath>
+#include <iomanip>
 #include <limits>
+#include <sstream>
 
 namespace Pyramid
 {
+    namespace
+    {
+        Math::Quat NormalizeRotation(const Math::Quat& value)
+        {
+            return Math::IsZero(value.LengthSquared())
+                ? Math::Quat::Identity
+                : value.Normalized();
+        }
 
-    // RenderObject Implementation
+        Math::Vec3 ExtractWorldScale(const Math::Mat4& transform)
+        {
+            const auto length = [](f32 x, f32 y, f32 z)
+            {
+                return std::sqrt(x * x + y * y + z * z);
+            };
+            return Math::Vec3(
+                length(transform.m[0], transform.m[1], transform.m[2]),
+                length(transform.m[4], transform.m[5], transform.m[6]),
+                length(transform.m[8], transform.m[9], transform.m[10]));
+        }
+
+        Math::Vec3 ExtractTranslation(const Math::Mat4& transform)
+        {
+            return Math::Vec3(transform.m[12], transform.m[13], transform.m[14]);
+        }
+
+        void CanonicalizeBounds(Math::Vec3& minimum, Math::Vec3& maximum)
+        {
+            const Math::Vec3 canonicalMinimum(
+                Math::Min(minimum.x, maximum.x),
+                Math::Min(minimum.y, maximum.y),
+                Math::Min(minimum.z, maximum.z));
+            const Math::Vec3 canonicalMaximum(
+                Math::Max(minimum.x, maximum.x),
+                Math::Max(minimum.y, maximum.y),
+                Math::Max(minimum.z, maximum.z));
+            minimum = canonicalMinimum;
+            maximum = canonicalMaximum;
+        }
+    }
+
+    std::string EntityId::ToString() const
+    {
+        std::ostringstream stream;
+        stream << std::hex << std::setfill('0') << std::setw(16) << m_value;
+        return stream.str();
+    }
+
+    bool EntityId::TryParse(std::string_view text, EntityId& output)
+    {
+        if (text.empty() || text.size() > 16)
+        {
+            return false;
+        }
+        u64 value = 0;
+        const auto result = std::from_chars(
+            text.data(), text.data() + text.size(), value, 16);
+        if (result.ec != std::errc{} || result.ptr != text.data() + text.size() || value == 0)
+        {
+            return false;
+        }
+        output = EntityId(value);
+        return true;
+    }
+
     Math::Mat4 RenderObject::GetTransformMatrix() const
     {
-        const Math::Quat normalizedRotation = Math::IsZero(rotation.LengthSquared())
-                                                  ? Math::Quat::Identity
-                                                  : rotation.Normalized();
+        if (hasWorldTransform)
+        {
+            return worldTransform;
+        }
         const Math::Mat4 scaleMatrix = Math::Mat4::CreateScale(scale);
-        const Math::Mat4 rotationMatrix = normalizedRotation.ToMatrix4();
+        const Math::Mat4 rotationMatrix = NormalizeRotation(rotation).ToMatrix4();
         const Math::Mat4 translationMatrix = Math::Mat4::CreateTranslation(position);
-
         return translationMatrix * rotationMatrix * scaleMatrix;
     }
 
-    void RenderObject::SetLocalBounds(const Math::Vec3 &minPoint, const Math::Vec3 &maxPoint)
+    Math::Vec3 RenderObject::GetWorldPosition() const
     {
-        localBoundsMin = Math::Vec3(
-            Math::Min(minPoint.x, maxPoint.x),
-            Math::Min(minPoint.y, maxPoint.y),
-            Math::Min(minPoint.z, maxPoint.z));
-        localBoundsMax = Math::Vec3(
-            Math::Max(minPoint.x, maxPoint.x),
-            Math::Max(minPoint.y, maxPoint.y),
-            Math::Max(minPoint.z, maxPoint.z));
+        return hasWorldTransform ? ExtractTranslation(worldTransform) : position;
+    }
+
+    void RenderObject::SetWorldPosition(const Math::Vec3& value)
+    {
+        position = value;
+        hasWorldTransform = false;
+    }
+
+    void RenderObject::SetWorldTransform(const Math::Mat4& value)
+    {
+        worldTransform = value;
+        position = ExtractTranslation(value);
+        scale = ExtractWorldScale(value);
+        hasWorldTransform = true;
+    }
+
+    void RenderObject::ClearWorldTransformOverride()
+    {
+        hasWorldTransform = false;
+        worldTransform = Math::Mat4::Identity;
+    }
+
+    void RenderObject::SetLocalBounds(const Math::Vec3& minPoint, const Math::Vec3& maxPoint)
+    {
+        localBoundsMin = minPoint;
+        localBoundsMax = maxPoint;
+        CanonicalizeBounds(localBoundsMin, localBoundsMax);
         boundsMode = RenderBoundsMode::Manual;
     }
 
-    bool RenderObject::SetMeshHandle(
-        MeshHandle handle,
-        const ResourceRegistry& registry)
+    bool RenderObject::SetMeshHandle(MeshHandle handle, const ResourceRegistry& registry)
     {
         const auto resolved = registry.Resolve(handle);
         if (!resolved || !resolved->IsValid())
         {
             return false;
         }
-
         resolved->GetLocalBounds(handleBoundsMin, handleBoundsMax);
         hasHandleBounds = true;
         meshHandle = handle;
@@ -54,101 +137,74 @@ namespace Pyramid
         return true;
     }
 
-    bool RenderObject::SetMaterialHandle(
-        MaterialHandle handle,
-        const ResourceRegistry& registry)
+    bool RenderObject::SetMaterialHandle(MaterialHandle handle, const ResourceRegistry& registry)
     {
         const auto resolved = registry.Resolve(handle);
         if (!resolved || !resolved->IsValid())
         {
             return false;
         }
-
         materialHandle = handle;
         material.reset();
         return true;
     }
 
-    std::shared_ptr<Mesh> RenderObject::ResolveMesh(
-        const ResourceRegistry* registry) const
+    std::shared_ptr<Mesh> RenderObject::ResolveMesh(const ResourceRegistry* registry) const
     {
-        if (mesh)
-        {
-            return mesh;
-        }
-        return registry ? registry->Resolve(meshHandle) : nullptr;
+        return mesh ? mesh : (registry ? registry->Resolve(meshHandle) : nullptr);
     }
 
-    std::shared_ptr<Material> RenderObject::ResolveMaterial(
-        const ResourceRegistry* registry) const
+    std::shared_ptr<Material> RenderObject::ResolveMaterial(const ResourceRegistry* registry) const
     {
-        if (material)
-        {
-            return material;
-        }
-        return registry ? registry->Resolve(materialHandle) : nullptr;
+        return material ? material : (registry ? registry->Resolve(materialHandle) : nullptr);
     }
 
-    bool RenderObject::TryGetGeometryBounds(Math::Vec3 &minPoint, Math::Vec3 &maxPoint) const
+    bool RenderObject::TryGetGeometryBounds(Math::Vec3& minPoint, Math::Vec3& maxPoint) const
     {
         if (mesh && mesh->IsValid())
         {
             mesh->GetLocalBounds(minPoint, maxPoint);
             return true;
         }
-
-        if (meshHandle.IsValid() && hasHandleBounds)
+        if (meshHandle && hasHandleBounds)
         {
             minPoint = handleBoundsMin;
             maxPoint = handleBoundsMax;
             return true;
         }
-
         return false;
     }
 
-    bool RenderObject::GetLocalBounds(Math::Vec3 &minPoint, Math::Vec3 &maxPoint) const
+    bool RenderObject::GetLocalBounds(Math::Vec3& minPoint, Math::Vec3& maxPoint) const
     {
-        const bool usedGeometry =
+        const bool geometryBounds =
             boundsMode == RenderBoundsMode::Automatic && TryGetGeometryBounds(minPoint, maxPoint);
-        if (!usedGeometry)
+        if (!geometryBounds)
         {
             minPoint = localBoundsMin;
             maxPoint = localBoundsMax;
         }
-
-        const Math::Vec3 canonicalMin(
-            Math::Min(minPoint.x, maxPoint.x),
-            Math::Min(minPoint.y, maxPoint.y),
-            Math::Min(minPoint.z, maxPoint.z));
-        const Math::Vec3 canonicalMax(
-            Math::Max(minPoint.x, maxPoint.x),
-            Math::Max(minPoint.y, maxPoint.y),
-            Math::Max(minPoint.z, maxPoint.z));
-        minPoint = canonicalMin;
-        maxPoint = canonicalMax;
-        return usedGeometry;
+        CanonicalizeBounds(minPoint, maxPoint);
+        return geometryBounds;
     }
 
-    void RenderObject::GetWorldBounds(Math::Vec3 &minPoint, Math::Vec3 &maxPoint) const
+    void RenderObject::GetWorldBounds(Math::Vec3& minPoint, Math::Vec3& maxPoint) const
     {
         Math::Vec3 localMin;
         Math::Vec3 localMax;
         GetLocalBounds(localMin, localMax);
-
         const Math::Mat4 transform = GetTransformMatrix();
         const f32 maximum = std::numeric_limits<f32>::max();
         minPoint = Math::Vec3(maximum);
         maxPoint = Math::Vec3(-maximum);
-
         for (u32 corner = 0; corner < 8; ++corner)
         {
             const Math::Vec3 localCorner(
-                (corner & 1u) != 0u ? localMax.x : localMin.x,
-                (corner & 2u) != 0u ? localMax.y : localMin.y,
-                (corner & 4u) != 0u ? localMax.z : localMin.z);
-            const Math::Vec3 worldCorner = (transform * Math::Vec4(localCorner, 1.0f)).ToVec3();
-
+                (corner & 1u) ? localMax.x : localMin.x,
+                (corner & 2u) ? localMax.y : localMin.y,
+                (corner & 4u) ? localMax.z : localMin.z);
+            const Math::Vec3 worldCorner =
+                (transform * Math::Vec4(localCorner, 1.0f)).ToVec3();
             minPoint.x = Math::Min(minPoint.x, worldCorner.x);
             minPoint.y = Math::Min(minPoint.y, worldCorner.y);
             minPoint.z = Math::Min(minPoint.z, worldCorner.z);
@@ -158,417 +214,843 @@ namespace Pyramid
         }
     }
 
-    namespace
+    Scene::Scene(const std::string& name) : m_name(name) {}
+
+    EntityId Scene::AllocateEntityId()
     {
-        Math::Quat NormalizeRotation(const Math::Quat &rotation)
+        while (m_nextEntityId == 0 || Contains(EntityId(m_nextEntityId)))
         {
-            if (Math::IsZero(rotation.LengthSquared()))
-            {
-                return Math::Quat::Identity;
-            }
-
-            return rotation.Normalized();
+            ++m_nextEntityId;
         }
-
-        Math::Vec3 ExtractWorldScale(const Math::Mat4 &transform)
-        {
-            const auto axisLength = [](f32 x, f32 y, f32 z)
-            {
-                return std::sqrt(x * x + y * y + z * z);
-            };
-
-            return Math::Vec3(
-                axisLength(transform.m[0], transform.m[1], transform.m[2]),
-                axisLength(transform.m[4], transform.m[5], transform.m[6]),
-                axisLength(transform.m[8], transform.m[9], transform.m[10]));
-        }
+        return EntityId(m_nextEntityId++);
     }
 
-    // SceneNode Implementation
-    SceneNode::SceneNode(const std::string &name)
-        : m_name(name)
+    Entity Scene::CreateEntity(const std::string& name)
     {
+        return CreateEntityWithId(AllocateEntityId(), name);
     }
 
-    SceneNode::~SceneNode()
+    Entity Scene::CreateEntityWithId(EntityId id, const std::string& name)
     {
-        for (const auto &child : m_children)
+        if (!id || Contains(id))
         {
-            if (!child)
-            {
-                continue;
-            }
-
-            child->m_parent.reset();
-            child->MarkWorldTransformDirty();
+            return {};
         }
-
-        m_children.clear();
+        EntityRecord record;
+        record.id = id;
+        record.name = name;
+        m_entities.emplace(id, std::move(record));
+        m_entityOrder.push_back(id);
+        if (id.GetValue() >= m_nextEntityId)
+        {
+            m_nextEntityId = id.GetValue() + 1;
+        }
+        return MakeEntity(id);
     }
 
-    bool SceneNode::HasAncestor(const SceneNode *node) const
+    bool Scene::DestroyEntity(Entity entity)
     {
-        if (!node)
+        return entity.GetScene() == this && DestroyEntity(entity.GetId());
+    }
+
+    bool Scene::DestroyEntity(EntityId id)
+    {
+        EntityRecord* record = FindRecord(id);
+        if (!record)
         {
             return false;
         }
-
-        auto ancestor = m_parent.lock();
-        while (ancestor)
+        const std::vector<EntityId> children = record->children;
+        for (EntityId child : children)
         {
-            if (ancestor.get() == node)
+            DestroyEntity(child);
+        }
+        if (record->parent)
+        {
+            if (EntityRecord* parent = FindRecord(record->parent))
+            {
+                parent->children.erase(
+                    std::remove(parent->children.begin(), parent->children.end(), id),
+                    parent->children.end());
+            }
+        }
+        if (m_primaryLight == id)
+        {
+            m_primaryLight = {};
+        }
+        m_entities.erase(id);
+        m_entityOrder.erase(
+            std::remove(m_entityOrder.begin(), m_entityOrder.end(), id),
+            m_entityOrder.end());
+        return true;
+    }
+
+    bool Scene::Contains(EntityId id) const
+    {
+        return id && m_entities.find(id) != m_entities.end();
+    }
+
+    Scene::EntityRecord* Scene::FindRecord(EntityId id)
+    {
+        const auto iterator = m_entities.find(id);
+        return iterator == m_entities.end() ? nullptr : &iterator->second;
+    }
+
+    const Scene::EntityRecord* Scene::FindRecord(EntityId id) const
+    {
+        const auto iterator = m_entities.find(id);
+        return iterator == m_entities.end() ? nullptr : &iterator->second;
+    }
+
+    Entity Scene::MakeEntity(EntityId id) const
+    {
+        return Contains(id) ? Entity(const_cast<Scene*>(this), id, m_lifetimeToken) : Entity{};
+    }
+
+    Entity Scene::FindEntity(EntityId id) { return MakeEntity(id); }
+    Entity Scene::FindEntity(EntityId id) const { return MakeEntity(id); }
+
+    Entity Scene::FindEntity(const std::string& name)
+    {
+        for (EntityId id : m_entityOrder)
+        {
+            const EntityRecord* record = FindRecord(id);
+            if (record && record->name == name)
+            {
+                return MakeEntity(id);
+            }
+        }
+        return {};
+    }
+
+    Entity Scene::FindEntity(const std::string& name) const
+    {
+        return const_cast<Scene*>(this)->FindEntity(name);
+    }
+
+    std::vector<Entity> Scene::GetEntities()
+    {
+        std::vector<Entity> entities;
+        entities.reserve(m_entityOrder.size());
+        for (EntityId id : m_entityOrder)
+        {
+            entities.push_back(Entity(this, id, m_lifetimeToken));
+        }
+        return entities;
+    }
+
+    std::vector<Entity> Scene::GetEntities() const
+    {
+        return const_cast<Scene*>(this)->GetEntities();
+    }
+
+    std::vector<Entity> Scene::GetRootEntities()
+    {
+        std::vector<Entity> entities;
+        for (EntityId id : m_entityOrder)
+        {
+            const EntityRecord* record = FindRecord(id);
+            if (record && !record->parent)
+            {
+                entities.push_back(Entity(this, id, m_lifetimeToken));
+            }
+        }
+        return entities;
+    }
+
+    std::vector<Entity> Scene::GetRootEntities() const
+    {
+        return const_cast<Scene*>(this)->GetRootEntities();
+    }
+
+    bool Scene::IsDescendant(EntityId candidate, EntityId ancestor) const
+    {
+        EntityId current = candidate;
+        while (current)
+        {
+            if (current == ancestor)
             {
                 return true;
             }
-
-            ancestor = ancestor->m_parent.lock();
+            const EntityRecord* record = FindRecord(current);
+            current = record ? record->parent : EntityId{};
         }
-
         return false;
     }
 
-    void SceneNode::AddChild(std::shared_ptr<SceneNode> child)
+    bool Scene::SetParent(EntityId childId, EntityId parentId)
     {
-        if (!child || child.get() == this || HasAncestor(child.get()))
+        EntityRecord* child = FindRecord(childId);
+        if (!child || childId == parentId || (parentId && !FindRecord(parentId)) ||
+            (parentId && IsDescendant(parentId, childId)))
         {
-            return;
+            return false;
         }
-
-        auto self = weak_from_this().lock();
-        if (!self)
+        if (child->parent == parentId)
         {
-            return;
+            return true;
         }
-
-        if (auto currentParent = child->m_parent.lock())
+        if (child->parent)
         {
-            if (currentParent.get() == this)
+            EntityRecord* oldParent = FindRecord(child->parent);
+            if (oldParent)
             {
-                return;
-            }
-
-            currentParent->RemoveChild(child);
-        }
-
-        child->m_parent = self;
-        m_children.push_back(child);
-        child->MarkWorldTransformDirty();
-    }
-
-    void SceneNode::RemoveChild(std::shared_ptr<SceneNode> child)
-    {
-        if (!child)
-        {
-            return;
-        }
-
-        const auto oldSize = m_children.size();
-        m_children.erase(
-            std::remove(m_children.begin(), m_children.end(), child),
-            m_children.end());
-
-        if (m_children.size() == oldSize)
-        {
-            return;
-        }
-
-        if (auto currentParent = child->m_parent.lock(); currentParent.get() == this)
-        {
-            child->m_parent.reset();
-        }
-
-        child->MarkWorldTransformDirty();
-    }
-
-    void SceneNode::SetParent(std::shared_ptr<SceneNode> parent)
-    {
-        auto self = weak_from_this().lock();
-        if (!self)
-        {
-            return;
-        }
-
-        if (parent)
-        {
-            parent->AddChild(self);
-            return;
-        }
-
-        if (auto oldParent = m_parent.lock())
-        {
-            oldParent->RemoveChild(self);
-        }
-    }
-
-    void SceneNode::SetLocalTransform(
-        const Math::Vec3 &position,
-        const Math::Quat &rotation,
-        const Math::Vec3 &scale)
-    {
-        m_localPosition = position;
-        m_localRotation = NormalizeRotation(rotation);
-        m_localScale = scale;
-        MarkLocalTransformDirty();
-    }
-
-    void SceneNode::SetLocalPosition(const Math::Vec3 &position)
-    {
-        m_localPosition = position;
-        MarkLocalTransformDirty();
-    }
-
-    void SceneNode::SetLocalRotation(const Math::Quat &rotation)
-    {
-        m_localRotation = NormalizeRotation(rotation);
-        MarkLocalTransformDirty();
-    }
-
-    void SceneNode::SetLocalScale(const Math::Vec3 &scale)
-    {
-        m_localScale = scale;
-        MarkLocalTransformDirty();
-    }
-
-    Math::Vec3 SceneNode::GetWorldPosition() const
-    {
-        const Math::Mat4 &worldTransform = GetWorldTransform();
-        return Math::Vec3(worldTransform.m[12], worldTransform.m[13], worldTransform.m[14]);
-    }
-
-    Math::Quat SceneNode::GetWorldRotation() const
-    {
-        GetWorldTransform();
-        return m_worldRotation;
-    }
-
-    Math::Vec3 SceneNode::GetWorldScale() const
-    {
-        GetWorldTransform();
-        return m_worldScale;
-    }
-
-    const Math::Mat4 &SceneNode::GetLocalTransform() const
-    {
-        if (m_transformDirty)
-        {
-            UpdateLocalTransform();
-        }
-        return m_localTransform;
-    }
-
-    const Math::Mat4 &SceneNode::GetWorldTransform() const
-    {
-        if (m_worldTransformDirty)
-        {
-            UpdateWorldTransform();
-        }
-        return m_worldTransform;
-    }
-
-    Math::Vec3 SceneNode::TransformPointToWorld(const Math::Vec3 &point) const
-    {
-        return (GetWorldTransform() * Math::Vec4(point, 1.0f)).ToVec3();
-    }
-
-    Math::Vec3 SceneNode::TransformDirectionToWorld(const Math::Vec3 &direction) const
-    {
-        return (GetWorldTransform() * Math::Vec4(direction, 0.0f)).ToVec3();
-    }
-
-    void SceneNode::MarkLocalTransformDirty()
-    {
-        m_transformDirty = true;
-        MarkWorldTransformDirty();
-    }
-
-    void SceneNode::MarkWorldTransformDirty()
-    {
-        m_worldTransformDirty = true;
-
-        for (const auto &child : m_children)
-        {
-            if (child)
-            {
-                child->MarkWorldTransformDirty();
+                oldParent->children.erase(
+                    std::remove(oldParent->children.begin(), oldParent->children.end(), childId),
+                    oldParent->children.end());
             }
         }
-    }
-
-    void SceneNode::UpdateLocalTransform() const
-    {
-        const Math::Mat4 scaleMatrix = Math::Mat4::CreateScale(m_localScale);
-        const Math::Mat4 rotationMatrix = m_localRotation.ToMatrix4();
-        const Math::Mat4 translationMatrix = Math::Mat4::CreateTranslation(m_localPosition);
-
-        m_localTransform = translationMatrix * rotationMatrix * scaleMatrix;
-        m_transformDirty = false;
-    }
-
-    void SceneNode::UpdateWorldTransform() const
-    {
-        if (auto parent = m_parent.lock())
+        child->parent = parentId;
+        if (parentId)
         {
-            const Math::Mat4 &parentTransform = parent->GetWorldTransform();
-            m_worldTransform = parentTransform * GetLocalTransform();
-            m_worldRotation = NormalizeRotation(parent->m_worldRotation * m_localRotation);
+            FindRecord(parentId)->children.push_back(childId);
         }
-        else
+        MarkWorldDirty(childId);
+        return true;
+    }
+
+    bool Scene::SetLocalTransform(EntityId id, const TransformComponent& transform)
+    {
+        EntityRecord* record = FindRecord(id);
+        if (!record)
         {
-            m_worldTransform = GetLocalTransform();
-            m_worldRotation = m_localRotation;
+            return false;
         }
-
-        m_worldScale = ExtractWorldScale(m_worldTransform);
-        m_worldTransformDirty = false;
+        record->transform = transform;
+        record->transform.rotation = NormalizeRotation(record->transform.rotation);
+        record->localDirty = true;
+        MarkWorldDirty(id);
+        return true;
     }
 
-    // Scene Implementation
-    Scene::Scene(const std::string &name)
-        : m_name(name)
+    void Scene::MarkWorldDirty(EntityId id)
     {
-        m_rootNode = std::make_shared<SceneNode>("Root");
-    }
-
-    std::shared_ptr<SceneNode> Scene::CreateNode(const std::string &name)
-    {
-        auto node = std::make_shared<SceneNode>(name);
-        m_rootNode->AddChild(node);
-        return node;
-    }
-
-    void Scene::RemoveNode(std::shared_ptr<SceneNode> node)
-    {
-        if (node && node != m_rootNode)
+        EntityRecord* record = FindRecord(id);
+        if (!record)
         {
-            if (auto parent = node->m_parent.lock())
+            return;
+        }
+        record->worldDirty = true;
+        for (EntityId child : record->children)
+        {
+            MarkWorldDirty(child);
+        }
+    }
+
+    const Math::Mat4& Scene::GetLocalMatrix(EntityId id) const
+    {
+        EntityRecord* record = const_cast<EntityRecord*>(FindRecord(id));
+        static const Math::Mat4 identity = Math::Mat4::Identity;
+        if (!record)
+        {
+            return identity;
+        }
+        if (record->localDirty)
+        {
+            record->localMatrix =
+                Math::Mat4::CreateTranslation(record->transform.position) *
+                NormalizeRotation(record->transform.rotation).ToMatrix4() *
+                Math::Mat4::CreateScale(record->transform.scale);
+            record->localDirty = false;
+        }
+        return record->localMatrix;
+    }
+
+    const Math::Mat4& Scene::GetWorldMatrix(EntityId id) const
+    {
+        EntityRecord* record = const_cast<EntityRecord*>(FindRecord(id));
+        static const Math::Mat4 identity = Math::Mat4::Identity;
+        if (!record)
+        {
+            return identity;
+        }
+        if (record->worldDirty)
+        {
+            if (record->parent)
             {
-                parent->RemoveChild(node);
+                const EntityRecord* parent = FindRecord(record->parent);
+                record->worldMatrix = GetWorldMatrix(record->parent) * GetLocalMatrix(id);
+                record->worldRotation = NormalizeRotation(
+                    (parent ? parent->worldRotation : Math::Quat::Identity) *
+                    record->transform.rotation);
             }
+            else
+            {
+                record->worldMatrix = GetLocalMatrix(id);
+                record->worldRotation = NormalizeRotation(record->transform.rotation);
+            }
+            record->worldScale = ExtractWorldScale(record->worldMatrix);
+            record->worldDirty = false;
         }
+        return record->worldMatrix;
     }
 
-    std::shared_ptr<SceneNode> Scene::FindNode(const std::string &name) const
+    Math::Quat Scene::GetWorldRotation(EntityId id) const
     {
-        // Simple recursive search - could be optimized with a hash map
-        std::function<std::shared_ptr<SceneNode>(std::shared_ptr<SceneNode>)> search;
-        search = [&](std::shared_ptr<SceneNode> node) -> std::shared_ptr<SceneNode>
+        GetWorldMatrix(id);
+        const EntityRecord* record = FindRecord(id);
+        return record ? record->worldRotation : Math::Quat::Identity;
+    }
+
+    Math::Vec3 Scene::GetWorldScale(EntityId id) const
+    {
+        GetWorldMatrix(id);
+        const EntityRecord* record = FindRecord(id);
+        return record ? record->worldScale : Math::Vec3::One;
+    }
+
+    bool Scene::IsEffectivelyVisible(EntityId id) const
+    {
+        const EntityRecord* record = FindRecord(id);
+        if (!record || !record->visible)
         {
-            if (node->GetName() == name)
+            return false;
+        }
+        return !record->parent || IsEffectivelyVisible(record->parent);
+    }
+
+    bool Scene::SetMeshRenderer(
+        EntityId id,
+        const MeshRendererComponent& input,
+        const ResourceRegistry* registry)
+    {
+        EntityRecord* record = FindRecord(id);
+        if (!record)
+        {
+            return false;
+        }
+        MeshRendererComponent component = input;
+        CanonicalizeBounds(component.localBoundsMin, component.localBoundsMax);
+        CanonicalizeBounds(component.meshBoundsMin, component.meshBoundsMax);
+        if (registry)
+        {
+            if (component.mesh)
             {
-                return node;
-            }
-            for (auto &child : node->m_children)
-            {
-                if (auto found = search(child))
+                const auto mesh = registry->Resolve(component.mesh);
+                if (!mesh || !mesh->IsValid())
                 {
-                    return found;
+                    return false;
+                }
+                mesh->GetLocalBounds(component.meshBoundsMin, component.meshBoundsMax);
+                component.hasMeshBounds = true;
+            }
+            if (component.material && !registry->Resolve(component.material))
+            {
+                return false;
+            }
+        }
+        record->meshRenderer = component;
+        if (!record->renderProxy)
+        {
+            record->renderProxy = std::make_shared<RenderObject>();
+        }
+        return true;
+    }
+
+    bool Scene::SetLight(EntityId id, const LightComponent& input)
+    {
+        EntityRecord* record = FindRecord(id);
+        if (!record)
+        {
+            return false;
+        }
+        LightComponent component = input;
+        component.localDirection = Math::IsZero(component.localDirection.LengthSquared())
+            ? Math::Vec3(0.0f, -1.0f, 0.0f)
+            : component.localDirection.Normalized();
+        record->light = component;
+        if (!record->lightProxy)
+        {
+            record->lightProxy = std::make_shared<Light>();
+        }
+        return true;
+    }
+
+    void Scene::SynchronizeRenderProxies() const
+    {
+        m_renderObjects.clear();
+        for (EntityId id : m_entityOrder)
+        {
+            EntityRecord* record = const_cast<EntityRecord*>(FindRecord(id));
+            if (!record || !record->meshRenderer)
+            {
+                continue;
+            }
+            if (!record->renderProxy)
+            {
+                record->renderProxy = std::make_shared<RenderObject>();
+            }
+            RenderObject& proxy = *record->renderProxy;
+            if (record->legacyRenderProxyAuthoring)
+            {
+                record->transform.position = proxy.position;
+                record->transform.rotation = NormalizeRotation(proxy.rotation);
+                record->transform.scale = proxy.scale;
+                record->localDirty = true;
+                const_cast<Scene*>(this)->MarkWorldDirty(id);
+                record->meshRenderer->mesh = proxy.meshHandle;
+                record->meshRenderer->material = proxy.materialHandle;
+                record->meshRenderer->visible = proxy.visible;
+                record->meshRenderer->castShadows = proxy.castShadows;
+                record->meshRenderer->receiveShadows = proxy.receiveShadows;
+                record->meshRenderer->boundsMode = proxy.boundsMode;
+                proxy.GetLocalBounds(
+                    record->meshRenderer->localBoundsMin,
+                    record->meshRenderer->localBoundsMax);
+                if (proxy.TryGetGeometryBounds(
+                        record->meshRenderer->meshBoundsMin,
+                        record->meshRenderer->meshBoundsMax))
+                {
+                    record->meshRenderer->hasMeshBounds = true;
                 }
             }
-            return nullptr;
-        };
-
-        return search(m_rootNode);
+            const MeshRendererComponent& component = *record->meshRenderer;
+            proxy.entityId = id;
+            proxy.name = record->name;
+            proxy.SetWorldTransform(GetWorldMatrix(id));
+            proxy.rotation = GetWorldRotation(id);
+            proxy.meshHandle = component.mesh;
+            proxy.materialHandle = component.material;
+            proxy.visible = IsEffectivelyVisible(id) && component.visible;
+            proxy.castShadows = component.castShadows;
+            proxy.receiveShadows = component.receiveShadows;
+            proxy.boundsMode = component.boundsMode;
+            proxy.localBoundsMin = component.localBoundsMin;
+            proxy.localBoundsMax = component.localBoundsMax;
+            proxy.handleBoundsMin = component.meshBoundsMin;
+            proxy.handleBoundsMax = component.meshBoundsMax;
+            proxy.hasHandleBounds = component.hasMeshBounds;
+            m_renderObjects.push_back(record->renderProxy);
+        }
     }
 
-    void Scene::AddRenderObject(std::shared_ptr<RenderObject> object)
+    void Scene::SynchronizeLightProxies() const
     {
-        if (object)
+        m_lights.clear();
+        for (EntityId id : m_entityOrder)
         {
-            m_renderObjects.push_back(object);
+            EntityRecord* record = const_cast<EntityRecord*>(FindRecord(id));
+            if (!record || !record->light)
+            {
+                continue;
+            }
+            if (!record->lightProxy)
+            {
+                record->lightProxy = std::make_shared<Light>();
+            }
+            Light& proxy = *record->lightProxy;
+            const LightComponent& component = *record->light;
+            proxy.entityId = id;
+            proxy.name = record->name;
+            proxy.type = component.type;
+            proxy.position = ExtractTranslation(GetWorldMatrix(id));
+            const Math::Vec3 direction =
+                (GetWorldMatrix(id) * Math::Vec4(component.localDirection, 0.0f)).ToVec3();
+            proxy.direction = Math::IsZero(direction.LengthSquared())
+                ? component.localDirection
+                : direction.Normalized();
+            proxy.color = component.color;
+            proxy.intensity = component.intensity;
+            proxy.range = component.range;
+            proxy.innerConeAngle = component.innerConeAngle;
+            proxy.outerConeAngle = component.outerConeAngle;
+            proxy.castShadows = component.castShadows;
+            proxy.shadowBias = component.shadowBias;
+            proxy.shadowMapSize = component.shadowMapSize;
+            proxy.enabled = IsEffectivelyVisible(id) && component.enabled;
+            m_lights.push_back(record->lightProxy);
         }
+    }
+
+    const std::vector<std::shared_ptr<RenderObject>>& Scene::GetRenderObjects() const
+    {
+        SynchronizeRenderProxies();
+        return m_renderObjects;
+    }
+
+    const std::vector<std::shared_ptr<Light>>& Scene::GetLights() const
+    {
+        SynchronizeLightProxies();
+        return m_lights;
+    }
+
+    Entity Scene::AddRenderObject(std::shared_ptr<RenderObject> object)
+    {
+        if (!object)
+        {
+            return {};
+        }
+        Entity entity = CreateEntity(object->name.empty() ? "RenderObject" : object->name);
+        TransformComponent transform;
+        transform.position = object->position;
+        transform.rotation = object->rotation;
+        transform.scale = object->scale;
+        SetLocalTransform(entity.GetId(), transform);
+        MeshRendererComponent component;
+        component.mesh = object->meshHandle;
+        component.material = object->materialHandle;
+        component.visible = object->visible;
+        component.castShadows = object->castShadows;
+        component.receiveShadows = object->receiveShadows;
+        component.boundsMode = object->boundsMode;
+        object->GetLocalBounds(component.localBoundsMin, component.localBoundsMax);
+        if (object->TryGetGeometryBounds(component.meshBoundsMin, component.meshBoundsMax))
+        {
+            component.hasMeshBounds = true;
+        }
+        SetMeshRenderer(entity.GetId(), component, nullptr);
+        EntityRecord* record = FindRecord(entity.GetId());
+        record->renderProxy = object;
+        record->legacyRenderProxyAuthoring = true;
+        object->entityId = entity.GetId();
+        return entity;
     }
 
     void Scene::RemoveRenderObject(std::shared_ptr<RenderObject> object)
     {
-        auto it = std::find(m_renderObjects.begin(), m_renderObjects.end(), object);
-        if (it != m_renderObjects.end())
+        if (!object)
         {
-            m_renderObjects.erase(it);
+            return;
+        }
+        for (EntityId id : m_entityOrder)
+        {
+            const EntityRecord* record = FindRecord(id);
+            if (record && record->renderProxy == object)
+            {
+                DestroyEntity(id);
+                return;
+            }
         }
     }
 
-    void Scene::AddLight(std::shared_ptr<Light> light)
+    Entity Scene::AddLight(std::shared_ptr<Light> light)
     {
-        if (light)
+        if (!light)
         {
-            m_lights.push_back(light);
+            return {};
         }
+        Entity entity = CreateEntity(light->name.empty() ? "Light" : light->name);
+        TransformComponent transform;
+        transform.position = light->position;
+        SetLocalTransform(entity.GetId(), transform);
+        LightComponent component;
+        component.type = light->type;
+        component.localDirection = light->direction;
+        component.color = light->color;
+        component.intensity = light->intensity;
+        component.range = light->range;
+        component.innerConeAngle = light->innerConeAngle;
+        component.outerConeAngle = light->outerConeAngle;
+        component.castShadows = light->castShadows;
+        component.shadowBias = light->shadowBias;
+        component.shadowMapSize = light->shadowMapSize;
+        component.enabled = light->enabled;
+        SetLight(entity.GetId(), component);
+        EntityRecord* record = FindRecord(entity.GetId());
+        record->lightProxy = light;
+        record->legacyLightProxyAuthoring = true;
+        light->entityId = entity.GetId();
+        return entity;
     }
 
     void Scene::RemoveLight(std::shared_ptr<Light> light)
     {
-        auto it = std::find(m_lights.begin(), m_lights.end(), light);
-        if (it != m_lights.end())
+        if (!light)
         {
-            m_lights.erase(it);
+            return;
+        }
+        for (EntityId id : m_entityOrder)
+        {
+            const EntityRecord* record = FindRecord(id);
+            if (record && record->lightProxy == light)
+            {
+                DestroyEntity(id);
+                return;
+            }
         }
     }
 
-    std::vector<std::shared_ptr<RenderObject>> Scene::GetVisibleObjects(const Camera &camera) const
+    void Scene::SetPrimaryLight(Entity entity)
     {
-        std::vector<std::shared_ptr<RenderObject>> visibleObjects;
+        m_primaryLight = entity.GetScene() == this && entity.HasLight()
+            ? entity.GetId()
+            : EntityId{};
+    }
 
-        for (const auto &object : m_renderObjects)
+    void Scene::SetPrimaryLight(std::shared_ptr<Light> light)
+    {
+        if (!light)
+        {
+            m_primaryLight = {};
+            return;
+        }
+        if (light->entityId && Contains(light->entityId))
+        {
+            m_primaryLight = light->entityId;
+            return;
+        }
+        SetPrimaryLight(AddLight(light));
+    }
+
+    Entity Scene::GetPrimaryLightEntity() const
+    {
+        return MakeEntity(m_primaryLight);
+    }
+
+    std::shared_ptr<Light> Scene::GetPrimaryLight() const
+    {
+        if (!m_primaryLight)
+        {
+            return nullptr;
+        }
+        SynchronizeLightProxies();
+        const EntityRecord* record = FindRecord(m_primaryLight);
+        return record ? record->lightProxy : nullptr;
+    }
+
+    std::vector<std::shared_ptr<RenderObject>> Scene::GetVisibleObjects(const Camera& camera) const
+    {
+        std::vector<std::shared_ptr<RenderObject>> visible;
+        for (const auto& object : GetRenderObjects())
         {
             if (!object || !object->visible)
             {
                 continue;
             }
-
-            Math::Vec3 boundsMin;
-            Math::Vec3 boundsMax;
-            object->GetWorldBounds(boundsMin, boundsMax);
-            if (camera.IsAABBVisible(boundsMin, boundsMax))
+            Math::Vec3 minimum;
+            Math::Vec3 maximum;
+            object->GetWorldBounds(minimum, maximum);
+            if (camera.IsAABBVisible(minimum, maximum))
             {
-                visibleObjects.push_back(object);
+                visible.push_back(object);
             }
         }
-
-        return visibleObjects;
+        return visible;
     }
 
-    std::vector<std::shared_ptr<Light>> Scene::GetVisibleLights(const Camera &camera) const
+    std::vector<std::shared_ptr<Light>> Scene::GetVisibleLights(const Camera& camera) const
     {
         (void)camera;
-        std::vector<std::shared_ptr<Light>> visibleLights;
-
-        for (const auto &light : m_lights)
+        std::vector<std::shared_ptr<Light>> visible;
+        for (const auto& light : GetLights())
         {
             if (light && light->enabled)
             {
-                // For now, include all lights - could add light culling later
-                visibleLights.push_back(light);
+                visible.push_back(light);
             }
         }
-
-        return visibleLights;
+        return visible;
     }
 
     void Scene::Clear()
     {
+        m_entities.clear();
+        m_entityOrder.clear();
         m_renderObjects.clear();
         m_lights.clear();
-        m_primaryLight.reset();
-        m_rootNode = std::make_shared<SceneNode>("Root");
+        m_primaryLight = {};
+        m_nextEntityId = 1;
     }
 
-    // SceneUtils Implementation
+    bool Entity::IsValid() const
+    {
+        return m_scene && !m_lifetime.expired() && m_scene->Contains(m_id);
+    }
+
+    std::string Entity::GetName() const
+    {
+        const auto* record = IsValid() ? m_scene->FindRecord(m_id) : nullptr;
+        return record ? record->name : std::string{};
+    }
+
+    bool Entity::SetName(const std::string& name)
+    {
+        auto* record = IsValid() ? m_scene->FindRecord(m_id) : nullptr;
+        if (!record) return false;
+        record->name = name;
+        return true;
+    }
+
+    bool Entity::IsVisible() const
+    {
+        const auto* record = IsValid() ? m_scene->FindRecord(m_id) : nullptr;
+        return record && record->visible;
+    }
+
+    bool Entity::IsEffectivelyVisible() const
+    {
+        return IsValid() && m_scene->IsEffectivelyVisible(m_id);
+    }
+
+    bool Entity::SetVisible(bool visible)
+    {
+        auto* record = IsValid() ? m_scene->FindRecord(m_id) : nullptr;
+        if (!record) return false;
+        record->visible = visible;
+        return true;
+    }
+
+    const TransformComponent* Entity::GetTransform() const
+    {
+        const auto* record = IsValid() ? m_scene->FindRecord(m_id) : nullptr;
+        return record ? &record->transform : nullptr;
+    }
+
+    bool Entity::SetLocalTransform(
+        const Math::Vec3& position,
+        const Math::Quat& rotation,
+        const Math::Vec3& scale)
+    {
+        TransformComponent transform;
+        transform.position = position;
+        transform.rotation = rotation;
+        transform.scale = scale;
+        return IsValid() && m_scene->SetLocalTransform(m_id, transform);
+    }
+
+    bool Entity::SetLocalPosition(const Math::Vec3& position)
+    {
+        const TransformComponent* current = GetTransform();
+        return current && SetLocalTransform(position, current->rotation, current->scale);
+    }
+
+    bool Entity::SetLocalRotation(const Math::Quat& rotation)
+    {
+        const TransformComponent* current = GetTransform();
+        return current && SetLocalTransform(current->position, rotation, current->scale);
+    }
+
+    bool Entity::SetLocalScale(const Math::Vec3& scale)
+    {
+        const TransformComponent* current = GetTransform();
+        return current && SetLocalTransform(current->position, current->rotation, scale);
+    }
+
+    Math::Vec3 Entity::GetWorldPosition() const
+    {
+        return IsValid() ? ExtractTranslation(m_scene->GetWorldMatrix(m_id)) : Math::Vec3::Zero;
+    }
+
+    Math::Quat Entity::GetWorldRotation() const
+    {
+        return IsValid() ? m_scene->GetWorldRotation(m_id) : Math::Quat::Identity;
+    }
+
+    Math::Vec3 Entity::GetWorldScale() const
+    {
+        return IsValid() ? m_scene->GetWorldScale(m_id) : Math::Vec3::One;
+    }
+
+    Math::Mat4 Entity::GetLocalMatrix() const
+    {
+        return IsValid() ? m_scene->GetLocalMatrix(m_id) : Math::Mat4::Identity;
+    }
+
+    Math::Mat4 Entity::GetWorldMatrix() const
+    {
+        return IsValid() ? m_scene->GetWorldMatrix(m_id) : Math::Mat4::Identity;
+    }
+
+    Entity Entity::GetParent() const
+    {
+        const auto* record = IsValid() ? m_scene->FindRecord(m_id) : nullptr;
+        return record ? m_scene->MakeEntity(record->parent) : Entity{};
+    }
+
+    std::vector<Entity> Entity::GetChildren() const
+    {
+        std::vector<Entity> children;
+        const auto* record = IsValid() ? m_scene->FindRecord(m_id) : nullptr;
+        if (!record) return children;
+        children.reserve(record->children.size());
+        for (EntityId id : record->children)
+        {
+            children.push_back(Entity(m_scene, id, m_lifetime));
+        }
+        return children;
+    }
+
+    bool Entity::SetParent(Entity parent)
+    {
+        if (!IsValid() || (parent && parent.GetScene() != m_scene))
+        {
+            return false;
+        }
+        return m_scene->SetParent(m_id, parent ? parent.GetId() : EntityId{});
+    }
+
+    bool Entity::ClearParent() { return IsValid() && m_scene->SetParent(m_id, {}); }
+
+    bool Entity::HasMeshRenderer() const
+    {
+        const auto* record = IsValid() ? m_scene->FindRecord(m_id) : nullptr;
+        return record && record->meshRenderer.has_value();
+    }
+
+    const MeshRendererComponent* Entity::GetMeshRenderer() const
+    {
+        const auto* record = IsValid() ? m_scene->FindRecord(m_id) : nullptr;
+        return record && record->meshRenderer ? &*record->meshRenderer : nullptr;
+    }
+
+    bool Entity::SetMeshRenderer(
+        const MeshRendererComponent& component,
+        const ResourceRegistry* registry)
+    {
+        return IsValid() && m_scene->SetMeshRenderer(m_id, component, registry);
+    }
+
+    bool Entity::RemoveMeshRenderer()
+    {
+        auto* record = IsValid() ? m_scene->FindRecord(m_id) : nullptr;
+        if (!record) return false;
+        record->meshRenderer.reset();
+        record->renderProxy.reset();
+        return true;
+    }
+
+    bool Entity::HasLight() const
+    {
+        const auto* record = IsValid() ? m_scene->FindRecord(m_id) : nullptr;
+        return record && record->light.has_value();
+    }
+
+    const LightComponent* Entity::GetLight() const
+    {
+        const auto* record = IsValid() ? m_scene->FindRecord(m_id) : nullptr;
+        return record && record->light ? &*record->light : nullptr;
+    }
+
+    bool Entity::SetLight(const LightComponent& component)
+    {
+        return IsValid() && m_scene->SetLight(m_id, component);
+    }
+
+    bool Entity::RemoveLight()
+    {
+        auto* record = IsValid() ? m_scene->FindRecord(m_id) : nullptr;
+        if (!record) return false;
+        record->light.reset();
+        record->lightProxy.reset();
+        if (m_scene->m_primaryLight == m_id)
+        {
+            m_scene->m_primaryLight = {};
+        }
+        return true;
+    }
+
     namespace SceneUtils
     {
         std::shared_ptr<Scene> CreateTestScene()
         {
             auto scene = std::make_shared<Scene>("Test Scene");
-
-            // Create a simple directional light
-            auto light = CreateDirectionalLight(Math::Vec3(0.5f, -1.0f, 0.5f));
-            scene->AddLight(light);
-            scene->SetPrimaryLight(light);
-
-            // Set up basic environment
-            auto &env = scene->GetEnvironment();
-            env.skyColor = Math::Vec3(0.5f, 0.7f, 1.0f);
-            env.ambientColor = Math::Vec3(0.1f, 0.1f, 0.1f);
-
+            Entity sun = scene->CreateEntity("Directional Light");
+            LightComponent light;
+            light.type = LightType::Directional;
+            light.localDirection = Math::Vec3(0.5f, -1.0f, 0.5f).Normalized();
+            sun.SetLight(light);
+            scene->SetPrimaryLight(sun);
+            scene->GetEnvironment().skyColor = Math::Vec3(0.5f, 0.7f, 1.0f);
             return scene;
         }
 
@@ -576,131 +1058,17 @@ namespace Pyramid
         {
             auto object = std::make_shared<RenderObject>();
             object->name = "Cube";
-
-            // Create cube geometry
-            f32 halfSize = size * 0.5f;
-            object->SetLocalBounds(Math::Vec3(-halfSize), Math::Vec3(halfSize));
-
-            // Cube vertices (position + color)
-            std::vector<Vertex> vertices = {
-                // Front face (red tint)
-                {-halfSize, -halfSize,  halfSize, 1.0f, 0.8f, 0.8f, 1.0f},
-                { halfSize, -halfSize,  halfSize, 1.0f, 0.8f, 0.8f, 1.0f},
-                { halfSize,  halfSize,  halfSize, 1.0f, 0.8f, 0.8f, 1.0f},
-                {-halfSize,  halfSize,  halfSize, 1.0f, 0.8f, 0.8f, 1.0f},
-
-                // Back face (green tint)
-                {-halfSize, -halfSize, -halfSize, 0.8f, 1.0f, 0.8f, 1.0f},
-                { halfSize, -halfSize, -halfSize, 0.8f, 1.0f, 0.8f, 1.0f},
-                { halfSize,  halfSize, -halfSize, 0.8f, 1.0f, 0.8f, 1.0f},
-                {-halfSize,  halfSize, -halfSize, 0.8f, 1.0f, 0.8f, 1.0f},
-
-                // Left face (blue tint)
-                {-halfSize, -halfSize, -halfSize, 0.8f, 0.8f, 1.0f, 1.0f},
-                {-halfSize, -halfSize,  halfSize, 0.8f, 0.8f, 1.0f, 1.0f},
-                {-halfSize,  halfSize,  halfSize, 0.8f, 0.8f, 1.0f, 1.0f},
-                {-halfSize,  halfSize, -halfSize, 0.8f, 0.8f, 1.0f, 1.0f},
-
-                // Right face (yellow tint)
-                { halfSize, -halfSize, -halfSize, 1.0f, 1.0f, 0.8f, 1.0f},
-                { halfSize, -halfSize,  halfSize, 1.0f, 1.0f, 0.8f, 1.0f},
-                { halfSize,  halfSize,  halfSize, 1.0f, 1.0f, 0.8f, 1.0f},
-                { halfSize,  halfSize, -halfSize, 1.0f, 1.0f, 0.8f, 1.0f},
-
-                // Top face (magenta tint)
-                {-halfSize,  halfSize, -halfSize, 1.0f, 0.8f, 1.0f, 1.0f},
-                { halfSize,  halfSize, -halfSize, 1.0f, 0.8f, 1.0f, 1.0f},
-                { halfSize,  halfSize,  halfSize, 1.0f, 0.8f, 1.0f, 1.0f},
-                {-halfSize,  halfSize,  halfSize, 1.0f, 0.8f, 1.0f, 1.0f},
-
-                // Bottom face (cyan tint)
-                {-halfSize, -halfSize, -halfSize, 0.8f, 1.0f, 1.0f, 1.0f},
-                { halfSize, -halfSize, -halfSize, 0.8f, 1.0f, 1.0f, 1.0f},
-                { halfSize, -halfSize,  halfSize, 0.8f, 1.0f, 1.0f, 1.0f},
-                {-halfSize, -halfSize,  halfSize, 0.8f, 1.0f, 1.0f, 1.0f}
-            };
-
-            // Cube indices
-            std::vector<u32> indices = {
-                // Front face
-                0, 1, 2,  2, 3, 0,
-                // Back face
-                4, 6, 5,  6, 4, 7,
-                // Left face
-                8, 9, 10,  10, 11, 8,
-                // Right face
-                12, 14, 13,  14, 12, 15,
-                // Top face
-                16, 17, 18,  18, 19, 16,
-                // Bottom face
-                20, 22, 21,  22, 20, 23
-            };
-
-            // Create vertex array and buffers (would need graphics device access)
-            // For now, store the geometry data in the object for later use
-            // TODO: This requires access to graphics device to create actual buffers
-
+            const f32 half = size * 0.5f;
+            object->SetLocalBounds(Math::Vec3(-half), Math::Vec3(half));
             return object;
         }
 
         std::shared_ptr<RenderObject> CreateSphere(f32 radius, u32 segments)
         {
+            (void)segments;
             auto object = std::make_shared<RenderObject>();
             object->name = "Sphere";
             object->SetLocalBounds(Math::Vec3(-radius), Math::Vec3(radius));
-
-            // Create sphere geometry using UV sphere algorithm
-            segments = (std::max)(segments, 8u); // Minimum 8 segments
-            u32 rings = segments / 2;
-
-            std::vector<Vertex> vertices;
-            std::vector<u32> indices;
-
-            // Generate vertices
-            for (u32 ring = 0; ring <= rings; ++ring)
-            {
-                f32 phi = Math::PI * static_cast<f32>(ring) / static_cast<f32>(rings);
-                f32 y = radius * std::cos(phi);
-                f32 ringRadius = radius * std::sin(phi);
-
-                for (u32 segment = 0; segment <= segments; ++segment)
-                {
-                    f32 theta = 2.0f * Math::PI * static_cast<f32>(segment) / static_cast<f32>(segments);
-                    f32 x = ringRadius * std::cos(theta);
-                    f32 z = ringRadius * std::sin(theta);
-
-                    // Color based on position (creates a nice gradient effect)
-                    f32 r = 0.5f + 0.5f * std::sin(theta);
-                    f32 g = 0.5f + 0.5f * std::cos(phi);
-                    f32 b = 0.5f + 0.5f * std::sin(phi + theta);
-
-                    vertices.emplace_back(x, y, z, r, g, b, 1.0f);
-                }
-            }
-
-            // Generate indices
-            for (u32 ring = 0; ring < rings; ++ring)
-            {
-                for (u32 segment = 0; segment < segments; ++segment)
-                {
-                    u32 current = ring * (segments + 1) + segment;
-                    u32 next = current + segments + 1;
-
-                    // First triangle
-                    indices.push_back(current);
-                    indices.push_back(next);
-                    indices.push_back(current + 1);
-
-                    // Second triangle
-                    indices.push_back(current + 1);
-                    indices.push_back(next);
-                    indices.push_back(next + 1);
-                }
-            }
-
-            // Store geometry data for later buffer creation
-            // TODO: This requires access to graphics device to create actual buffers
-
             return object;
         }
 
@@ -708,47 +1076,26 @@ namespace Pyramid
         {
             auto object = std::make_shared<RenderObject>();
             object->name = "Plane";
-
-            // Create plane geometry (XZ plane, facing up)
-            f32 halfWidth = width * 0.5f;
-            f32 halfHeight = height * 0.5f;
             object->SetLocalBounds(
-                Math::Vec3(-halfWidth, 0.0f, -halfHeight),
-                Math::Vec3(halfWidth, 0.0f, halfHeight));
-
-            std::vector<Vertex> vertices = {
-                // Plane vertices (white color)
-                {-halfWidth, 0.0f, -halfHeight, 1.0f, 1.0f, 1.0f, 1.0f}, // Bottom-left
-                { halfWidth, 0.0f, -halfHeight, 1.0f, 1.0f, 1.0f, 1.0f}, // Bottom-right
-                { halfWidth, 0.0f,  halfHeight, 1.0f, 1.0f, 1.0f, 1.0f}, // Top-right
-                {-halfWidth, 0.0f,  halfHeight, 1.0f, 1.0f, 1.0f, 1.0f}  // Top-left
-            };
-
-            std::vector<u32> indices = {
-                // Two triangles to form a quad
-                0, 1, 2,  // First triangle
-                2, 3, 0   // Second triangle
-            };
-
-            // Store geometry data for later buffer creation
-            // TODO: This requires access to graphics device to create actual buffers
-
+                Math::Vec3(-width * 0.5f, 0.0f, -height * 0.5f),
+                Math::Vec3(width * 0.5f, 0.0f, height * 0.5f));
             return object;
         }
 
-        std::shared_ptr<Light> CreateDirectionalLight(const Math::Vec3 &direction,
-                                                      const Math::Vec3 &color,
-                                                      f32 intensity)
+        std::shared_ptr<Light> CreateDirectionalLight(
+            const Math::Vec3& direction,
+            const Math::Vec3& color,
+            f32 intensity)
         {
             auto light = std::make_shared<Light>();
             light->type = LightType::Directional;
-            light->direction = direction.Normalized();
+            light->direction = Math::IsZero(direction.LengthSquared())
+                ? Math::Vec3(0.0f, -1.0f, 0.0f)
+                : direction.Normalized();
             light->color = color;
             light->intensity = intensity;
             light->name = "Directional Light";
-
             return light;
         }
     }
-
-} // namespace Pyramid
+}

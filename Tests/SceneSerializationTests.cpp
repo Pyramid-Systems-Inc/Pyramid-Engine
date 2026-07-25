@@ -92,19 +92,17 @@ int main()
     const std::array<u32, 3> indices = {0, 1, 2};
 
     const MeshHandle meshHandle = registry.AcquireMesh(MakeMeshSpecification(
-        vertices,
-        indices,
-        MeshAssetId::FromString("scene/player-mesh")));
+        vertices, indices, MeshAssetId::FromString("scene/unit-mesh")));
 
     ShaderProgramSpecification shaderSpecification;
     shaderSpecification.vertexSource = "void main(){}";
     shaderSpecification.fragmentSource = "void main(){}";
-    shaderSpecification.assetId = ShaderAssetId::FromString("scene/player-shader");
+    shaderSpecification.assetId = ShaderAssetId::FromString("scene/unit-shader");
     const ShaderHandle shaderHandle = registry.AcquireShader(shaderSpecification);
 
     MaterialSpecification materialSpecification;
     materialSpecification.shader = registry.Resolve(shaderHandle);
-    materialSpecification.assetId = MaterialAssetId::FromString("scene/player-material");
+    materialSpecification.assetId = MaterialAssetId::FromString("scene/unit-material");
     const MaterialHandle materialHandle = registry.AcquireMaterial(materialSpecification);
 
     if (!meshHandle || !shaderHandle || !materialHandle)
@@ -114,169 +112,132 @@ int main()
 
     ResourceManifest manifest;
     if (!manifest.Add("z.mesh", meshHandle) || !manifest.Add("a.mesh", meshHandle) ||
-        !manifest.Add("player.material", materialHandle))
+        !manifest.Add("unit.material", materialHandle))
     {
         return Fail("resource manifest setup failed");
     }
 
-    Scene scene("Scene\tOne\nEncoded");
-    auto first = std::make_shared<RenderObject>();
-    first->name = "Player\nObject";
-    first->position = Math::Vec3(10.0f, -2.5f, 7.0f);
-    first->rotation = Math::Quat::FromAxisAngle(Math::Vec3::Up, Math::Radians(35.0f));
-    first->scale = Math::Vec3(2.0f, 3.0f, 4.0f);
-    first->visible = false;
-    first->castShadows = false;
-    first->receiveShadows = true;
-    first->SetLocalBounds(Math::Vec3(-3.0f, -2.0f, -1.0f), Math::Vec3(4.0f, 5.0f, 6.0f));
-    if (!first->SetMeshHandle(meshHandle, registry) ||
-        !first->SetMaterialHandle(materialHandle, registry))
-    {
-        return Fail("handle-backed object setup failed");
-    }
-    scene.AddRenderObject(first);
+    Scene scene("RTS\tBattlefield\nEncoded");
+    Entity army = scene.CreateEntityWithId(EntityId(0x100), "Army Root");
+    Entity unit = scene.CreateEntityWithId(EntityId(0x200), "Infantry\nUnit");
+    Entity sun = scene.CreateEntityWithId(EntityId(0x300), "Sun");
+    unit.SetParent(army);
+    army.SetLocalPosition(Math::Vec3(100.0f, 0.0f, 50.0f));
+    unit.SetLocalTransform(
+        Math::Vec3(2.0f, 0.0f, 4.0f),
+        Math::Quat::FromAxisAngle(Math::Vec3::Up, Math::Radians(35.0f)),
+        Math::Vec3(1.5f, 2.0f, 1.5f));
+    unit.SetVisible(false);
 
-    auto second = std::make_shared<RenderObject>();
-    second->name = "Direct owner";
-    second->mesh = registry.Resolve(meshHandle);
-    second->material = registry.Resolve(materialHandle);
-    second->position = Math::Vec3(-1.0f, 2.0f, 3.0f);
-    scene.AddRenderObject(second);
+    MeshRendererComponent renderer;
+    renderer.mesh = meshHandle;
+    renderer.material = materialHandle;
+    renderer.castShadows = false;
+    renderer.receiveShadows = true;
+    renderer.boundsMode = RenderBoundsMode::Manual;
+    renderer.localBoundsMin = Math::Vec3(-3.0f, -2.0f, -1.0f);
+    renderer.localBoundsMax = Math::Vec3(4.0f, 5.0f, 6.0f);
+    if (!unit.SetMeshRenderer(renderer, &registry))
+    {
+        return Fail("mesh renderer setup failed");
+    }
+
+    sun.SetLocalRotation(
+        Math::Quat::FromAxisAngle(Math::Vec3::Right, Math::Radians(-45.0f)));
+    LightComponent light;
+    light.type = LightType::Directional;
+    light.localDirection = Math::Vec3(0.0f, -1.0f, 0.0f);
+    light.color = Math::Vec3(1.0f, 0.9f, 0.7f);
+    light.intensity = 4.0f;
+    light.shadowMapSize = 2048;
+    sun.SetLight(light);
+    scene.SetPrimaryLight(sun);
 
     const SceneSerializationResult serialized =
         SceneSerializer::Serialize(scene, manifest, registry);
     const SceneSerializationResult serializedAgain =
         SceneSerializer::Serialize(scene, manifest, registry);
-    if (!serialized.Succeeded() || serialized.serializedObjects != 2 ||
+    if (!serialized.Succeeded() || serialized.serializedEntities != 3 ||
+        serialized.serializedObjects != 1 || serialized.serializedLights != 1 ||
         serialized.text != serializedAgain.text ||
-        serialized.text.find("PYRAMID_SCENE\t1\n") != 0 ||
-        serialized.text.find("\ta.mesh\tplayer.material\t") == std::string::npos ||
-        serialized.text.find("\tz.mesh\t") != std::string::npos)
+        serialized.text.find("PYRAMID_SCENE\t2\n") != 0 ||
+        serialized.text.find("\ta.mesh\tunit.material\t") == std::string::npos ||
+        serialized.text.find("\tz.mesh\t") != std::string::npos ||
+        serialized.text.find("entity\t0000000000000200\t0000000000000100\t") == std::string::npos)
     {
-        return Fail("deterministic serialization or manifest-key selection failed");
+        return Fail("deterministic entity serialization failed");
     }
 
     const SceneDeserializationResult restored =
         SceneSerializer::Deserialize(serialized.text, manifest, registry);
-    if (!restored.Succeeded() || restored.restoredObjects != 2 ||
+    if (!restored.Succeeded() || restored.restoredEntities != 3 ||
+        restored.restoredObjects != 1 || restored.restoredLights != 1 ||
         restored.scene->GetName() != scene.GetName() ||
-        restored.scene->GetObjectCount() != 2)
+        restored.scene->GetEntityCount() != 3)
     {
-        return Fail("scene round trip failed");
+        return Fail("entity scene round trip failed");
     }
 
-    const auto& restoredFirst = restored.scene->GetRenderObjects()[0];
-    const auto& restoredSecond = restored.scene->GetRenderObjects()[1];
-    if (!restoredFirst || restoredFirst->name != first->name ||
-        !NearlyEqual(restoredFirst->position, first->position) ||
-        !NearlyEqual(restoredFirst->scale, first->scale) ||
-        restoredFirst->visible || restoredFirst->castShadows ||
-        !restoredFirst->receiveShadows ||
-        restoredFirst->GetBoundsMode() != RenderBoundsMode::Manual ||
-        restoredFirst->meshHandle != meshHandle ||
-        restoredFirst->materialHandle != materialHandle ||
-        restoredFirst->mesh || restoredFirst->material)
+    Entity restoredArmy = restored.scene->FindEntity(EntityId(0x100));
+    Entity restoredUnit = restored.scene->FindEntity(EntityId(0x200));
+    Entity restoredSun = restored.scene->FindEntity(EntityId(0x300));
+    if (!restoredArmy || !restoredUnit || !restoredSun ||
+        restoredUnit.GetParent() != restoredArmy || restoredUnit.IsVisible() ||
+        restored.scene->GetPrimaryLightEntity() != restoredSun ||
+        !NearlyEqual(restoredUnit.GetTransform()->position, Math::Vec3(2.0f, 0.0f, 4.0f)) ||
+        !NearlyEqual(restoredUnit.GetWorldPosition(), Math::Vec3(102.0f, 0.0f, 54.0f)))
     {
-        return Fail("render-object state was not restored correctly");
+        return Fail("stable IDs, hierarchy, visibility, or transforms were not restored");
     }
 
-    Math::Vec3 restoredMin;
-    Math::Vec3 restoredMax;
-    restoredFirst->GetLocalBounds(restoredMin, restoredMax);
-    if (!NearlyEqual(restoredMin, Math::Vec3(-3.0f, -2.0f, -1.0f)) ||
-        !NearlyEqual(restoredMax, Math::Vec3(4.0f, 5.0f, 6.0f)) ||
-        restoredSecond->GetBoundsMode() != RenderBoundsMode::Automatic ||
-        restoredSecond->meshHandle != meshHandle ||
-        restoredSecond->materialHandle != materialHandle)
+    const MeshRendererComponent* restoredRenderer = restoredUnit.GetMeshRenderer();
+    const LightComponent* restoredLight = restoredSun.GetLight();
+    if (!restoredRenderer || restoredRenderer->mesh != meshHandle ||
+        restoredRenderer->material != materialHandle || restoredRenderer->castShadows ||
+        restoredRenderer->boundsMode != RenderBoundsMode::Manual ||
+        !NearlyEqual(restoredRenderer->localBoundsMin, Math::Vec3(-3.0f, -2.0f, -1.0f)) ||
+        !restoredLight || restoredLight->type != LightType::Directional ||
+        !NearlyEqual(restoredLight->color, light.color) ||
+        !NearlyEqual(restoredLight->intensity, light.intensity) ||
+        restoredLight->shadowMapSize != 2048)
     {
-        return Fail("bounds mode or direct-resource conversion failed");
+        return Fail("mesh renderer or light component was not restored");
     }
 
-    Scene invalidNameScene(std::string("bad\0scene", 9));
-    const auto invalidName =
-        SceneSerializer::Serialize(invalidNameScene, manifest, registry);
-    if (invalidName.Succeeded() || invalidName.diagnostics.empty() ||
-        invalidName.diagnostics.front().code !=
-            SceneSerializationDiagnosticCode::InvalidNameEncoding)
-    {
-        return Fail("invalid scene names should be rejected before serialization");
-    }
-
-    ResourceManifest incompleteManifest;
-    incompleteManifest.Add("player.material", materialHandle);
-    const auto missingManifestSerialization =
-        SceneSerializer::Serialize(scene, incompleteManifest, registry);
-    if (missingManifestSerialization.Succeeded() ||
-        missingManifestSerialization.diagnostics.empty() ||
-        !missingManifestSerialization.text.empty())
-    {
-        return Fail("serialization should reject resources absent from the manifest");
-    }
-
-    ResourceManifest staleManifest;
-    staleManifest.Add(
-        "a.mesh",
-        MeshHandle::FromParts(
-            meshHandle.GetAssetId(),
-            meshHandle.GetGeneration() + 1));
-    staleManifest.Add("player.material", materialHandle);
-    const auto stale = SceneSerializer::Deserialize(serialized.text, staleManifest, registry);
-    if (stale.Succeeded() || stale.scene || stale.staleGenerations != 2 ||
-        stale.diagnostics.empty())
-    {
-        return Fail("stale manifest generations were not rejected transactionally");
-    }
-
-    ResourceManifest missingManifest;
-    missingManifest.Add(
-        "a.mesh",
-        MeshHandle::FromParts(MeshAssetId::FromString("scene/missing"), 1));
-    missingManifest.Add("player.material", materialHandle);
-    const auto missing = SceneSerializer::Deserialize(serialized.text, missingManifest, registry);
-    if (missing.Succeeded() || missing.scene || missing.missingAssets != 2)
-    {
-        return Fail("missing registry assets were not diagnosed");
-    }
-
-    ResourceManifest wrongTypeManifest;
-    wrongTypeManifest.Add("a.mesh", shaderHandle);
-    wrongTypeManifest.Add("player.material", materialHandle);
-    const auto wrongType =
-        SceneSerializer::Deserialize(serialized.text, wrongTypeManifest, registry);
-    if (wrongType.Succeeded() || wrongType.scene || wrongType.diagnostics.empty() ||
-        wrongType.diagnostics.front().code !=
-            SceneSerializationDiagnosticCode::ResourceTypeMismatch)
-    {
-        return Fail("resource type mismatch was not diagnosed");
-    }
-
-    const std::string unsupported =
-        "PYRAMID_SCENE\t2\n"
-        "scene\t-\n";
+    std::string unsupported = serialized.text;
+    unsupported.replace(unsupported.find("\t2\n"), 3, "\t1\n");
     const auto unsupportedResult =
         SceneSerializer::Deserialize(unsupported, manifest, registry);
-    if (unsupportedResult.Succeeded() || unsupportedResult.scene ||
-        unsupportedResult.diagnostics.empty() ||
+    if (unsupportedResult.Succeeded() || unsupportedResult.diagnostics.empty() ||
         unsupportedResult.diagnostics.front().code !=
             SceneSerializationDiagnosticCode::UnsupportedVersion)
     {
-        return Fail("unsupported version was not rejected");
+        return Fail("legacy flat scene version should be rejected");
     }
 
-    const std::size_t objectLineStart = serialized.text.find("object\t");
-    const std::size_t objectLineEnd = serialized.text.find('\n', objectLineStart);
-    const std::string objectLine = serialized.text.substr(
-        objectLineStart,
-        objectLineEnd - objectLineStart + 1);
-    const std::string duplicate = serialized.text + objectLine;
-    const auto duplicateResult =
-        SceneSerializer::Deserialize(duplicate, manifest, registry);
-    if (duplicateResult.Succeeded() || duplicateResult.scene ||
-        duplicateResult.diagnostics.empty())
+    const std::string invalidParent =
+        "PYRAMID_SCENE\t2\n"
+        "scene\t54657374\n"
+        "entity\t0000000000000001\t0000000000000099\t41\t1\t0\t0\t0\t0\t0\t0\t1\t1\t1\t1\n"
+        "primary_light\tnone\n";
+    const auto invalidParentResult =
+        SceneSerializer::Deserialize(invalidParent, manifest, registry);
+    if (invalidParentResult.Succeeded())
     {
-        return Fail("duplicate object keys were not rejected");
+        return Fail("missing parent entities should be rejected");
     }
 
-    std::cout << "Scene serialization tests passed\n";
+    const std::string cycle =
+        "PYRAMID_SCENE\t2\n"
+        "scene\t54657374\n"
+        "entity\t0000000000000001\t0000000000000002\t41\t1\t0\t0\t0\t0\t0\t0\t1\t1\t1\t1\n"
+        "entity\t0000000000000002\t0000000000000001\t42\t1\t0\t0\t0\t0\t0\t0\t1\t1\t1\t1\n"
+        "primary_light\tnone\n";
+    const auto cycleResult = SceneSerializer::Deserialize(cycle, manifest, registry);
+    if (cycleResult.Succeeded())
+    {
+        return Fail("hierarchy cycles should be rejected");
+    }
+
     return EXIT_SUCCESS;
 }

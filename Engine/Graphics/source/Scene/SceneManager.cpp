@@ -244,6 +244,18 @@ namespace Pyramid
 
             const auto end = std::chrono::high_resolution_clock::now();
             result.totalFound = static_cast<u32>(result.objects.size());
+            result.entities.reserve(result.objects.size());
+            for (const auto& object : result.objects)
+            {
+                if (object && object->entityId)
+                {
+                    const Entity entity = m_activeScene->FindEntity(object->entityId);
+                    if (entity)
+                    {
+                        result.entities.push_back(entity);
+                    }
+                }
+            }
             m_stats.lastQueryTime =
                 std::chrono::duration<float, std::milli>(end - start).count();
 
@@ -407,8 +419,9 @@ namespace Pyramid
             if (!m_activeScene)
                 return;
 
-            // Update scene transforms
-            // TODO: Add scene update method when available
+            // Force authoritative entity world transforms and renderer proxies to synchronize.
+            (void)m_activeScene->GetRenderObjects();
+            (void)m_activeScene->GetLights();
         }
 
         void SceneManager::UpdateVisibility(const Camera &camera)
@@ -456,7 +469,8 @@ namespace Pyramid
         const SceneStats &SceneManager::GetStats() const
         {
             // Update stats
-            const_cast<SceneManager *>(this)->m_stats.totalNodes = m_activeScene ? 1u : 0u;
+            const_cast<SceneManager *>(this)->m_stats.totalEntities =
+                m_activeScene ? static_cast<u32>(m_activeScene->GetEntityCount()) : 0u;
             const_cast<SceneManager *>(this)->m_stats.totalObjects =
                 m_activeScene ? static_cast<u32>(m_activeScene->GetObjectCount()) : 0u;
 
@@ -483,7 +497,7 @@ namespace Pyramid
             }
         }
 
-        void SceneManager::TriggerEvent(const std::string &eventType, std::shared_ptr<SceneNode> node)
+        void SceneManager::TriggerEvent(const std::string &eventType, Entity entity)
         {
             const auto it = m_eventCallbacks.find(eventType);
             if (it == m_eventCallbacks.end())
@@ -491,7 +505,7 @@ namespace Pyramid
 
             for (const auto &callback : it->second)
             {
-                callback(eventType, node);
+                callback(eventType, entity);
             }
         }
 
@@ -537,7 +551,7 @@ namespace Pyramid
             if (!object)
                 return 1.0f;
 
-            f32 distance = (object->position - camera.GetPosition()).Length();
+            f32 distance = (object->GetWorldPosition() - camera.GetPosition()).Length();
 
             // Simple LOD calculation based on distance
             if (distance < 10.0f)

@@ -158,9 +158,12 @@ void BasicGame::onCreate()
         return;
     }
 
-    auto sun = Pyramid::SceneUtils::CreateDirectionalLight(Pyramid::Math::Vec3(-0.5f, -1.0f, -0.25f));
-    sun->intensity = 1.5f;
-    m_scene->AddLight(sun);
+    Pyramid::Entity sun = m_scene->CreateEntity("Sun");
+    Pyramid::LightComponent sunLight;
+    sunLight.type = Pyramid::LightType::Directional;
+    sunLight.localDirection = Pyramid::Math::Vec3(-0.5f, -1.0f, -0.25f);
+    sunLight.intensity = 1.5f;
+    sun.SetLight(sunLight);
     m_scene->SetPrimaryLight(sun);
 
     auto& environment = m_scene->GetEnvironment();
@@ -174,12 +177,12 @@ void BasicGame::onUpdate(float deltaTime)
 {
     m_elapsedTime += deltaTime;
 
-    if (m_cube)
+    if (m_cubeEntity)
     {
-        m_cube->rotation = Pyramid::Math::Quat::FromEuler(
+        m_cubeEntity.SetLocalRotation(Pyramid::Math::Quat::FromEuler(
             0.35f * m_elapsedTime,
             0.8f * m_elapsedTime,
-            0.0f);
+            0.0f));
     }
 
     UpdateCamera(deltaTime);
@@ -294,26 +297,27 @@ bool BasicGame::SetupScene()
     const auto cubeMaterialHandle = resources->GetHandle(m_cubeMaterial->GetAssetId());
     const auto floorMaterialHandle = resources->GetHandle(m_floorMaterial->GetAssetId());
 
-    m_cube = std::make_shared<Pyramid::RenderObject>();
-    m_cube->name = "DemoCube";
-    m_cube->position = Pyramid::Math::Vec3::Zero;
-    m_cube->scale = Pyramid::Math::Vec3::One;
-
-    auto floorObject = std::make_shared<Pyramid::RenderObject>();
-    floorObject->name = "Floor";
-    floorObject->position = Pyramid::Math::Vec3(0.0f, -1.2f, 0.0f);
-    floorObject->scale = Pyramid::Math::Vec3(6.0f, 0.15f, 6.0f);
-
-    if (!m_cube->SetMeshHandle(cubeMeshHandle, *resources) ||
-        !m_cube->SetMaterialHandle(cubeMaterialHandle, *resources) ||
-        !floorObject->SetMeshHandle(floorMeshHandle, *resources) ||
-        !floorObject->SetMaterialHandle(floorMaterialHandle, *resources))
+    m_cubeEntity = m_scene->CreateEntity("DemoCube");
+    Pyramid::MeshRendererComponent cubeRenderer;
+    cubeRenderer.mesh = cubeMeshHandle;
+    cubeRenderer.material = cubeMaterialHandle;
+    if (!m_cubeEntity.SetMeshRenderer(cubeRenderer, resources))
     {
         return false;
     }
 
-    m_scene->AddRenderObject(m_cube);
-    m_scene->AddRenderObject(floorObject);
+    Pyramid::Entity floorEntity = m_scene->CreateEntity("Floor");
+    floorEntity.SetLocalTransform(
+        Pyramid::Math::Vec3(0.0f, -1.2f, 0.0f),
+        Pyramid::Math::Quat::Identity,
+        Pyramid::Math::Vec3(6.0f, 0.15f, 6.0f));
+    Pyramid::MeshRendererComponent floorRenderer;
+    floorRenderer.mesh = floorMeshHandle;
+    floorRenderer.material = floorMaterialHandle;
+    if (!floorEntity.SetMeshRenderer(floorRenderer, resources))
+    {
+        return false;
+    }
 
     return true;
 }

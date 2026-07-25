@@ -4,7 +4,16 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
-### Versioned render-object scene serialization
+### Authoritative entity/component scene model
+
+- Replaced the independent `SceneNode` graph and flat render-object authoring model with stable scene-local `EntityId` values and a lightweight, non-owning `Entity` facade.
+- Added mandatory `TransformComponent` data plus optional `MeshRendererComponent` and `LightComponent` values, cycle-safe parent IDs, inherited visibility, recursive transform invalidation, safe scene-lifetime detection, and recursive entity destruction.
+- Made entity transforms authoritative; rendering, lights, culling, and spatial queries now consume generated `RenderObject` and `Light` proxies.
+- Upgraded `SceneSerializer` to version 2 with deterministic stable IDs, hierarchy, local transforms, mesh-renderer/light components, primary-light persistence, transactional validation, and exact resource-manifest references.
+- Migrated `BasicGame`, package-consumer coverage, public API linkage, and focused tests to the entity model; renamed the hierarchy test to `Graphics.EntityScene`.
+- Locked the product direction around a Windows-first RTS vertical slice, later Linux support, a full editor, and long-term Baa scripting/reimplementation.
+
+### Versioned render-object scene serialization (superseded by scene format v2)
 
 - Added dependency-free `SceneSerializer` persistence for scene names and flat render-object lists using a deterministic versioned text format.
 - Added exact `ResourceManifest` key references for mesh and material handles, including direct-owner conversion through the live `ResourceRegistry`.
@@ -150,7 +159,7 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 - Normalized local and composed world rotations before matrix use.
 - Cached world rotation and effective basis scale alongside the world matrix.
 - Added parent/children accessors plus point and direction conversion to world space.
-- Added `Graphics.SceneTransforms` coverage for multi-generation TRS composition, cache invalidation, reparenting, detachment, cycle rejection, and destruction behavior.
+- Added `Graphics.EntityScene` coverage for multi-generation TRS composition, cache invalidation, reparenting, detachment, cycle rejection, and destruction behavior.
 
 ### Image and texture loading
 

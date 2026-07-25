@@ -329,16 +329,27 @@ namespace
         &Pyramid::Renderer::RenderSystem::SetResourceRegistry;
     volatile decltype(&GameLinkageProbe::SetRenderSystem) g_setRenderSystem =
         &GameLinkageProbe::SetRenderSystem;
-    volatile decltype(&Pyramid::SceneNode::SetLocalPosition) g_setNodeLocalPosition =
-        &Pyramid::SceneNode::SetLocalPosition;
-    volatile decltype(&Pyramid::SceneNode::SetLocalRotation) g_setNodeLocalRotation =
-        &Pyramid::SceneNode::SetLocalRotation;
-    volatile decltype(&Pyramid::SceneNode::SetLocalScale) g_setNodeLocalScale =
-        &Pyramid::SceneNode::SetLocalScale;
-    volatile decltype(&Pyramid::SceneNode::TransformPointToWorld) g_transformPointToWorld =
-        &Pyramid::SceneNode::TransformPointToWorld;
-    volatile decltype(&Pyramid::SceneNode::TransformDirectionToWorld) g_transformDirectionToWorld =
-        &Pyramid::SceneNode::TransformDirectionToWorld;
+    volatile decltype(&Pyramid::Entity::SetLocalPosition) g_setEntityLocalPosition =
+        &Pyramid::Entity::SetLocalPosition;
+    volatile decltype(&Pyramid::Entity::SetLocalRotation) g_setEntityLocalRotation =
+        &Pyramid::Entity::SetLocalRotation;
+    volatile decltype(&Pyramid::Entity::SetLocalScale) g_setEntityLocalScale =
+        &Pyramid::Entity::SetLocalScale;
+    volatile decltype(&Pyramid::Entity::SetParent) g_setEntityParent =
+        &Pyramid::Entity::SetParent;
+    volatile decltype(&Pyramid::Entity::GetWorldMatrix) g_getEntityWorldMatrix =
+        &Pyramid::Entity::GetWorldMatrix;
+    volatile decltype(&Pyramid::Entity::SetMeshRenderer) g_setEntityMeshRenderer =
+        &Pyramid::Entity::SetMeshRenderer;
+    volatile decltype(&Pyramid::Entity::SetLight) g_setEntityLight =
+        &Pyramid::Entity::SetLight;
+    volatile decltype(&Pyramid::Scene::CreateEntity) g_createEntity =
+        &Pyramid::Scene::CreateEntity;
+    volatile decltype(&Pyramid::Scene::CreateEntityWithId) g_createEntityWithId =
+        &Pyramid::Scene::CreateEntityWithId;
+    using DestroyEntityFunction = bool (Pyramid::Scene::*)(Pyramid::Entity);
+    volatile DestroyEntityFunction g_destroyEntity =
+        static_cast<DestroyEntityFunction>(&Pyramid::Scene::DestroyEntity);
 }
 
 int main()
@@ -475,11 +486,16 @@ int main()
                    g_resizeRenderSystem &&
                    g_setRenderResourceRegistry &&
                    g_setRenderSystem &&
-                   g_setNodeLocalPosition &&
-                   g_setNodeLocalRotation &&
-                   g_setNodeLocalScale &&
-                   g_transformPointToWorld &&
-                   g_transformDirectionToWorld
+                   g_setEntityLocalPosition &&
+                   g_setEntityLocalRotation &&
+                   g_setEntityLocalScale &&
+                   g_setEntityParent &&
+                   g_getEntityWorldMatrix &&
+                   g_setEntityMeshRenderer &&
+                   g_setEntityLight &&
+                   g_createEntity &&
+                   g_createEntityWithId &&
+                   g_destroyEntity
                ? 0
                : 1;
 }

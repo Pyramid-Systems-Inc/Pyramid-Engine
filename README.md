@@ -15,7 +15,7 @@ The project is intended for engine development and experimentation. It is not ye
 | Toolchain | MSYS2 UCRT64, MinGW-w64 GCC, Ninja, and CMake 3.23+ |
 | Optional compiler | Clang targeting the same MinGW-w64/UCRT runtime |
 | Renderer | Forward, shadow, and deferred passes; several advanced paths remain partial |
-| Scene | Scene graph, render objects, lights, scene manager, and octree queries |
+| Scene | Stable-ID entities, hierarchical transforms, optional mesh-renderer/light components, scene serialization, and octree queries |
 | Math | Vectors, matrices, quaternions, geometry helpers, and SIMD-oriented utilities |
 | Images | TGA/BMP subsets, custom non-interlaced PNG, and libjpeg-turbo JPEG decoding |
 | Tests | 29 CTest targets: 5 image/utility tests plus API linkage and focused graphics/platform coverage |
@@ -25,11 +25,11 @@ The project is intended for engine development and experimentation. It is not ye
 
 - Application lifecycle and frame loop through `Pyramid::Game`.
 - Win32 window creation, resize-event delivery, resize-safe viewport updates, visibility, positioning, and WGL context management.
-- OpenGL device, a game-owned `ResourceRegistry`, generation-checked typed resource handles, versioned resource manifests and render-object scene serialization, engine-owned mesh and material resources, stable resource identifiers, content-deduplicating mesh, shader-program, texture, and material caches, buffers, vertex arrays, shaders, textures, resize-safe framebuffers, and state caching.
+- OpenGL device, a game-owned `ResourceRegistry`, generation-checked typed resource handles, versioned resource manifests and entity-scene serialization, engine-owned mesh and material resources, stable resource identifiers, content-deduplicating mesh, shader-program, texture, and material caches, buffers, vertex arrays, shaders, textures, resize-safe framebuffers, and state caching.
 - Forward, cascaded-shadow, deferred-geometry, and deferred-lighting passes.
 - Perspective and orthographic cameras with normalized world-space frusta and point/sphere/AABB visibility tests.
 - Bounds-aware point, sphere, box, ray, nearest-object, and K-nearest scene queries with octree/linear parity.
-- Scene objects backed by direct resources or non-owning mesh/material handles, lights, cycle-safe hierarchy nodes, transformed object bounds, scene management, incrementally synchronized, automatically compacted, transactionally reconfigurable octree storage with health metrics, bounds-accurate point/sphere/box/ray queries, and frustum-aware visibility queries.
+- An authoritative entity/component scene: every entity has a stable ID, name, visibility, and hierarchical transform; mesh-renderer and light components are optional. Renderer/light proxies are derived from entities for rendering, culling, and spatial queries.
 - OpenGL driver debug callbacks and centralized error diagnostics in Debug builds.
 - Logging, assertions, image loading, compression utilities, and math primitives.
 - Installable CMake package exported as `Pyramid::Engine`.
@@ -39,7 +39,7 @@ The project is intended for engine development and experimentation. It is not ye
 - DirectX and Vulkan enum values are reserved; only OpenGL is implemented.
 - Linux and macOS builds are rejected explicitly.
 - Compute dispatch is recorded by the command buffer but is not executed by OpenGL.
-- `SceneSerializer` persists the flat render-object list; `SceneManager` JSON/XML/Binary convenience methods and scene-node/light/environment persistence remain unsupported.
+- `SceneSerializer` version 2 persists stable entities, hierarchy, transforms, mesh-renderer components, light components, and the primary light. Cameras, environment settings, gameplay components, and editor metadata are not serialized yet; the legacy `SceneManager` JSON/XML/Binary methods remain unsupported.
 - Occlusion culling remains a placeholder and is disabled by default.
 - `ITexture2D::CreateDepthTarget` fails explicitly; use the framebuffer API for depth attachments.
 - JPEG decoding requires the open-source libjpeg-turbo package installed by the MSYS2 bootstrap script.

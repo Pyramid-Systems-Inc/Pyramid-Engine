@@ -69,6 +69,7 @@ target_sources(PyramidEngine
         include/Pyramid/Graphics/Renderer/RenderPasses.hpp
         include/Pyramid/Graphics/Camera.hpp
         include/Pyramid/Graphics/Scene.hpp
+        include/Pyramid/Graphics/Scene/Entity.hpp
         include/Pyramid/Graphics/Scene/SceneSerializer.hpp
         include/Pyramid/Graphics/Scene/SceneManager.hpp
         include/Pyramid/Graphics/Scene/Octree.hpp

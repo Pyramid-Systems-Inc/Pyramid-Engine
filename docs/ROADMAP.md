@@ -2,7 +2,11 @@
 
 Priorities are based on technical risk. They are not delivery dates.
 
-## Stabilization completed through July 23, 2026
+## Product direction locked July 25, 2026
+
+Pyramid will first power a Ruqoom RTS. The authoritative runtime model is a stable-ID entity/component scene with hierarchical transforms. The first playable milestone remains Windows-only; Linux follows after it. A full editor is planned. Baa is the long-term scripting language and eventual engine implementation language, but the C++ engine remains the behavioral reference until the Baa toolchain/runtime can reproduce it. New engine/editor/gameplay subsystems should be owned by the Pyramid ecosystem; existing GL/JPEG dependencies remain until native replacements are deliberately scheduled.
+
+## Stabilization completed through July 25, 2026
 
 The current `0.6.0-pre-alpha` baseline includes:
 
@@ -13,7 +17,7 @@ The current `0.6.0-pre-alpha` baseline includes:
 - strict required window operations with Win32 implementations;
 - relocatable install/export package and external-consumer test;
 - Windows Debug/Release CI for build, CTest, install, and package consumption;
-- 26 registered tests, including engine-owned mesh resources, immutable geometry bounds, real PNG/JPEG decoding, transactional texture loading, OpenGL diagnostics, window events, camera resize/frustum behavior, framebuffer resize, scene-hierarchy transforms, incremental octree synchronization, bounds-accurate spatial queries, bounds-aware nearest-neighbor queries, transactional octree configuration, and automatic octree compaction/health metrics, stable shader identifiers, compile-once shader reuse, and transactional shader replacement;
+- 29 registered tests, including engine-owned mesh resources, immutable geometry bounds, real PNG/JPEG decoding, transactional texture loading, OpenGL diagnostics, window events, camera resize/frustum behavior, framebuffer resize, scene-hierarchy transforms, incremental octree synchronization, bounds-accurate spatial queries, bounds-aware nearest-neighbor queries, transactional octree configuration, and automatic octree compaction/health metrics, stable shader identifiers, compile-once shader reuse, and transactional shader replacement;
 - corrected standards-invalid PNG, zlib, and JPEG test fixtures;
 - public texture convenience definitions and explicit depth-target failure;
 - definitions for scene events, box queries, visibility statistics, spatial test scenes, and octree operations;
@@ -24,7 +28,7 @@ The current `0.6.0-pre-alpha` baseline includes:
 - platform-neutral resize events delivered from Win32 `WM_SIZE` through `Game::onWindowResize()`;
 - automatic default-viewport updates, active-camera projection synchronization, and minimized-window render suspension;
 - transactional framebuffer recreation, unified render-target ownership, and render-system resize propagation;
-- cycle-safe scene hierarchy operations with recursive world-transform invalidation and tested TRS composition;
+- an authoritative stable-ID entity/component scene with cycle-safe hierarchy operations, recursive world-transform invalidation, mesh-renderer/light components, and generated renderer proxies;
 - normalized camera-frustum extraction, bounds-aware scene visibility, octree frustum queries, incremental moving-object synchronization, and exact bounds-aware point/sphere/box/ray queries.
 
 ## P0 — verify and finish the current vertical slice
@@ -72,8 +76,9 @@ The current `0.6.0-pre-alpha` baseline includes:
 - [x] Use full object bounds and branch pruning for nearest-object and K-nearest queries.
 - [x] Add focused octree tests for transactional bounds, depth, and capacity changes.
 - [x] Add automatic octree branch compaction and structural health metrics.
-- [x] Add versioned flat render-object scene serialization using resource-manifest keys, transactional parsing, and missing/stale resource diagnostics.
-- Add scene-node hierarchy, light, environment, and editor metadata persistence on top of the versioned scene format.
+- [x] Replace flat render-object/`SceneNode` authoring with stable entities, mandatory transforms, optional mesh-renderer/light components, and generated renderer proxies.
+- [x] Add version-2 entity/component serialization using resource-manifest keys, hierarchy validation, transactional parsing, and missing/stale diagnostics.
+- Add cameras, environment settings, RTS gameplay components, and editor metadata to later scene-format versions.
 
 ## P1 — stable OpenGL core
 
@@ -101,15 +106,20 @@ Target outcome: a trustworthy rendering SDK rather than a larger feature list.
 - Asset packaging and path abstraction independent of the source checkout.
 - Debug UI and frame inspection tools.
 
-## P3 — additional engine systems
+## P3 — first playable RTS runtime
 
-Add systems only as complete vertical slices with tests and an example:
+Target outcome: one interactive Ruqoom RTS vertical slice that validates the engine rather than adding more infrastructure in isolation.
 
-1. input and action mapping integrated with Win32;
-2. audio device, buffers/sources, streaming, and spatialization;
-3. physics integration using a proven library unless physics research is a project goal;
-4. a second platform implementation;
-5. another graphics backend after the contracts are backend-neutral.
+1. real Win32 keyboard/mouse input and action mapping;
+2. RTS camera movement, zoom, edge scrolling, selection, and command input;
+3. engine-owned model/scene import pipeline feeding existing mesh/material/resource types;
+4. RTS components such as selectable, team/owner, movement target, health, and basic unit state;
+5. terrain/large-map rendering and scalable visibility/spatial updates;
+6. debug statistics and inspection UI as the first editor foundation;
+7. versioned scene extensions for camera, environment, gameplay components, and editor metadata;
+8. verified Windows `0.7.0-pre-alpha` vertical slice, then Linux platform work.
+
+A full editor follows the validated runtime model. Baa integration starts as gameplay scripting only after its runtime, ABI/FFI, debugger, and hot-reload semantics are defined; engine reimplementation is a later compatibility project, not a blind source translation.
 
 ## Pre-release exit criteria
 

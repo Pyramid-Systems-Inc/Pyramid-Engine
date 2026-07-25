@@ -299,138 +299,49 @@ const auto report = restored.Restore(*resources);
 
 Manifest keys are caller-owned stable reference names containing letters, digits, `.`, `_`, `-`, or `/`. The serialized 128-bit asset ID is restored exactly; it is not re-hashed from a path. `Restore()` validates the current registry and reports `MissingAsset` separately from `StaleGeneration`. It never updates a serialized generation automatically.
 
-### Scene serialization
+### Scene
 
-`SceneSerializer` persists the scene name and flat `RenderObject` list. Mesh and material references are written as exact keys from a `ResourceManifest`, never as owning pointers or silently refreshed asset generations:
-
-```cpp
-const auto saved = Pyramid::SceneSerializer::Serialize(
-    scene,
-    resourceManifest,
-    *resources);
-
-if (!saved.Succeeded())
-{
-    // Inspect saved.diagnostics; saved.text remains empty on failure.
-}
-```
+### Entities and components
 
 ```cpp
-const auto loaded = Pyramid::SceneSerializer::Deserialize(
-    saved.text,
-    resourceManifest,
-    *resources);
+Pyramid::Scene scene("Battlefield");
 
-if (loaded.Succeeded())
-{
-    std::shared_ptr<Pyramid::Scene> scene = loaded.scene;
-}
+auto army = scene.CreateEntity("Army");
+auto unit = scene.CreateEntity("Infantry");
+unit.SetParent(army);
+unit.SetLocalPosition({2.0f, 0.0f, 4.0f});
+
+Pyramid::MeshRendererComponent renderer;
+renderer.mesh = meshHandle;
+renderer.material = materialHandle;
+unit.SetMeshRenderer(renderer, &registry);
+
+auto sun = scene.CreateEntity("Sun");
+Pyramid::LightComponent light;
+light.type = Pyramid::LightType::Directional;
+light.intensity = 4.0f;
+sun.SetLight(light);
+scene.SetPrimaryLight(sun);
 ```
 
-The version-1 format stores object name, position, normalized quaternion, scale, visibility, cast/receive-shadow flags, automatic/manual bounds mode, fallback/manual bounds, and optional mesh/material manifest keys. Loading is transactional: malformed fields, missing manifest keys, wrong resource types, missing assets, or stale generations return no partial scene. When several manifest aliases reference the same handle, serialization chooses the lexicographically smallest key for deterministic output.
-
-Current scope is intentionally limited to the flat render-object list. Scene-node hierarchy, lights, environment settings, and the legacy `SceneManager` JSON/XML/Binary file APIs are not serialized yet.
-
-## Renderer
-
-Headers:
-
-- `Pyramid/Graphics/Renderer/RenderSystem.hpp`
-- `Pyramid/Graphics/Renderer/RenderPasses.hpp`
+Every entity has a stable `EntityId`, name, visibility flag, and mandatory `TransformComponent`. Optional `MeshRendererComponent` and `LightComponent` values provide rendering state. `Entity` is a lightweight non-owning facade; it becomes invalid after its scene or entity is destroyed.
 
 ```cpp
-Pyramid::Renderer::RenderSystem renderer;
-if (!renderer.Initialize(device))
-    return;
-
-// Inside a Pyramid::Game-derived class. The pointer is non-owning.
-SetRenderSystem(&renderer);
-
-renderer.BeginFrame();
-renderer.Render(scene, camera);
-renderer.EndFrame();
+const Pyramid::EntityId id = unit.GetId();
+auto restored = scene.FindEntity(id);
+auto children = army.GetChildren();
+auto world = unit.GetWorldMatrix();
 ```
 
-Implemented public pass classes are `ForwardRenderPass`, `ShadowMapPass`, `DeferredGeometryPass`, and `DeferredLightingPass`. `RenderSystem::Resize()` propagates valid dimensions through managed render targets and window-sized passes. Individual `RenderTarget` and `OpenGLFramebuffer` objects also expose `Resize()`. Resize operations reject zero-sized extents; framebuffer recreation is transactional, so a failed replacement preserves the previous valid attachments. Compute dispatch is not operational.
+Hierarchy edits reject missing entities, cycles, and self-parenting. Reparenting preserves local TRS. World matrices and inherited visibility are recalculated from the authoritative hierarchy.
 
-## Camera
+### Renderer proxies
 
-Header: `Pyramid/Graphics/Camera.hpp`
+`Scene::GetRenderObjects()` and `Scene::GetLights()` return generated proxies used by render passes, culling, and the octree. Do not author scene state by mutating those proxies. New code should edit entities/components and request the proxies again. Transitional `AddRenderObject()` and `AddLight()` helpers exist only for low-level compatibility.
 
-```cpp
-Pyramid::Camera camera(
-    Pyramid::Math::Radians(60.0f),
-    1280.0f / 720.0f,
-    0.1f,
-    200.0f);
+### Spatial management
 
-camera.SetPosition({0.0f, 2.5f, 6.0f});
-camera.LookAt(Pyramid::Math::Vec3::Zero);
-
-// Inside a Pyramid::Game-derived class:
-SetActiveCamera(&camera);
-```
-
-`Camera::SetViewportSize(width, height)` updates perspective aspect ratio or preserves an orthographic camera's vertical span while adjusting its horizontal span. It rejects zero-sized surfaces. `Game::SetActiveCamera()` stores a non-owning pointer and applies this update automatically for the current window and later resize events.
-
-The camera uses OpenGL's local negative-Z forward convention. `GetFrustumPlanes()` returns six normalized inward-facing world-space planes. `IsPointVisible()`, `IsSphereVisible()`, and `IsAABBVisible()` classify full near/far/side-plane intersections rather than using distance-only approximations.
-
-```cpp
-const auto& planes = camera.GetFrustumPlanes();
-bool visible = camera.IsAABBVisible(worldBoundsMin, worldBoundsMax);
-```
-
-## Scene
-
-Headers:
-
-- `Pyramid/Graphics/Scene.hpp`
-- `Pyramid/Graphics/Scene/SceneManager.hpp`
-- `Pyramid/Graphics/Scene/Octree.hpp`
-
-```cpp
-auto scene = std::make_shared<Pyramid::Scene>("Main");
-auto parent = scene->CreateNode("Vehicle");
-auto child = scene->CreateNode("Wheel");
-
-parent->SetLocalTransform(position, rotation, scale);
-parent->AddChild(child); // The child's local transform is preserved.
-child->SetLocalPosition({1.0f, -0.5f, 0.0f});
-
-auto world = child->GetWorldTransform();
-auto worldPosition = child->GetWorldPosition();
-auto pointInWorld = child->TransformPointToWorld(localPoint);
-```
-
-`SceneNode` caches local and world matrices. Any local transform or hierarchy change invalidates the complete descendant subtree, so previously queried child matrices cannot remain stale. Reparenting and detaching preserve local TRS, duplicate direct children are ignored, and operations that would create a hierarchy cycle are rejected. Hierarchy nodes must be owned by `std::shared_ptr`; unmanaged nodes reject parent/child mutation safely. Local rotations are normalized. `GetWorldScale()` reports positive effective basis magnitudes; a hierarchy containing rotated non-uniform scale can produce shear, so no unique signed TRS decomposition exists for that matrix.
-
-```cpp
-auto manager = Pyramid::SceneManagement::SceneUtils::CreateSceneManager();
-auto managedScene = manager->CreateScene("Managed");
-manager->SetActiveScene(managedScene);
-manager->RebuildSpatialPartition();
-
-auto nearby = manager->GetObjectsInRadius(position, 10.0f);
-auto boxed = manager->GetObjectsInBox(minBounds, maxBounds);
-auto nearest = manager->GetNearestObject(position);
-auto nearestFive = manager->GetKNearestObjects(position, 5);
-```
-
-`RenderObject` holds a shared `Mesh` resource and uses its immutable local AABB in `RenderBoundsMode::Automatic`. `SetLocalBounds()` switches to manual mode; `UseAutomaticBounds()` restores mesh-derived behavior. Missing geometry falls back to the unit cube. `GetWorldBounds()` transforms all eight corners through translation, normalized rotation, and scale. `Scene`, `SceneManager`, and octree queries use these AABBs; objects spanning octree child boundaries remain at the parent node to avoid false rejection.
-
-`Octree::Synchronize()` accepts the active scene's current render-object snapshot and incrementally inserts additions, removes stale entries, and relocates only objects whose world AABBs changed. `UpdateIfMoved()` performs the same bounds comparison for one object. `SceneManager::Update()` includes this synchronization when `UpdateFlags::SpatialPartition` is set; the default `UpdateFlags::All` therefore keeps moving objects current each frame without a full rebuild. `SceneStats` reports the most recent inserted, removed, moved, and unchanged counts.
-
-`Octree::QueryPoint()`, `QuerySphere()`, `QueryBox()`, and `QueryRay()` test complete world-space AABBs and return unique objects. Ray hits are ordered nearest-first. `SceneManager::QueryScene()` uses the same semantics with or without spatial partitioning; ray results populate `QueryResult::distances` in object order. Spatial queries include hidden objects because they are gameplay/selection queries rather than rendering visibility filters. Negative sphere radii, zero-length ray directions, and negative ray distances return no hits.
-
-`AABB::DistanceSquaredToPoint()` and `DistanceToPoint()` measure the shortest distance to a box, returning zero for points inside it. `Octree::FindNearest()` and `FindKNearest()` use that world-bound distance, not the object's origin. K-nearest results are ordered nearest-first, `k == 0` returns an empty result, and counts larger than the scene return all objects. Octree traversal orders child nodes by their minimum possible point distance and prunes branches that cannot improve the current candidate set. `SceneManager::GetNearestObject()` and `GetKNearestObjects()` provide identical semantics in octree and linear modes.
-
-`OctreeConfiguration` groups root center/size, maximum depth, and node capacity. `Octree::Configure()` validates the complete request and transactionally constructs a replacement tree before changing live state; every tracked object, including root-retained objects outside the new bounds, is reinserted into the replacement. Invalid centers or extents leave the existing tree untouched. `SetBounds()`, `SetMaxDepth()`, and `SetMaxObjectsPerNode()` delegate to the same path, while `GetConfiguration()` returns the active normalized values. A zero capacity is normalized to one; zero maximum depth is valid and produces a root-only tree.
-
-`Octree::Compact()` performs bottom-up structural cleanup. A node releases its children when they contain no objects or when the complete subtree fits within that node's configured capacity; descendant objects are promoted before child ownership is released. Removal, relocation, and batched synchronization invoke this automatically, while `GetLastCompactionStats()` and `OctreeSyncStats::compaction` report collapsed nodes and promoted objects. `GetStats()` reports occupied/configured depth, internal and leaf counts, empty and occupied leaves, tracked versus physically stored objects, internal-node occupancy, maximum node occupancy, average leaf depth and occupancy, leaf utilization, empty-leaf ratio, and approximate memory use.
-
-Event callbacks, scene and octree query entry points, visibility-stat updates, test-scene creation, and octree configuration have definitions and are covered by linkage validation.
-
-`SceneManager::LoadScene` and `SaveScene` still return `false` for their legacy JSON/XML/Binary format enum. Use `SceneSerializer` for the implemented versioned render-object format. Scene-node attachment does not yet replace the renderer's separate `RenderObject` transform path. Occlusion culling remains unimplemented and disabled by default.
+`SceneManager` synchronizes entity-generated render proxies into the octree. Point, sphere, box, ray, nearest, and K-nearest queries operate on complete world AABBs. `QueryResult::entities` identifies the owning scene entities.
 
 ## Math
 

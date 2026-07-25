@@ -59,7 +59,7 @@ namespace Pyramid
         struct QueryResult
         {
             std::vector<std::shared_ptr<RenderObject>> objects;
-            std::vector<std::shared_ptr<SceneNode>> nodes;
+            std::vector<Entity> entities;
             std::vector<f32> distances;
             u32 totalChecked = 0;
             u32 totalFound = 0;
@@ -70,7 +70,7 @@ namespace Pyramid
          */
         struct SceneStats
         {
-            u32 totalNodes = 0;
+            u32 totalEntities = 0;
             u32 totalObjects = 0;
             u32 visibleObjects = 0;
             u32 culledObjects = 0;
@@ -155,9 +155,9 @@ namespace Pyramid
             void ResetStats();
 
             // Event system
-            using SceneEventCallback = std::function<void(const std::string &, std::shared_ptr<SceneNode>)>;
+            using SceneEventCallback = std::function<void(const std::string &, Entity)>;
             void RegisterEventCallback(const std::string &eventType, SceneEventCallback callback);
-            void TriggerEvent(const std::string &eventType, std::shared_ptr<SceneNode> node);
+            void TriggerEvent(const std::string &eventType, Entity entity);
 
             // Advanced features
             void SetLODEnabled(bool enabled) { m_lodEnabled = enabled; }

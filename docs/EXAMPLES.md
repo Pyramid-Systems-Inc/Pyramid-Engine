@@ -10,12 +10,13 @@ Demonstrates:
 
 - deriving from `Pyramid::Game`;
 - base lifecycle initialization;
-- game-owned cache access and generation-checked mesh/material handles through `ResourceRegistry`;
+- the `Game`-owned `ResourceRegistry` and generation-checked mesh/material handles;
+- authoritative scene entities with `TransformComponent`, `MeshRendererComponent`, and `LightComponent`;
 - stable shader-program compilation and reuse through the registry shader cache;
 - engine-owned indexed mesh creation with validated layout, topology, draw count, and local bounds;
 - content-derived mesh-cache reuse: the cube and floor request identical geometry but perform one GPU upload;
 - texture loading;
-- frame update and rendering;
+- frame update by mutating entity transforms and rendering through generated scene proxies;
 - automatic default-viewport updates and active-camera projection resizing;
 - platform-neutral resize-event logging through `Game::onWindowResize()`;
 - logging configuration.

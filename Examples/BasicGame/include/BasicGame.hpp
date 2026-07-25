@@ -36,7 +36,7 @@ private:
     std::unique_ptr<Pyramid::Renderer::RenderSystem> m_renderSystem;
     std::shared_ptr<Pyramid::Scene> m_scene;
     std::unique_ptr<Pyramid::Camera> m_camera;
-    std::shared_ptr<Pyramid::RenderObject> m_cube;
+    Pyramid::Entity m_cubeEntity;
     std::shared_ptr<Pyramid::ShaderProgram> m_shader;
     std::shared_ptr<Pyramid::TextureResource> m_debugTexture;
     std::shared_ptr<Pyramid::Material> m_cubeMaterial;

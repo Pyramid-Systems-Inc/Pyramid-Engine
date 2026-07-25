@@ -7,39 +7,32 @@
 #include <algorithm>
 #include <charconv>
 #include <cmath>
-#include <cctype>
 #include <iomanip>
 #include <limits>
 #include <locale>
+#include <optional>
 #include <sstream>
-#include <string>
+#include <unordered_map>
 #include <unordered_set>
-#include <utility>
 
 namespace Pyramid
 {
     namespace
     {
         constexpr std::string_view kHeader = "PYRAMID_SCENE";
-        constexpr std::string_view kNone = "-";
-        constexpr std::size_t kObjectFieldCount = 25;
+        constexpr std::string_view kNone = "none";
+        constexpr std::size_t kMaximumNameBytes = 4096;
 
-        struct ParsedObject
+        struct ParsedEntity
         {
-            std::string key;
+            EntityId id;
+            EntityId parent;
             std::string name;
-            std::string meshKey;
-            std::string materialKey;
-            Math::Vec3 position;
-            Math::Quat rotation;
-            Math::Vec3 scale;
             bool visible = true;
-            bool castShadows = true;
-            bool receiveShadows = true;
-            RenderBoundsMode boundsMode = RenderBoundsMode::Automatic;
-            Math::Vec3 boundsMin = Math::Vec3(-0.5f);
-            Math::Vec3 boundsMax = Math::Vec3(0.5f);
-            u32 line = 0;
+            TransformComponent transform;
+            std::optional<MeshRendererComponent> meshRenderer;
+            std::optional<LightComponent> light;
+            u32 sourceLine = 0;
         };
 
         void AddDiagnostic(
@@ -52,144 +45,39 @@ namespace Pyramid
             diagnostics.push_back({code, line, std::move(key), std::move(message)});
         }
 
-        bool IsKeyValid(std::string_view key)
-        {
-            if (key.empty() || key.size() > 255)
-            {
-                return false;
-            }
-
-            for (const char character : key)
-            {
-                const unsigned char value = static_cast<unsigned char>(character);
-                if (!(std::isalnum(value) || character == '.' || character == '_' ||
-                      character == '-' || character == '/'))
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
         std::vector<std::string_view> SplitTabs(std::string_view line)
         {
             std::vector<std::string_view> fields;
-            std::size_t start = 0;
-            while (true)
+            std::size_t begin = 0;
+            while (begin <= line.size())
             {
-                const std::size_t end = line.find('\t', start);
-                fields.push_back(line.substr(
-                    start,
-                    end == std::string_view::npos ? end : end - start));
+                const std::size_t end = line.find('\t', begin);
                 if (end == std::string_view::npos)
                 {
+                    fields.push_back(line.substr(begin));
                     break;
                 }
-                start = end + 1;
+                fields.push_back(line.substr(begin, end - begin));
+                begin = end + 1;
             }
             return fields;
         }
 
-        char HexDigit(u8 value)
-        {
-            return value < 10 ? static_cast<char>('0' + value)
-                              : static_cast<char>('a' + value - 10);
-        }
-
-        bool IsSerializableName(std::string_view value)
-        {
-            return value.size() <= 4096 && value.find('\0') == std::string_view::npos;
-        }
-
-        std::string EncodeString(std::string_view value)
-        {
-            if (value.empty())
-            {
-                return std::string(kNone);
-            }
-
-            std::string encoded;
-            encoded.reserve(value.size() * 2);
-            for (const unsigned char character : value)
-            {
-                encoded.push_back(HexDigit(static_cast<u8>(character >> 4U)));
-                encoded.push_back(HexDigit(static_cast<u8>(character & 0x0fU)));
-            }
-            return encoded;
-        }
-
-        int HexValue(char character)
-        {
-            if (character >= '0' && character <= '9') return character - '0';
-            if (character >= 'a' && character <= 'f') return character - 'a' + 10;
-            if (character >= 'A' && character <= 'F') return character - 'A' + 10;
-            return -1;
-        }
-
-        bool DecodeString(std::string_view encoded, std::string& output)
-        {
-            if (encoded == kNone)
-            {
-                output.clear();
-                return true;
-            }
-            if (encoded.empty() || encoded.size() > 8192 || (encoded.size() % 2) != 0)
-            {
-                return false;
-            }
-
-            std::string decoded;
-            decoded.reserve(encoded.size() / 2);
-            for (std::size_t index = 0; index < encoded.size(); index += 2)
-            {
-                const int high = HexValue(encoded[index]);
-                const int low = HexValue(encoded[index + 1]);
-                if (high < 0 || low < 0)
-                {
-                    return false;
-                }
-                const char value = static_cast<char>((high << 4) | low);
-                if (value == '\0')
-                {
-                    return false;
-                }
-                decoded.push_back(value);
-            }
-            output = std::move(decoded);
-            return true;
-        }
-
         bool ParseUnsigned(std::string_view text, u32& value)
         {
-            if (text.empty()) return false;
-            u64 parsed = 0;
-            const auto result = std::from_chars(
-                text.data(), text.data() + text.size(), parsed, 10);
-            if (result.ec != std::errc{} || result.ptr != text.data() + text.size() ||
-                parsed > std::numeric_limits<u32>::max())
-            {
-                return false;
-            }
-            value = static_cast<u32>(parsed);
-            return true;
+            const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+            return result.ec == std::errc{} && result.ptr == text.data() + text.size();
         }
 
         bool ParseFloat(std::string_view text, f32& value)
         {
-            if (text.empty()) return false;
-            f32 parsed = 0.0f;
             const auto result = std::from_chars(
-                text.data(), text.data() + text.size(), parsed,
-                std::chars_format::general);
-            if (result.ec != std::errc{} || result.ptr != text.data() + text.size())
-            {
-                return false;
-            }
-            value = parsed;
-            return true;
+                text.data(), text.data() + text.size(), value, std::chars_format::general);
+            return result.ec == std::errc{} && result.ptr == text.data() + text.size() &&
+                std::isfinite(value);
         }
 
-        bool ParseBool(std::string_view text, bool& value)
+        bool ParseBoolean(std::string_view text, bool& value)
         {
             if (text == "0")
             {
@@ -216,73 +104,85 @@ namespace Pyramid
                 std::isfinite(value.z) && std::isfinite(value.w);
         }
 
-        std::string MakeObjectKey(std::size_t index)
+        bool IsSerializableName(const std::string& value)
         {
-            std::ostringstream stream;
-            stream.imbue(std::locale::classic());
-            stream << "object/" << std::setfill('0') << std::setw(6) << index;
-            return stream.str();
+            return value.size() <= kMaximumNameBytes &&
+                value.find('\0') == std::string::npos;
+        }
+
+        char HexDigit(u8 value)
+        {
+            return value < 10 ? static_cast<char>('0' + value) :
+                static_cast<char>('a' + value - 10);
+        }
+
+        int HexValue(char value)
+        {
+            if (value >= '0' && value <= '9') return value - '0';
+            if (value >= 'a' && value <= 'f') return value - 'a' + 10;
+            if (value >= 'A' && value <= 'F') return value - 'A' + 10;
+            return -1;
+        }
+
+        std::string EncodeString(const std::string& value)
+        {
+            if (value.empty())
+            {
+                return "-";
+            }
+            std::string output;
+            output.reserve(value.size() * 2);
+            for (unsigned char byte : value)
+            {
+                output.push_back(HexDigit(static_cast<u8>(byte >> 4U)));
+                output.push_back(HexDigit(static_cast<u8>(byte & 0x0FU)));
+            }
+            return output;
+        }
+
+        bool DecodeString(std::string_view encoded, std::string& output)
+        {
+            if (encoded == "-")
+            {
+                output.clear();
+                return true;
+            }
+            if ((encoded.size() % 2U) != 0 || encoded.size() / 2U > kMaximumNameBytes)
+            {
+                return false;
+            }
+            std::string decoded;
+            decoded.reserve(encoded.size() / 2U);
+            for (std::size_t index = 0; index < encoded.size(); index += 2)
+            {
+                const int high = HexValue(encoded[index]);
+                const int low = HexValue(encoded[index + 1]);
+                if (high < 0 || low < 0)
+                {
+                    return false;
+                }
+                decoded.push_back(static_cast<char>((high << 4) | low));
+            }
+            if (decoded.find('\0') != std::string::npos)
+            {
+                return false;
+            }
+            output = std::move(decoded);
+            return true;
         }
 
         const ResourceManifestEntry* FindManifestEntry(
             const ResourceManifest& manifest,
             std::string_view key)
         {
-            const auto& entries = manifest.GetEntries();
-            const auto iterator = std::find_if(
-                entries.begin(), entries.end(),
-                [key](const ResourceManifestEntry& entry)
-                {
-                    return entry.key == key;
-                });
-            return iterator == entries.end() ? nullptr : &*iterator;
-        }
-
-        std::string FindManifestKey(
-            const ResourceManifest& manifest,
-            ResourceType type,
-            u64 high,
-            u64 low,
-            u32 generation)
-        {
-            std::string selected;
             for (const auto& entry : manifest.GetEntries())
             {
-                if (entry.type != type || entry.assetIdHigh != high ||
-                    entry.assetIdLow != low || entry.generation != generation)
+                if (entry.key == key)
                 {
-                    continue;
-                }
-                if (selected.empty() || entry.key < selected)
-                {
-                    selected = entry.key;
+                    return &entry;
                 }
             }
-            return selected;
-        }
-
-        MeshHandle GetObjectMeshHandle(
-            const RenderObject& object,
-            const ResourceRegistry& registry)
-        {
-            if (object.mesh)
-            {
-                const MeshHandle handle = registry.GetHandle(object.mesh->GetAssetId());
-                return registry.Resolve(handle) == object.mesh ? handle : MeshHandle{};
-            }
-            return registry.Resolve(object.meshHandle) ? object.meshHandle : MeshHandle{};
-        }
-
-        MaterialHandle GetObjectMaterialHandle(
-            const RenderObject& object,
-            const ResourceRegistry& registry)
-        {
-            if (object.material)
-            {
-                const MaterialHandle handle = registry.GetHandle(object.material->GetAssetId());
-                return registry.Resolve(handle) == object.material ? handle : MaterialHandle{};
-            }
-            return registry.Resolve(object.materialHandle) ? object.materialHandle : MaterialHandle{};
+            return nullptr;
         }
 
         template <typename HandleType>
@@ -293,101 +193,126 @@ namespace Pyramid
         {
             if (!handle)
             {
-                return {};
+                return std::string(kNone);
             }
-            const auto id = handle.GetAssetId();
-            return FindManifestKey(
-                manifest, type, id.high, id.low, handle.GetGeneration());
+            const auto assetId = handle.GetAssetId();
+            std::string selected;
+            for (const auto& entry : manifest.GetEntries())
+            {
+                if (entry.type == type && entry.assetIdHigh == assetId.high &&
+                    entry.assetIdLow == assetId.low &&
+                    entry.generation == handle.GetGeneration() &&
+                    (selected.empty() || entry.key < selected))
+                {
+                    selected = entry.key;
+                }
+            }
+            return selected;
         }
 
-        template <typename HandleType, typename AssetIdType>
-        bool ValidateManifestResource(
-            std::string_view resourceKey,
-            ResourceType expectedType,
+        bool RestoreMesh(
+            std::string_view key,
             const ResourceManifest& manifest,
             const ResourceRegistry& registry,
+            MeshHandle& output,
+            SceneDeserializationResult& result,
             u32 line,
-            std::string_view objectKey,
-            HandleType& output,
-            SceneDeserializationResult& result)
+            std::string_view entityKey)
         {
-            output = {};
-            if (resourceKey == kNone)
+            if (key == kNone)
             {
+                output = {};
                 return true;
             }
-            if (!IsKeyValid(resourceKey))
-            {
-                AddDiagnostic(
-                    result.diagnostics,
-                    SceneSerializationDiagnosticCode::MissingManifestResource,
-                    line,
-                    std::string(objectKey),
-                    "resource manifest key is invalid");
-                return false;
-            }
-
-            const ResourceManifestEntry* entry = FindManifestEntry(manifest, resourceKey);
+            const ResourceManifestEntry* entry = FindManifestEntry(manifest, key);
             if (!entry)
             {
-                AddDiagnostic(
-                    result.diagnostics,
+                AddDiagnostic(result.diagnostics,
                     SceneSerializationDiagnosticCode::MissingManifestResource,
-                    line,
-                    std::string(objectKey),
-                    "resource manifest key was not found: " + std::string(resourceKey));
+                    line, std::string(entityKey), "mesh manifest key does not exist: " + std::string(key));
                 return false;
             }
-            if (entry->type != expectedType)
+            if (entry->type != ResourceType::Mesh)
             {
-                AddDiagnostic(
-                    result.diagnostics,
+                AddDiagnostic(result.diagnostics,
                     SceneSerializationDiagnosticCode::ResourceTypeMismatch,
-                    line,
-                    std::string(objectKey),
-                    "resource manifest key has the wrong resource type: " +
-                        std::string(resourceKey));
+                    line, std::string(entityKey), "manifest key is not a mesh: " + std::string(key));
                 return false;
             }
-
-            const AssetIdType assetId{entry->assetIdHigh, entry->assetIdLow};
-            output = HandleType::FromParts(assetId, entry->generation);
-            if (registry.Resolve(output))
+            output = manifest.GetMeshHandle(key);
+            if (registry.IsAlive(output))
             {
                 return true;
             }
-
-            const HandleType current = registry.GetHandle(assetId);
+            const MeshHandle current = registry.GetHandle(output.GetAssetId());
             if (!current)
             {
                 ++result.missingAssets;
-                AddDiagnostic(
-                    result.diagnostics,
-                    SceneSerializationDiagnosticCode::MissingAsset,
-                    line,
-                    std::string(objectKey),
-                    "resource is not resident: " + std::string(resourceKey));
-            }
-            else if (current.GetGeneration() != output.GetGeneration())
-            {
-                ++result.staleGenerations;
-                AddDiagnostic(
-                    result.diagnostics,
-                    SceneSerializationDiagnosticCode::StaleGeneration,
-                    line,
-                    std::string(objectKey),
-                    "resource generation is stale: " + std::string(resourceKey));
+                AddDiagnostic(result.diagnostics, SceneSerializationDiagnosticCode::MissingAsset,
+                    line, std::string(entityKey), "mesh is not resident: " + std::string(key));
             }
             else
             {
-                AddDiagnostic(
-                    result.diagnostics,
-                    SceneSerializationDiagnosticCode::UnresolvedResource,
-                    line,
-                    std::string(objectKey),
-                    "resource could not be resolved: " + std::string(resourceKey));
+                ++result.staleGenerations;
+                AddDiagnostic(result.diagnostics, SceneSerializationDiagnosticCode::StaleGeneration,
+                    line, std::string(entityKey), "mesh generation is stale: " + std::string(key));
             }
             return false;
+        }
+
+        bool RestoreMaterial(
+            std::string_view key,
+            const ResourceManifest& manifest,
+            const ResourceRegistry& registry,
+            MaterialHandle& output,
+            SceneDeserializationResult& result,
+            u32 line,
+            std::string_view entityKey)
+        {
+            if (key == kNone)
+            {
+                output = {};
+                return true;
+            }
+            const ResourceManifestEntry* entry = FindManifestEntry(manifest, key);
+            if (!entry)
+            {
+                AddDiagnostic(result.diagnostics,
+                    SceneSerializationDiagnosticCode::MissingManifestResource,
+                    line, std::string(entityKey), "material manifest key does not exist: " + std::string(key));
+                return false;
+            }
+            if (entry->type != ResourceType::Material)
+            {
+                AddDiagnostic(result.diagnostics,
+                    SceneSerializationDiagnosticCode::ResourceTypeMismatch,
+                    line, std::string(entityKey), "manifest key is not a material: " + std::string(key));
+                return false;
+            }
+            output = manifest.GetMaterialHandle(key);
+            if (registry.IsAlive(output))
+            {
+                return true;
+            }
+            const MaterialHandle current = registry.GetHandle(output.GetAssetId());
+            if (!current)
+            {
+                ++result.missingAssets;
+                AddDiagnostic(result.diagnostics, SceneSerializationDiagnosticCode::MissingAsset,
+                    line, std::string(entityKey), "material is not resident: " + std::string(key));
+            }
+            else
+            {
+                ++result.staleGenerations;
+                AddDiagnostic(result.diagnostics, SceneSerializationDiagnosticCode::StaleGeneration,
+                    line, std::string(entityKey), "material generation is stale: " + std::string(key));
+            }
+            return false;
+        }
+
+        std::string EntityKey(EntityId id)
+        {
+            return "entity/" + id.ToString();
         }
     }
 
@@ -399,12 +324,9 @@ namespace Pyramid
         SceneSerializationResult result;
         if (!IsSerializableName(scene.GetName()))
         {
-            AddDiagnostic(
-                result.diagnostics,
+            AddDiagnostic(result.diagnostics,
                 SceneSerializationDiagnosticCode::InvalidNameEncoding,
-                0,
-                {},
-                "scene name is too long or contains a null byte");
+                0, {}, "scene name is too long or contains a null byte");
             return result;
         }
 
@@ -414,128 +336,105 @@ namespace Pyramid
         stream << kHeader << '\t' << kSceneSerializationVersion << '\n';
         stream << "scene\t" << EncodeString(scene.GetName()) << '\n';
 
-        const auto& objects = scene.GetRenderObjects();
-        for (std::size_t index = 0; index < objects.size(); ++index)
+        for (const Entity& entity : scene.GetEntities())
         {
-            const std::string objectKey = MakeObjectKey(index);
-            const auto& object = objects[index];
-            if (!object)
+            const TransformComponent* transform = entity.GetTransform();
+            if (!transform || !IsSerializableName(entity.GetName()) ||
+                !IsFinite(transform->position) || !IsFinite(transform->rotation) ||
+                !IsFinite(transform->scale))
             {
-                AddDiagnostic(
-                    result.diagnostics,
-                    SceneSerializationDiagnosticCode::MalformedRecord,
-                    0,
-                    objectKey,
-                    "scene contains a null render object");
-                continue;
-            }
-
-            if (!IsSerializableName(object->name))
-            {
-                AddDiagnostic(
-                    result.diagnostics,
-                    SceneSerializationDiagnosticCode::InvalidNameEncoding,
-                    0,
-                    objectKey,
-                    "render-object name is too long or contains a null byte");
-                continue;
-            }
-
-            std::string meshKey(kNone);
-            if (object->mesh || object->meshHandle)
-            {
-                const MeshHandle handle = GetObjectMeshHandle(*object, registry);
-                if (!handle)
-                {
-                    AddDiagnostic(
-                        result.diagnostics,
-                        SceneSerializationDiagnosticCode::UnresolvedResource,
-                        0,
-                        objectKey,
-                        "mesh is not a live registry resource");
-                    continue;
-                }
-                meshKey = FindManifestKey(manifest, ResourceType::Mesh, handle);
-                if (meshKey.empty())
-                {
-                    AddDiagnostic(
-                        result.diagnostics,
-                        SceneSerializationDiagnosticCode::MissingManifestResource,
-                        0,
-                        objectKey,
-                        "mesh handle has no matching resource-manifest key");
-                    continue;
-                }
-            }
-
-            std::string materialKey(kNone);
-            if (object->material || object->materialHandle)
-            {
-                const MaterialHandle handle = GetObjectMaterialHandle(*object, registry);
-                if (!handle)
-                {
-                    AddDiagnostic(
-                        result.diagnostics,
-                        SceneSerializationDiagnosticCode::UnresolvedResource,
-                        0,
-                        objectKey,
-                        "material is not a live registry resource");
-                    continue;
-                }
-                materialKey = FindManifestKey(manifest, ResourceType::Material, handle);
-                if (materialKey.empty())
-                {
-                    AddDiagnostic(
-                        result.diagnostics,
-                        SceneSerializationDiagnosticCode::MissingManifestResource,
-                        0,
-                        objectKey,
-                        "material handle has no matching resource-manifest key");
-                    continue;
-                }
-            }
-
-            Math::Vec3 boundsMin;
-            Math::Vec3 boundsMax;
-            object->GetLocalBounds(boundsMin, boundsMax);
-            if (!IsFinite(object->position) || !IsFinite(object->rotation) ||
-                !IsFinite(object->scale) || !IsFinite(boundsMin) || !IsFinite(boundsMax))
-            {
-                AddDiagnostic(
-                    result.diagnostics,
+                AddDiagnostic(result.diagnostics,
                     SceneSerializationDiagnosticCode::NonFiniteValue,
-                    0,
-                    objectKey,
-                    "render object contains a non-finite transform or bounds value");
+                    0, EntityKey(entity.GetId()),
+                    "entity contains an invalid name or non-finite transform");
                 continue;
             }
-            if (Math::IsZero(object->rotation.LengthSquared()))
+            if (Math::IsZero(transform->rotation.LengthSquared()))
             {
-                AddDiagnostic(
-                    result.diagnostics,
+                AddDiagnostic(result.diagnostics,
                     SceneSerializationDiagnosticCode::InvalidRotation,
-                    0,
-                    objectKey,
-                    "render-object rotation quaternion has zero length");
+                    0, EntityKey(entity.GetId()), "entity rotation has zero length");
                 continue;
+            }
+            const Math::Quat rotation = transform->rotation.Normalized();
+            const Entity parent = entity.GetParent();
+            stream << "entity\t" << entity.GetId().ToString() << '\t'
+                   << (parent ? parent.GetId().ToString() : std::string(kNone)) << '\t'
+                   << EncodeString(entity.GetName()) << '\t' << (entity.IsVisible() ? 1 : 0)
+                   << '\t' << transform->position.x << '\t' << transform->position.y
+                   << '\t' << transform->position.z << '\t' << rotation.x << '\t'
+                   << rotation.y << '\t' << rotation.z << '\t' << rotation.w << '\t'
+                   << transform->scale.x << '\t' << transform->scale.y << '\t'
+                   << transform->scale.z << '\n';
+            ++result.serializedEntities;
+
+            if (const MeshRendererComponent* renderer = entity.GetMeshRenderer())
+            {
+                const std::string meshKey =
+                    FindManifestKey(manifest, ResourceType::Mesh, renderer->mesh);
+                const std::string materialKey =
+                    FindManifestKey(manifest, ResourceType::Material, renderer->material);
+                if ((renderer->mesh && meshKey.empty()) ||
+                    (renderer->material && materialKey.empty()) ||
+                    (renderer->mesh && !registry.IsAlive(renderer->mesh)) ||
+                    (renderer->material && !registry.IsAlive(renderer->material)))
+                {
+                    AddDiagnostic(result.diagnostics,
+                        SceneSerializationDiagnosticCode::UnresolvedResource,
+                        0, EntityKey(entity.GetId()),
+                        "mesh renderer references a missing/stale resource or manifest key");
+                    continue;
+                }
+                Math::Vec3 minimum = renderer->localBoundsMin;
+                Math::Vec3 maximum = renderer->localBoundsMax;
+                if (!IsFinite(minimum) || !IsFinite(maximum))
+                {
+                    AddDiagnostic(result.diagnostics,
+                        SceneSerializationDiagnosticCode::NonFiniteValue,
+                        0, EntityKey(entity.GetId()), "mesh-renderer bounds are non-finite");
+                    continue;
+                }
+                stream << "mesh_renderer\t" << entity.GetId().ToString() << '\t'
+                       << (meshKey.empty() ? std::string(kNone) : meshKey) << '\t'
+                       << (materialKey.empty() ? std::string(kNone) : materialKey) << '\t'
+                       << (renderer->visible ? 1 : 0) << '\t'
+                       << (renderer->castShadows ? 1 : 0) << '\t'
+                       << (renderer->receiveShadows ? 1 : 0) << '\t'
+                       << (renderer->boundsMode == RenderBoundsMode::Manual ? "manual" : "auto")
+                       << '\t' << minimum.x << '\t' << minimum.y << '\t' << minimum.z
+                       << '\t' << maximum.x << '\t' << maximum.y << '\t' << maximum.z << '\n';
+                ++result.serializedObjects;
             }
 
-            const Math::Quat rotation = object->rotation.Normalized();
-            stream << "object\t" << objectKey << '\t' << EncodeString(object->name)
-                   << '\t' << meshKey << '\t' << materialKey
-                   << '\t' << object->position.x << '\t' << object->position.y
-                   << '\t' << object->position.z << '\t' << rotation.x
-                   << '\t' << rotation.y << '\t' << rotation.z << '\t' << rotation.w
-                   << '\t' << object->scale.x << '\t' << object->scale.y
-                   << '\t' << object->scale.z << '\t' << (object->visible ? 1 : 0)
-                   << '\t' << (object->castShadows ? 1 : 0)
-                   << '\t' << (object->receiveShadows ? 1 : 0)
-                   << '\t' << (object->boundsMode == RenderBoundsMode::Manual ? "manual" : "auto")
-                   << '\t' << boundsMin.x << '\t' << boundsMin.y << '\t' << boundsMin.z
-                   << '\t' << boundsMax.x << '\t' << boundsMax.y << '\t' << boundsMax.z
-                   << '\n';
-            ++result.serializedObjects;
+            if (const LightComponent* light = entity.GetLight())
+            {
+                if (!IsFinite(light->localDirection) || !IsFinite(light->color) ||
+                    !std::isfinite(light->intensity) || !std::isfinite(light->range) ||
+                    !std::isfinite(light->innerConeAngle) ||
+                    !std::isfinite(light->outerConeAngle) ||
+                    !std::isfinite(light->shadowBias))
+                {
+                    AddDiagnostic(result.diagnostics,
+                        SceneSerializationDiagnosticCode::NonFiniteValue,
+                        0, EntityKey(entity.GetId()), "light contains non-finite values");
+                    continue;
+                }
+                stream << "light\t" << entity.GetId().ToString() << '\t'
+                       << static_cast<u32>(light->type) << '\t'
+                       << light->localDirection.x << '\t' << light->localDirection.y << '\t'
+                       << light->localDirection.z << '\t' << light->color.x << '\t'
+                       << light->color.y << '\t' << light->color.z << '\t'
+                       << light->intensity << '\t' << light->range << '\t'
+                       << light->innerConeAngle << '\t' << light->outerConeAngle << '\t'
+                       << (light->castShadows ? 1 : 0) << '\t' << light->shadowBias << '\t'
+                       << light->shadowMapSize << '\t' << (light->enabled ? 1 : 0) << '\n';
+                ++result.serializedLights;
+            }
         }
+
+        const Entity primary = scene.GetPrimaryLightEntity();
+        stream << "primary_light\t"
+               << (primary ? primary.GetId().ToString() : std::string(kNone)) << '\n';
 
         if (result.diagnostics.empty())
         {
@@ -550,346 +449,347 @@ namespace Pyramid
         const ResourceRegistry& registry)
     {
         SceneDeserializationResult result;
-        std::vector<ParsedObject> parsedObjects;
-        std::unordered_set<std::string> objectKeys;
-        std::string sceneName;
-        bool sceneRecordFound = false;
+        std::vector<ParsedEntity> parsed;
+        std::unordered_map<EntityId, std::size_t, EntityIdHash> indices;
+        std::optional<std::string> sceneName;
+        EntityId primaryLight;
+        bool primarySeen = false;
+        bool headerSeen = false;
 
-        std::size_t offset = 0;
+        std::size_t lineStart = 0;
         u32 lineNumber = 0;
-        while (offset <= text.size())
+        while (lineStart <= text.size())
         {
-            const std::size_t end = text.find('\n', offset);
-            std::string_view line = text.substr(
-                offset,
-                end == std::string_view::npos ? end : end - offset);
+            const std::size_t lineEnd = text.find('\n', lineStart);
+            std::string_view line = lineEnd == std::string_view::npos
+                ? text.substr(lineStart)
+                : text.substr(lineStart, lineEnd - lineStart);
+            if (!line.empty() && line.back() == '\r') line.remove_suffix(1);
             ++lineNumber;
-            if (!line.empty() && line.back() == '\r')
-            {
-                line.remove_suffix(1);
-            }
-
-            if (lineNumber == 1)
+            if (!line.empty())
             {
                 const auto fields = SplitTabs(line);
-                u32 version = 0;
-                if (fields.size() != 2 || fields[0] != kHeader ||
-                    !ParseUnsigned(fields[1], version))
+                if (!headerSeen)
                 {
-                    AddDiagnostic(
-                        result.diagnostics,
-                        SceneSerializationDiagnosticCode::InvalidHeader,
-                        lineNumber,
-                        {},
-                        "invalid scene header");
-                }
-                else if (version != kSceneSerializationVersion)
-                {
-                    AddDiagnostic(
-                        result.diagnostics,
-                        SceneSerializationDiagnosticCode::UnsupportedVersion,
-                        lineNumber,
-                        {},
-                        "unsupported scene version");
-                }
-            }
-            else if (!line.empty())
-            {
-                const auto fields = SplitTabs(line);
-                if (fields[0] == "scene")
-                {
-                    if (fields.size() != 2)
+                    headerSeen = true;
+                    u32 version = 0;
+                    if (fields.size() != 2 || fields[0] != kHeader ||
+                        !ParseUnsigned(fields[1], version))
                     {
-                        AddDiagnostic(
-                            result.diagnostics,
-                            SceneSerializationDiagnosticCode::MalformedRecord,
-                            lineNumber,
-                            {},
-                            "scene record must contain exactly two fields");
+                        AddDiagnostic(result.diagnostics,
+                            SceneSerializationDiagnosticCode::InvalidHeader,
+                            lineNumber, {}, "invalid scene header");
                     }
-                    else if (sceneRecordFound)
+                    else if (version != kSceneSerializationVersion)
                     {
-                        AddDiagnostic(
-                            result.diagnostics,
-                            SceneSerializationDiagnosticCode::DuplicateSceneRecord,
-                            lineNumber,
-                            {},
-                            "scene record appears more than once");
+                        AddDiagnostic(result.diagnostics,
+                            SceneSerializationDiagnosticCode::UnsupportedVersion,
+                            lineNumber, {}, "unsupported scene version");
                     }
-                    else if (!DecodeString(fields[1], sceneName))
+                }
+                else if (fields[0] == "scene")
+                {
+                    if (fields.size() != 2 || sceneName)
                     {
-                        AddDiagnostic(
-                            result.diagnostics,
-                            SceneSerializationDiagnosticCode::InvalidNameEncoding,
-                            lineNumber,
-                            {},
-                            "scene name encoding is invalid");
+                        AddDiagnostic(result.diagnostics,
+                            sceneName ? SceneSerializationDiagnosticCode::DuplicateSceneRecord :
+                                SceneSerializationDiagnosticCode::MalformedRecord,
+                            lineNumber, {}, "invalid or duplicate scene record");
                     }
                     else
                     {
-                        sceneRecordFound = true;
-                    }
-                }
-                else if (fields[0] == "object")
-                {
-                    if (fields.size() != kObjectFieldCount)
-                    {
-                        AddDiagnostic(
-                            result.diagnostics,
-                            SceneSerializationDiagnosticCode::MalformedRecord,
-                            lineNumber,
-                            fields.size() > 1 ? std::string(fields[1]) : std::string{},
-                            "object record has the wrong field count");
-                    }
-                    else
-                    {
-                        ParsedObject parsed;
-                        parsed.key = std::string(fields[1]);
-                        parsed.meshKey = std::string(fields[3]);
-                        parsed.materialKey = std::string(fields[4]);
-                        parsed.line = lineNumber;
-
-                        bool valid = true;
-                        if (!IsKeyValid(parsed.key))
+                        std::string decoded;
+                        if (!DecodeString(fields[1], decoded))
                         {
-                            AddDiagnostic(
-                                result.diagnostics,
-                                SceneSerializationDiagnosticCode::InvalidObjectKey,
-                                lineNumber,
-                                parsed.key,
-                                "object key is invalid");
-                            valid = false;
-                        }
-                        else if (!objectKeys.insert(parsed.key).second)
-                        {
-                            AddDiagnostic(
-                                result.diagnostics,
-                                SceneSerializationDiagnosticCode::DuplicateObjectKey,
-                                lineNumber,
-                                parsed.key,
-                                "object key is duplicated");
-                            valid = false;
-                        }
-                        if (!DecodeString(fields[2], parsed.name))
-                        {
-                            AddDiagnostic(
-                                result.diagnostics,
+                            AddDiagnostic(result.diagnostics,
                                 SceneSerializationDiagnosticCode::InvalidNameEncoding,
-                                lineNumber,
-                                parsed.key,
-                                "object name encoding is invalid");
-                            valid = false;
+                                lineNumber, {}, "invalid encoded scene name");
                         }
-
-                        f32 values[16] = {};
-                        const std::size_t numericFields[] = {
-                            5, 6, 7, 8, 9, 10, 11, 12,
-                            13, 14, 19, 20, 21, 22, 23, 24};
-                        for (std::size_t index = 0; index < 16; ++index)
+                        else sceneName = std::move(decoded);
+                    }
+                }
+                else if (fields[0] == "entity")
+                {
+                    if (fields.size() != 15)
+                    {
+                        AddDiagnostic(result.diagnostics,
+                            SceneSerializationDiagnosticCode::MalformedRecord,
+                            lineNumber, {}, "entity record must contain 15 fields");
+                    }
+                    else
+                    {
+                        ParsedEntity entity;
+                        entity.sourceLine = lineNumber;
+                        bool valid = EntityId::TryParse(fields[1], entity.id);
+                        if (fields[2] != kNone)
                         {
-                            if (!ParseFloat(fields[numericFields[index]], values[index]))
-                            {
-                                AddDiagnostic(
-                                    result.diagnostics,
-                                    SceneSerializationDiagnosticCode::InvalidNumber,
-                                    lineNumber,
-                                    parsed.key,
-                                    "object contains an invalid numeric field");
-                                valid = false;
-                                break;
-                            }
+                            valid = EntityId::TryParse(fields[2], entity.parent) && valid;
                         }
-
-                        parsed.position = Math::Vec3(values[0], values[1], values[2]);
-                        parsed.rotation = Math::Quat(values[3], values[4], values[5], values[6]);
-                        parsed.scale = Math::Vec3(values[7], values[8], values[9]);
-                        parsed.boundsMin = Math::Vec3(values[10], values[11], values[12]);
-                        parsed.boundsMax = Math::Vec3(values[13], values[14], values[15]);
-
-                        if (valid && (!IsFinite(parsed.position) || !IsFinite(parsed.rotation) ||
-                            !IsFinite(parsed.scale) || !IsFinite(parsed.boundsMin) ||
-                            !IsFinite(parsed.boundsMax)))
+                        valid = DecodeString(fields[3], entity.name) && valid;
+                        valid = ParseBoolean(fields[4], entity.visible) && valid;
+                        valid = ParseFloat(fields[5], entity.transform.position.x) && valid;
+                        valid = ParseFloat(fields[6], entity.transform.position.y) && valid;
+                        valid = ParseFloat(fields[7], entity.transform.position.z) && valid;
+                        valid = ParseFloat(fields[8], entity.transform.rotation.x) && valid;
+                        valid = ParseFloat(fields[9], entity.transform.rotation.y) && valid;
+                        valid = ParseFloat(fields[10], entity.transform.rotation.z) && valid;
+                        valid = ParseFloat(fields[11], entity.transform.rotation.w) && valid;
+                        valid = ParseFloat(fields[12], entity.transform.scale.x) && valid;
+                        valid = ParseFloat(fields[13], entity.transform.scale.y) && valid;
+                        valid = ParseFloat(fields[14], entity.transform.scale.z) && valid;
+                        if (!valid || Math::IsZero(entity.transform.rotation.LengthSquared()))
                         {
-                            AddDiagnostic(
-                                result.diagnostics,
-                                SceneSerializationDiagnosticCode::NonFiniteValue,
-                                lineNumber,
-                                parsed.key,
-                                "object transform or bounds contains a non-finite value");
-                            valid = false;
+                            AddDiagnostic(result.diagnostics,
+                                SceneSerializationDiagnosticCode::InvalidEntityId,
+                                lineNumber, std::string(fields[1]), "invalid entity record");
                         }
-                        if (valid && Math::IsZero(parsed.rotation.LengthSquared()))
+                        else if (indices.find(entity.id) != indices.end())
                         {
-                            AddDiagnostic(
-                                result.diagnostics,
-                                SceneSerializationDiagnosticCode::InvalidRotation,
-                                lineNumber,
-                                parsed.key,
-                                "object rotation quaternion has zero length");
-                            valid = false;
-                        }
-                        if (!ParseBool(fields[15], parsed.visible) ||
-                            !ParseBool(fields[16], parsed.castShadows) ||
-                            !ParseBool(fields[17], parsed.receiveShadows))
-                        {
-                            AddDiagnostic(
-                                result.diagnostics,
-                                SceneSerializationDiagnosticCode::InvalidBoolean,
-                                lineNumber,
-                                parsed.key,
-                                "object visibility or shadow flag is invalid");
-                            valid = false;
-                        }
-                        if (fields[18] == "manual")
-                        {
-                            parsed.boundsMode = RenderBoundsMode::Manual;
-                        }
-                        else if (fields[18] == "auto")
-                        {
-                            parsed.boundsMode = RenderBoundsMode::Automatic;
+                            AddDiagnostic(result.diagnostics,
+                                SceneSerializationDiagnosticCode::DuplicateEntityId,
+                                lineNumber, entity.id.ToString(), "duplicate entity ID");
                         }
                         else
                         {
-                            AddDiagnostic(
-                                result.diagnostics,
-                                SceneSerializationDiagnosticCode::InvalidBoundsMode,
-                                lineNumber,
-                                parsed.key,
-                                "object bounds mode must be auto or manual");
-                            valid = false;
+                            entity.transform.rotation = entity.transform.rotation.Normalized();
+                            indices[entity.id] = parsed.size();
+                            parsed.push_back(std::move(entity));
                         }
-
-                        if (valid)
+                    }
+                }
+                else if (fields[0] == "mesh_renderer")
+                {
+                    if (fields.size() != 14)
+                    {
+                        AddDiagnostic(result.diagnostics,
+                            SceneSerializationDiagnosticCode::MalformedRecord,
+                            lineNumber, {}, "mesh_renderer record must contain 14 fields");
+                    }
+                    else
+                    {
+                        EntityId id;
+                        const auto found = EntityId::TryParse(fields[1], id)
+                            ? indices.find(id) : indices.end();
+                        if (found == indices.end())
                         {
-                            parsed.rotation.Normalize();
-                            parsedObjects.push_back(std::move(parsed));
+                            AddDiagnostic(result.diagnostics,
+                                SceneSerializationDiagnosticCode::InvalidEntityId,
+                                lineNumber, std::string(fields[1]), "mesh renderer references an unknown entity");
+                        }
+                        else if (parsed[found->second].meshRenderer)
+                        {
+                            AddDiagnostic(result.diagnostics,
+                                SceneSerializationDiagnosticCode::DuplicateComponent,
+                                lineNumber, id.ToString(), "duplicate mesh renderer component");
+                        }
+                        else
+                        {
+                            MeshRendererComponent component;
+                            bool valid = RestoreMesh(fields[2], manifest, registry, component.mesh,
+                                result, lineNumber, fields[1]);
+                            valid = RestoreMaterial(fields[3], manifest, registry, component.material,
+                                result, lineNumber, fields[1]) && valid;
+                            valid = ParseBoolean(fields[4], component.visible) && valid;
+                            valid = ParseBoolean(fields[5], component.castShadows) && valid;
+                            valid = ParseBoolean(fields[6], component.receiveShadows) && valid;
+                            if (fields[7] == "manual") component.boundsMode = RenderBoundsMode::Manual;
+                            else if (fields[7] == "auto") component.boundsMode = RenderBoundsMode::Automatic;
+                            else valid = false;
+                            valid = ParseFloat(fields[8], component.localBoundsMin.x) && valid;
+                            valid = ParseFloat(fields[9], component.localBoundsMin.y) && valid;
+                            valid = ParseFloat(fields[10], component.localBoundsMin.z) && valid;
+                            valid = ParseFloat(fields[11], component.localBoundsMax.x) && valid;
+                            valid = ParseFloat(fields[12], component.localBoundsMax.y) && valid;
+                            valid = ParseFloat(fields[13], component.localBoundsMax.z) && valid;
+                            if (!valid)
+                            {
+                                AddDiagnostic(result.diagnostics,
+                                    SceneSerializationDiagnosticCode::MalformedRecord,
+                                    lineNumber, id.ToString(), "invalid mesh renderer component");
+                            }
+                            else parsed[found->second].meshRenderer = component;
+                        }
+                    }
+                }
+                else if (fields[0] == "light")
+                {
+                    if (fields.size() != 17)
+                    {
+                        AddDiagnostic(result.diagnostics,
+                            SceneSerializationDiagnosticCode::MalformedRecord,
+                            lineNumber, {}, "light record must contain 17 fields");
+                    }
+                    else
+                    {
+                        EntityId id;
+                        const auto found = EntityId::TryParse(fields[1], id)
+                            ? indices.find(id) : indices.end();
+                        if (found == indices.end())
+                        {
+                            AddDiagnostic(result.diagnostics,
+                                SceneSerializationDiagnosticCode::InvalidEntityId,
+                                lineNumber, std::string(fields[1]), "light references an unknown entity");
+                        }
+                        else if (parsed[found->second].light)
+                        {
+                            AddDiagnostic(result.diagnostics,
+                                SceneSerializationDiagnosticCode::DuplicateComponent,
+                                lineNumber, id.ToString(), "duplicate light component");
+                        }
+                        else
+                        {
+                            LightComponent component;
+                            u32 type = 0;
+                            bool valid = ParseUnsigned(fields[2], type) &&
+                                type <= static_cast<u32>(LightType::Area);
+                            component.type = static_cast<LightType>(type);
+                            valid = ParseFloat(fields[3], component.localDirection.x) && valid;
+                            valid = ParseFloat(fields[4], component.localDirection.y) && valid;
+                            valid = ParseFloat(fields[5], component.localDirection.z) && valid;
+                            valid = ParseFloat(fields[6], component.color.x) && valid;
+                            valid = ParseFloat(fields[7], component.color.y) && valid;
+                            valid = ParseFloat(fields[8], component.color.z) && valid;
+                            valid = ParseFloat(fields[9], component.intensity) && valid;
+                            valid = ParseFloat(fields[10], component.range) && valid;
+                            valid = ParseFloat(fields[11], component.innerConeAngle) && valid;
+                            valid = ParseFloat(fields[12], component.outerConeAngle) && valid;
+                            valid = ParseBoolean(fields[13], component.castShadows) && valid;
+                            valid = ParseFloat(fields[14], component.shadowBias) && valid;
+                            valid = ParseUnsigned(fields[15], component.shadowMapSize) && valid;
+                            valid = ParseBoolean(fields[16], component.enabled) && valid;
+                            if (!valid)
+                            {
+                                AddDiagnostic(result.diagnostics,
+                                    SceneSerializationDiagnosticCode::InvalidLightType,
+                                    lineNumber, id.ToString(), "invalid light component");
+                            }
+                            else parsed[found->second].light = component;
+                        }
+                    }
+                }
+                else if (fields[0] == "primary_light")
+                {
+                    if (fields.size() != 2 || primarySeen)
+                    {
+                        AddDiagnostic(result.diagnostics,
+                            SceneSerializationDiagnosticCode::MalformedRecord,
+                            lineNumber, {}, "invalid or duplicate primary_light record");
+                    }
+                    else
+                    {
+                        primarySeen = true;
+                        if (fields[1] != kNone && !EntityId::TryParse(fields[1], primaryLight))
+                        {
+                            AddDiagnostic(result.diagnostics,
+                                SceneSerializationDiagnosticCode::InvalidEntityId,
+                                lineNumber, std::string(fields[1]), "invalid primary-light entity ID");
                         }
                     }
                 }
                 else
                 {
-                    AddDiagnostic(
-                        result.diagnostics,
+                    AddDiagnostic(result.diagnostics,
                         SceneSerializationDiagnosticCode::MalformedRecord,
-                        lineNumber,
-                        {},
-                        "unknown scene record type");
+                        lineNumber, {}, "unknown scene record type");
                 }
             }
-
-            if (end == std::string_view::npos)
-            {
-                break;
-            }
-            offset = end + 1;
+            if (lineEnd == std::string_view::npos) break;
+            lineStart = lineEnd + 1;
         }
 
-        if (!sceneRecordFound)
+        if (!headerSeen)
         {
-            AddDiagnostic(
-                result.diagnostics,
-                SceneSerializationDiagnosticCode::MissingSceneRecord,
-                0,
-                {},
-                "scene record is missing");
+            AddDiagnostic(result.diagnostics,
+                SceneSerializationDiagnosticCode::InvalidHeader, 0, {}, "missing scene header");
+        }
+        if (!sceneName)
+        {
+            AddDiagnostic(result.diagnostics,
+                SceneSerializationDiagnosticCode::MissingSceneRecord, 0, {}, "missing scene record");
+        }
+
+        for (const ParsedEntity& entity : parsed)
+        {
+            if (entity.parent && indices.find(entity.parent) == indices.end())
+            {
+                AddDiagnostic(result.diagnostics,
+                    SceneSerializationDiagnosticCode::InvalidParent,
+                    entity.sourceLine, entity.id.ToString(), "parent entity does not exist");
+            }
+            std::unordered_set<EntityId, EntityIdHash> visited;
+            EntityId current = entity.id;
+            while (current)
+            {
+                if (!visited.insert(current).second)
+                {
+                    AddDiagnostic(result.diagnostics,
+                        SceneSerializationDiagnosticCode::HierarchyCycle,
+                        entity.sourceLine, entity.id.ToString(), "entity hierarchy contains a cycle");
+                    break;
+                }
+                const auto iterator = indices.find(current);
+                current = iterator == indices.end() ? EntityId{} : parsed[iterator->second].parent;
+            }
+        }
+        if (primaryLight)
+        {
+            const auto iterator = indices.find(primaryLight);
+            if (iterator == indices.end() || !parsed[iterator->second].light)
+            {
+                AddDiagnostic(result.diagnostics,
+                    SceneSerializationDiagnosticCode::InvalidParent,
+                    0, primaryLight.ToString(), "primary light does not reference a light entity");
+            }
         }
         if (!result.diagnostics.empty())
         {
             return result;
         }
 
-        std::vector<std::shared_ptr<RenderObject>> restoredObjects;
-        restoredObjects.reserve(parsedObjects.size());
-        for (const ParsedObject& parsed : parsedObjects)
+        auto scene = std::make_shared<Scene>(*sceneName);
+        for (const ParsedEntity& parsedEntity : parsed)
         {
-            MeshHandle meshHandle;
-            MaterialHandle materialHandle;
-            const bool meshValid = ValidateManifestResource<MeshHandle, MeshAssetId>(
-                parsed.meshKey,
-                ResourceType::Mesh,
-                manifest,
-                registry,
-                parsed.line,
-                parsed.key,
-                meshHandle,
-                result);
-            const bool materialValid = ValidateManifestResource<MaterialHandle, MaterialAssetId>(
-                parsed.materialKey,
-                ResourceType::Material,
-                manifest,
-                registry,
-                parsed.line,
-                parsed.key,
-                materialHandle,
-                result);
-            if (!meshValid || !materialValid)
+            Entity entity = scene->CreateEntityWithId(parsedEntity.id, parsedEntity.name);
+            entity.SetVisible(parsedEntity.visible);
+            entity.SetLocalTransform(
+                parsedEntity.transform.position,
+                parsedEntity.transform.rotation,
+                parsedEntity.transform.scale);
+        }
+        for (const ParsedEntity& parsedEntity : parsed)
+        {
+            Entity entity = scene->FindEntity(parsedEntity.id);
+            if (parsedEntity.parent && !entity.SetParent(scene->FindEntity(parsedEntity.parent)))
             {
-                continue;
+                AddDiagnostic(result.diagnostics,
+                    SceneSerializationDiagnosticCode::InvalidParent,
+                    parsedEntity.sourceLine, parsedEntity.id.ToString(), "failed to restore parent");
+                return result;
             }
-
-            auto object = std::make_shared<RenderObject>();
-            object->name = parsed.name;
-            object->position = parsed.position;
-            object->rotation = parsed.rotation;
-            object->scale = parsed.scale;
-            object->visible = parsed.visible;
-            object->castShadows = parsed.castShadows;
-            object->receiveShadows = parsed.receiveShadows;
-
-            if (meshHandle && !object->SetMeshHandle(meshHandle, registry))
+            if (parsedEntity.meshRenderer &&
+                !entity.SetMeshRenderer(*parsedEntity.meshRenderer, &registry))
             {
-                AddDiagnostic(
-                    result.diagnostics,
+                AddDiagnostic(result.diagnostics,
                     SceneSerializationDiagnosticCode::UnresolvedResource,
-                    parsed.line,
-                    parsed.key,
-                    "mesh handle could not be assigned");
-                continue;
+                    parsedEntity.sourceLine, parsedEntity.id.ToString(), "failed to restore mesh renderer");
+                return result;
             }
-            if (materialHandle && !object->SetMaterialHandle(materialHandle, registry))
+            if (parsedEntity.light && !entity.SetLight(*parsedEntity.light))
             {
-                AddDiagnostic(
-                    result.diagnostics,
-                    SceneSerializationDiagnosticCode::UnresolvedResource,
-                    parsed.line,
-                    parsed.key,
-                    "material handle could not be assigned");
-                continue;
+                AddDiagnostic(result.diagnostics,
+                    SceneSerializationDiagnosticCode::MalformedRecord,
+                    parsedEntity.sourceLine, parsedEntity.id.ToString(), "failed to restore light");
+                return result;
             }
-
-            const Math::Vec3 canonicalMin(
-                Math::Min(parsed.boundsMin.x, parsed.boundsMax.x),
-                Math::Min(parsed.boundsMin.y, parsed.boundsMax.y),
-                Math::Min(parsed.boundsMin.z, parsed.boundsMax.z));
-            const Math::Vec3 canonicalMax(
-                Math::Max(parsed.boundsMin.x, parsed.boundsMax.x),
-                Math::Max(parsed.boundsMin.y, parsed.boundsMax.y),
-                Math::Max(parsed.boundsMin.z, parsed.boundsMax.z));
-            if (parsed.boundsMode == RenderBoundsMode::Manual)
-            {
-                object->SetLocalBounds(canonicalMin, canonicalMax);
-            }
-            else
-            {
-                object->localBoundsMin = canonicalMin;
-                object->localBoundsMax = canonicalMax;
-                object->UseAutomaticBounds();
-            }
-            restoredObjects.push_back(std::move(object));
+            ++result.restoredEntities;
+            if (parsedEntity.meshRenderer) ++result.restoredObjects;
+            if (parsedEntity.light) ++result.restoredLights;
         }
-
-        if (!result.diagnostics.empty())
+        if (primaryLight)
         {
-            return result;
+            scene->SetPrimaryLight(scene->FindEntity(primaryLight));
         }
-
-        auto restoredScene = std::make_shared<Scene>(sceneName);
-        for (const auto& object : restoredObjects)
-        {
-            restoredScene->AddRenderObject(object);
-        }
-        result.restoredObjects = static_cast<u32>(restoredObjects.size());
-        result.scene = std::move(restoredScene);
+        result.scene = std::move(scene);
         return result;
     }
 }

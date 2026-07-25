@@ -13,7 +13,7 @@ namespace Pyramid
     class ResourceRegistry;
     class Scene;
 
-    constexpr u32 kSceneSerializationVersion = 1;
+    constexpr u32 kSceneSerializationVersion = 2;
 
     enum class SceneSerializationDiagnosticCode : u8
     {
@@ -22,13 +22,17 @@ namespace Pyramid
         MissingSceneRecord,
         DuplicateSceneRecord,
         MalformedRecord,
-        InvalidObjectKey,
-        DuplicateObjectKey,
+        InvalidEntityId,
+        DuplicateEntityId,
+        InvalidParent,
+        HierarchyCycle,
+        DuplicateComponent,
         InvalidNameEncoding,
         InvalidNumber,
         NonFiniteValue,
         InvalidBoolean,
         InvalidBoundsMode,
+        InvalidLightType,
         InvalidRotation,
         MissingManifestResource,
         ResourceTypeMismatch,
@@ -49,7 +53,9 @@ namespace Pyramid
     struct SceneSerializationResult
     {
         std::string text;
+        u32 serializedEntities = 0;
         u32 serializedObjects = 0;
+        u32 serializedLights = 0;
         std::vector<SceneSerializationDiagnostic> diagnostics;
 
         bool Succeeded() const
@@ -61,7 +67,9 @@ namespace Pyramid
     struct SceneDeserializationResult
     {
         std::shared_ptr<Scene> scene;
+        u32 restoredEntities = 0;
         u32 restoredObjects = 0;
+        u32 restoredLights = 0;
         u32 missingAssets = 0;
         u32 staleGenerations = 0;
         std::vector<SceneSerializationDiagnostic> diagnostics;
@@ -73,12 +81,12 @@ namespace Pyramid
     };
 
     /**
-     * Versioned, deterministic serialization for a Scene's flat render-object list.
+     * Versioned deterministic persistence for the authoritative entity scene.
      *
-     * Meshes and materials are referenced by ResourceManifest keys rather than by
-     * raw asset IDs or owning pointers. Deserialization restores generation-checked
-     * handles through ResourceRegistry and fails transactionally when the document,
-     * manifest, or registry state is invalid.
+     * Version 2 stores stable entity IDs, parent IDs, local transforms,
+     * visibility, MeshRendererComponent, LightComponent, and the primary-light
+     * entity. Mesh/material references use ResourceManifest keys and are restored
+     * through generation-checked ResourceRegistry handles.
      */
     class SceneSerializer final
     {
