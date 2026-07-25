@@ -1,10 +1,7 @@
 #pragma once
 #include <Pyramid/Core/Game.hpp>
-#include <Pyramid/Graphics/Shader/ShaderCache.hpp>
-#include <Pyramid/Graphics/Geometry/MeshCache.hpp>
-#include <Pyramid/Graphics/Texture/TextureCache.hpp>
 #include <Pyramid/Graphics/Material/Material.hpp>
-#include <Pyramid/Graphics/Material/MaterialCache.hpp>
+#include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
 #include <Pyramid/Graphics/Buffer/UniformBuffer.hpp>
 #include <Pyramid/Graphics/Texture.hpp>
 #include <Pyramid/Math/Math.hpp>
@@ -53,10 +50,6 @@ private:
     void HandleInput(float deltaTime);
 
     // Core rendering components
-    std::unique_ptr<Pyramid::MeshCache> m_meshCache;
-    std::unique_ptr<Pyramid::ShaderCache> m_shaderCache;
-    std::unique_ptr<Pyramid::TextureCache> m_textureCache;
-    std::unique_ptr<Pyramid::MaterialCache> m_materialCache;
     std::shared_ptr<Pyramid::ShaderProgram> m_shader;
     std::shared_ptr<Pyramid::Mesh> m_mesh;
     std::shared_ptr<Pyramid::TextureResource> m_debugTexture;

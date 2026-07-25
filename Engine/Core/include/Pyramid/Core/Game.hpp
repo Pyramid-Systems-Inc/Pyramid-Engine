@@ -6,6 +6,7 @@
 namespace Pyramid {
 
 class Camera;
+class ResourceRegistry;
 namespace Renderer { class RenderSystem; }
 
 /**
@@ -92,6 +93,14 @@ protected:
     IGraphicsDevice* GetGraphicsDevice() const { return m_graphicsDevice.get(); }
 
     /**
+     * @brief Get the engine-owned graphics resource registry.
+     *
+     * The registry is created with the graphics device and destroyed before
+     * device shutdown, guaranteeing dependency-safe cache teardown.
+     */
+    ResourceRegistry* GetResourceRegistry() const { return m_resourceRegistry.get(); }
+
+    /**
      * @brief Register the camera whose projection follows the window client size.
      * @param camera Non-owning camera pointer, or nullptr to detach it.
      *
@@ -126,6 +135,7 @@ private:
 
     std::unique_ptr<Window> m_window;
     std::unique_ptr<IGraphicsDevice> m_graphicsDevice;
+    std::unique_ptr<ResourceRegistry> m_resourceRegistry;
     Camera* m_activeCamera;
     Renderer::RenderSystem* m_renderSystem;
     bool m_isRunning;

@@ -15,6 +15,7 @@
 #include <Pyramid/Graphics/Renderer/RenderSystem.hpp>
 #include <Pyramid/Graphics/Material/Material.hpp>
 #include <Pyramid/Graphics/Material/MaterialCache.hpp>
+#include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
 
 #include <memory>
 #include <string>
@@ -25,6 +26,7 @@ namespace
     class GameLinkageProbe final : public Pyramid::Game
     {
     public:
+        using Pyramid::Game::GetResourceRegistry;
         using Pyramid::Game::SetRenderSystem;
     };
 
@@ -222,6 +224,26 @@ namespace
         &Pyramid::MaterialCache::Clear;
     volatile decltype(&Pyramid::MaterialCache::GetStats) g_getMaterialCacheStats =
         &Pyramid::MaterialCache::GetStats;
+    volatile decltype(&Pyramid::ResourceRegistry::CollectUnused) g_collectUnusedResources =
+        &Pyramid::ResourceRegistry::CollectUnused;
+    volatile decltype(&Pyramid::ResourceRegistry::Clear) g_clearResourceRegistry =
+        &Pyramid::ResourceRegistry::Clear;
+    volatile decltype(&Pyramid::ResourceRegistry::GetStats) g_getResourceRegistryStats =
+        &Pyramid::ResourceRegistry::GetStats;
+    using GetRegistryMeshes = Pyramid::MeshCache& (Pyramid::ResourceRegistry::*)();
+    using GetRegistryShaders = Pyramid::ShaderCache& (Pyramid::ResourceRegistry::*)();
+    using GetRegistryTextures = Pyramid::TextureCache& (Pyramid::ResourceRegistry::*)();
+    using GetRegistryMaterials = Pyramid::MaterialCache& (Pyramid::ResourceRegistry::*)();
+    volatile GetRegistryMeshes g_getRegistryMeshes =
+        static_cast<GetRegistryMeshes>(&Pyramid::ResourceRegistry::Meshes);
+    volatile GetRegistryShaders g_getRegistryShaders =
+        static_cast<GetRegistryShaders>(&Pyramid::ResourceRegistry::Shaders);
+    volatile GetRegistryTextures g_getRegistryTextures =
+        static_cast<GetRegistryTextures>(&Pyramid::ResourceRegistry::Textures);
+    volatile GetRegistryMaterials g_getRegistryMaterials =
+        static_cast<GetRegistryMaterials>(&Pyramid::ResourceRegistry::Materials);
+    volatile decltype(&GameLinkageProbe::GetResourceRegistry) g_getGameResourceRegistry =
+        &GameLinkageProbe::GetResourceRegistry;
     volatile decltype(&Pyramid::Renderer::CommandBuffer::SetMaterial) g_setMaterial =
         &Pyramid::Renderer::CommandBuffer::SetMaterial;
     volatile decltype(&Pyramid::Renderer::CommandBuffer::SetUniformMat4) g_setCommandUniformMat4 =
@@ -340,6 +362,14 @@ int main()
                    g_collectUnusedMaterials &&
                    g_clearMaterialCache &&
                    g_getMaterialCacheStats &&
+                   g_collectUnusedResources &&
+                   g_clearResourceRegistry &&
+                   g_getResourceRegistryStats &&
+                   g_getRegistryMeshes &&
+                   g_getRegistryShaders &&
+                   g_getRegistryTextures &&
+                   g_getRegistryMaterials &&
+                   g_getGameResourceRegistry &&
                    g_setMaterial &&
                    g_setCommandUniformMat4 &&
                    g_drawMesh &&

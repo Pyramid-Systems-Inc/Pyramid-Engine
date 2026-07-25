@@ -5,6 +5,7 @@
 #include <Pyramid/Graphics/Texture/TextureCache.hpp>
 #include <Pyramid/Graphics/Material/Material.hpp>
 #include <Pyramid/Graphics/Material/MaterialCache.hpp>
+#include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
 
 #include <iostream>
 
@@ -16,13 +17,15 @@ int main()
     const auto textureId = Pyramid::TextureAssetId::FromString("consumer/texture");
     const auto materialId = Pyramid::MaterialAssetId::FromString("consumer/material");
     Pyramid::MaterialCache materialCache;
+    Pyramid::ResourceRegistryReleaseStats released;
     std::cout << "Pyramid Engine " << PYRAMID_VERSION_STRING
               << " | vector length: " << value.Length()
               << " | mesh id: " << meshId.ToString()
               << " | shader id: " << shaderId.ToString()
               << " | texture id: " << textureId.ToString()
               << " | material id: " << materialId.ToString()
-              << " | cached materials: " << materialCache.GetResidentCount() << '\n';
+              << " | cached materials: " << materialCache.GetResidentCount()
+              << " | released resources: " << released.GetTotal() << '\n';
     return value.LengthSquared() > 0.0f && meshId.IsValid() && shaderId.IsValid() &&
         textureId.IsValid() && materialId.IsValid()
         ? 0

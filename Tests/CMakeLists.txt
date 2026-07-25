@@ -102,3 +102,8 @@ add_executable(MaterialCacheTests MaterialCacheTests.cpp)
 target_link_libraries(MaterialCacheTests PRIVATE Pyramid::Engine)
 set_target_properties(MaterialCacheTests PROPERTIES FOLDER "Tests/Graphics")
 add_test(NAME Graphics.MaterialCache COMMAND $<TARGET_FILE:MaterialCacheTests>)
+
+add_executable(ResourceRegistryTests ResourceRegistryTests.cpp)
+target_link_libraries(ResourceRegistryTests PRIVATE Pyramid::Engine)
+set_target_properties(ResourceRegistryTests PROPERTIES FOLDER "Tests/Graphics")
+add_test(NAME Graphics.ResourceRegistry COMMAND $<TARGET_FILE:ResourceRegistryTests>)

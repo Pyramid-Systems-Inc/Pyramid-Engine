@@ -2,11 +2,10 @@
 
 #include <Pyramid/Graphics/Buffer/BufferLayout.hpp>
 #include <Pyramid/Graphics/Geometry/Vertex.hpp>
-#include <Pyramid/Graphics/Geometry/MeshCache.hpp>
 #include <Pyramid/Graphics/GraphicsDevice.hpp>
 #include <Pyramid/Graphics/Shader/Shader.hpp>
 #include <Pyramid/Graphics/Material/Material.hpp>
-#include <Pyramid/Graphics/Material/MaterialCache.hpp>
+#include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
 #include <Pyramid/Math/Math.hpp>
 #include <Pyramid/Util/Log.hpp>
 
@@ -85,10 +84,13 @@ void BasicGame::onCreate()
         return;
     }
 
-    m_meshCache = std::make_unique<Pyramid::MeshCache>(*device);
-    m_shaderCache = std::make_unique<Pyramid::ShaderCache>(*device);
-    m_textureCache = std::make_unique<Pyramid::TextureCache>(*device);
-    m_materialCache = std::make_unique<Pyramid::MaterialCache>();
+    auto* resources = GetResourceRegistry();
+    if (!resources)
+    {
+        PYRAMID_LOG_CRITICAL("BasicGame aborted: resource registry is null.");
+        quit();
+        return;
+    }
 
     m_renderSystem = std::make_unique<Pyramid::Renderer::RenderSystem>();
     if (!m_renderSystem->Initialize(device))
@@ -116,7 +118,7 @@ void BasicGame::onCreate()
     shaderSpecification.assetId =
         Pyramid::ShaderAssetId::FromString("examples/basic-game/forward");
 
-    m_shader = m_shaderCache->GetOrCreate(shaderSpecification);
+    m_shader = resources->Shaders().GetOrCreate(shaderSpecification);
     if (!m_shader)
     {
         PYRAMID_LOG_CRITICAL("BasicGame aborted: failed to compile scene shader.");
@@ -140,7 +142,7 @@ void BasicGame::onCreate()
     textureSpecification.assetId =
         Pyramid::TextureAssetId::FromString("examples/basic-game/checker");
     textureSpecification.name = "BasicGame Checker";
-    m_debugTexture = m_textureCache->GetOrCreate(textureSpecification);
+    m_debugTexture = resources->Textures().GetOrCreate(textureSpecification);
     if (!m_debugTexture)
     {
         PYRAMID_LOG_CRITICAL("BasicGame aborted: failed to create cached checker texture.");
@@ -238,9 +240,10 @@ std::shared_ptr<Pyramid::Mesh> BasicGame::CreateColoredCube(float size)
     specification.topology = Pyramid::PrimitiveTopology::Triangles;
     specification.name = "ColoredCube";
 
-    return m_meshCache
-        ? m_meshCache->GetOrCreate(specification)
-        : Pyramid::Mesh::Create(*device, specification);
+    auto* resources = GetResourceRegistry();
+    return resources
+        ? resources->Meshes().GetOrCreate(specification)
+        : nullptr;
 }
 
 bool BasicGame::SetupScene()
@@ -264,9 +267,13 @@ bool BasicGame::SetupScene()
     cubeMaterialSpecification.assetId =
         Pyramid::MaterialAssetId::FromString("examples/basic-game/cube-material");
     cubeMaterialSpecification.name = "BasicGame Cube Material";
-    m_cubeMaterial = m_materialCache
-        ? m_materialCache->GetOrCreate(cubeMaterialSpecification)
-        : Pyramid::Material::Create(cubeMaterialSpecification);
+    auto* resources = GetResourceRegistry();
+    if (!resources)
+    {
+        return false;
+    }
+
+    m_cubeMaterial = resources->Materials().GetOrCreate(cubeMaterialSpecification);
 
     Pyramid::MaterialSpecification floorMaterialSpecification = cubeMaterialSpecification;
     floorMaterialSpecification.uniforms = {
@@ -274,9 +281,7 @@ bool BasicGame::SetupScene()
     floorMaterialSpecification.assetId =
         Pyramid::MaterialAssetId::FromString("examples/basic-game/floor-material");
     floorMaterialSpecification.name = "BasicGame Floor Material";
-    m_floorMaterial = m_materialCache
-        ? m_materialCache->GetOrCreate(floorMaterialSpecification)
-        : Pyramid::Material::Create(floorMaterialSpecification);
+    m_floorMaterial = resources->Materials().GetOrCreate(floorMaterialSpecification);
 
     if (!m_cubeMaterial || !m_floorMaterial)
     {

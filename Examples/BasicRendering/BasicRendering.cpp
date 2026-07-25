@@ -1,9 +1,10 @@
 #include "BasicRendering.hpp"
 
+#include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
+
 #include <array>
 #include <Pyramid/Graphics/GraphicsDevice.hpp>
 #include <Pyramid/Graphics/Buffer/BufferLayout.hpp>
-#include <Pyramid/Graphics/Geometry/MeshCache.hpp>
 #include <Pyramid/Util/Log.hpp>
 #include <cmath>
 
@@ -122,10 +123,12 @@ void BasicRendering::onCreate()
         return;
     }
 
-    m_meshCache = std::make_unique<Pyramid::MeshCache>(*device);
-    m_shaderCache = std::make_unique<Pyramid::ShaderCache>(*device);
-    m_textureCache = std::make_unique<Pyramid::TextureCache>(*device);
-    m_materialCache = std::make_unique<Pyramid::MaterialCache>();
+    auto* resources = GetResourceRegistry();
+    if (!resources)
+    {
+        PYRAMID_LOG_ERROR("Resource registry is null in BasicRendering::onCreate!");
+        return;
+    }
 
     // Initialize all components
     InitializeShaders();
@@ -144,7 +147,7 @@ void BasicRendering::onCreate()
     textureSpecification.assetId =
         Pyramid::TextureAssetId::FromString("examples/basic-rendering/white");
     textureSpecification.name = "BasicRendering White";
-    m_debugTexture = m_textureCache->GetOrCreate(textureSpecification);
+    m_debugTexture = resources->Textures().GetOrCreate(textureSpecification);
 
     Pyramid::MaterialSpecification materialSpecification;
     materialSpecification.shader = m_shader;
@@ -158,9 +161,7 @@ void BasicRendering::onCreate()
     materialSpecification.assetId =
         Pyramid::MaterialAssetId::FromString("examples/basic-rendering/material");
     materialSpecification.name = "BasicRendering Material";
-    m_material = m_materialCache
-        ? m_materialCache->GetOrCreate(materialSpecification)
-        : Pyramid::Material::Create(materialSpecification);
+    m_material = resources->Materials().GetOrCreate(materialSpecification);
     if (!m_material)
     {
         PYRAMID_LOG_ERROR("Failed to create the BasicRendering material");
@@ -186,7 +187,11 @@ void BasicRendering::InitializeShaders()
     specification.assetId =
         Pyramid::ShaderAssetId::FromString("examples/basic-rendering/scene");
 
-    m_shader = m_shaderCache->GetOrCreate(specification);
+    auto* resources = GetResourceRegistry();
+    if (!resources)
+        return;
+
+    m_shader = resources->Shaders().GetOrCreate(specification);
     if (!m_shader)
     {
         PYRAMID_LOG_ERROR("Failed to create or compile shader!");
@@ -281,9 +286,10 @@ void BasicRendering::CreateGeometry()
     specification.assetId = Pyramid::MeshAssetId::FromString(
         "examples/basic-rendering/cube");
 
-    m_mesh = m_meshCache
-        ? m_meshCache->GetOrCreate(specification)
-        : Pyramid::Mesh::Create(*device, specification);
+    auto* resources = GetResourceRegistry();
+    m_mesh = resources
+        ? resources->Meshes().GetOrCreate(specification)
+        : nullptr;
     if (!m_mesh)
     {
         PYRAMID_LOG_ERROR("Failed to create cube mesh");

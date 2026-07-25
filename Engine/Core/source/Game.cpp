@@ -2,6 +2,7 @@
 #include "Pyramid/Platform/Windows/Win32OpenGLWindow.hpp"
 #include <Pyramid/Graphics/Camera.hpp>
 #include <Pyramid/Graphics/Renderer/RenderSystem.hpp>
+#include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
 #include <Pyramid/Util/Log.hpp>
 #include <memory>
 #include <chrono>
@@ -14,6 +15,7 @@ namespace Pyramid
     Game::Game(GraphicsAPI api)
         : m_window(nullptr)
         , m_graphicsDevice(nullptr)
+        , m_resourceRegistry(nullptr)
         , m_activeCamera(nullptr)
         , m_renderSystem(nullptr)
         , m_isRunning(false)
@@ -55,6 +57,13 @@ namespace Pyramid
             return;
         }
 
+        m_resourceRegistry = std::make_unique<ResourceRegistry>(*m_graphicsDevice);
+        if (!m_resourceRegistry)
+        {
+            PYRAMID_LOG_CRITICAL("Failed to create graphics resource registry");
+            return;
+        }
+
         m_window->SetResizeCallback(
             [this](const WindowResizeEvent& event)
             {
@@ -76,6 +85,10 @@ namespace Pyramid
             m_window->SetResizeCallback({});
         }
         
+        // Release materials before textures/shaders/meshes, then shut down
+        // the graphics device while the native context is still alive.
+        m_resourceRegistry.reset();
+
         // Explicitly shutdown graphics device before window destruction
         if (m_graphicsDevice)
         {
@@ -286,7 +299,7 @@ namespace Pyramid
 
     bool Game::IsInitialized() const
     {
-        return m_initialized && m_window && m_graphicsDevice;
+        return m_initialized && m_window && m_graphicsDevice && m_resourceRegistry;
     }
 
 } // namespace Pyramid

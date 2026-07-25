@@ -55,6 +55,8 @@ OpenGL resources use RAII wrappers, but raw pointers passed into binding and com
 The default pipeline uses shadow and forward rendering. The deferred setup uses shadow, geometry, and lighting passes.
 
 
+`ResourceRegistry` is the application-level owner of mesh, shader, texture, and material caches for one graphics device. `Game` constructs it immediately after device creation and explicitly destroys it before graphics-device shutdown. Registry maintenance runs in dependency order—materials, textures, shaders, then meshes—so material-held references are released before dependent GPU resources are considered unused. Reverse member destruction preserves the same order even after an explicit clear. External `shared_ptr` owners remain valid across registry eviction or replacement.
+
 `ShaderProgram` wraps one immutable compiled `IShader` with stable caller/content identifiers and stage metadata. `ShaderCache` is bound to one graphics device, compiles exact source sets once, shares them across aliases, rejects stable-ID/source conflicts, and keeps strong residency until collection or eviction. Transactional recompilation creates or resolves a replacement program before remapping one stable alias; failed compilation preserves both the old cache mapping and all existing external owners. External users reacquire the stable alias to adopt a successful replacement.
 
 Known constraints:

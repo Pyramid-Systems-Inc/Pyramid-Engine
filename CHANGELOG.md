@@ -4,6 +4,13 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### Central graphics resource registry
+
+- Added `ResourceRegistry`, the authoritative owner of mesh, shader, texture, and material caches for one graphics device.
+- Added dependency-safe `CollectUnused()` and `Clear()` passes that release materials before their texture/shader dependencies and expose combined cache statistics.
+- Integrated one registry into `Game`; it is created with the graphics device, exposed through `GetResourceRegistry()`, and destroyed before device shutdown while the native context is still valid.
+- Migrated both graphical examples and the package consumer to the central registry and added `Graphics.ResourceRegistry` lifecycle, collection, external-owner, and aggregated-statistics coverage.
+
 ### Stable material identifiers and resource caching
 
 - Added `MaterialCache`, which owns one resident immutable material per exact shader/texture/uniform/render-state content fingerprint and resolves multiple stable aliases to it.

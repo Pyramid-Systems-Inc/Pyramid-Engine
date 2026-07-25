@@ -69,6 +69,7 @@ Primary headers:
 - `Pyramid/Graphics/Geometry/MeshCache.hpp`
 - `Pyramid/Graphics/Material/Material.hpp`
 - `Pyramid/Graphics/Material/MaterialCache.hpp`
+- `Pyramid/Graphics/Resources/ResourceRegistry.hpp`
 
 ### Shader programs
 
@@ -207,6 +208,26 @@ if (materialCache.Replace(materialSpec.assetId, replacement))
 ```
 
 `Replace()` validates or resolves the complete replacement before changing the stable alias. Failure preserves the previously active material, while existing external owners of older material versions remain valid. Content-derived identifiers are immutable and cannot be replaced.
+
+
+### Resource registry
+
+`Game` owns one `ResourceRegistry` for its graphics device and destroys it before device shutdown:
+
+```cpp
+auto* resources = GetResourceRegistry();
+if (!resources)
+    return;
+
+auto mesh = resources->Meshes().GetOrCreate(meshSpec);
+auto shader = resources->Shaders().GetOrCreate(shaderSpec);
+auto texture = resources->Textures().GetOrCreate(textureSpec);
+auto material = resources->Materials().GetOrCreate(materialSpec);
+```
+
+The registry is the preferred application-level entry point for reusable graphics assets. It guarantees dependency-safe teardown and maintenance ordering: materials first, then textures, shaders, and meshes. `CollectUnused()` removes cache-only resources while preserving dependencies referenced by externally owned materials. `Clear()` removes every cached alias/resource without invalidating external `shared_ptr` owners. Those external owners must still be released before the graphics device/context. `GetStats()` aggregates all four cache snapshots and reports estimated total resident bytes.
+
+Standalone cache construction remains available for tooling and focused tests, but a registry must always be destroyed before its graphics device and native context.
 
 ## Renderer
 
