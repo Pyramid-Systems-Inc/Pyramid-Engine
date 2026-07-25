@@ -126,11 +126,13 @@ ctest --test-dir build/manual --output-on-failure
 
 ## Tests
 
-CTest registers 29 executables: five image/utility tests plus 24 API, platform, graphics, resource, spatial, and scene tests. List the exact graph with:
+CTest registers 30 executables: five image/utility tests plus 25 API, platform, graphics, resource, spatial, and scene tests. List the exact graph with:
 
 ```powershell
 ctest --test-dir build/gcc-debug-tests -N
 ```
+
+The platform input contract is covered by `Platform.InputState`; resize delivery is covered by `Platform.WindowResizeEvents`.
 
 Key scene tests are:
 

@@ -175,7 +175,27 @@ void BasicGame::onCreate()
 
 void BasicGame::onUpdate(float deltaTime)
 {
-    m_elapsedTime += deltaTime;
+    Game::onUpdate(deltaTime);
+
+    const auto& input = GetInput();
+    if (input.WasKeyPressed(Pyramid::Key::Escape))
+    {
+        quit();
+        return;
+    }
+
+    if (input.WasKeyPressed(Pyramid::Key::Space))
+    {
+        m_animationPaused = !m_animationPaused;
+        PYRAMID_LOG_INFO(
+            "Cube animation ",
+            m_animationPaused ? "paused" : "resumed");
+    }
+
+    if (!m_animationPaused)
+    {
+        m_elapsedTime += deltaTime;
+    }
 
     if (m_cubeEntity)
     {

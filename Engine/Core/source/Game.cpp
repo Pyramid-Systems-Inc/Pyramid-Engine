@@ -150,6 +150,12 @@ namespace Pyramid
         }
     }
 
+    const InputState& Game::GetInput() const
+    {
+        static const InputState emptyInput;
+        return m_window ? m_window->GetInputState() : emptyInput;
+    }
+
     void Game::SetActiveCamera(Camera* camera)
     {
         m_activeCamera = camera;

@@ -1,4 +1,5 @@
 #include <Pyramid/Core/Game.hpp>
+#include <Pyramid/Platform/Input.hpp>
 #include <Pyramid/Graphics/Texture.hpp>
 #include <Pyramid/Graphics/Texture/TextureResource.hpp>
 #include <Pyramid/Graphics/Texture/TextureCache.hpp>
@@ -29,6 +30,7 @@ namespace
     class GameLinkageProbe final : public Pyramid::Game
     {
     public:
+        using Pyramid::Game::GetInput;
         using Pyramid::Game::GetResourceRegistry;
         using Pyramid::Game::SetRenderSystem;
     };
@@ -311,6 +313,8 @@ namespace
         static_cast<GetRegistryTextures>(&Pyramid::ResourceRegistry::Textures);
     volatile GetRegistryMaterials g_getRegistryMaterials =
         static_cast<GetRegistryMaterials>(&Pyramid::ResourceRegistry::Materials);
+    volatile decltype(&GameLinkageProbe::GetInput) g_getGameInput =
+        &GameLinkageProbe::GetInput;
     volatile decltype(&GameLinkageProbe::GetResourceRegistry) g_getGameResourceRegistry =
         &GameLinkageProbe::GetResourceRegistry;
     volatile decltype(&Pyramid::Renderer::CommandBuffer::SetMaterial) g_setMaterial =
@@ -477,6 +481,7 @@ int main()
                    g_getRegistryShaders &&
                    g_getRegistryTextures &&
                    g_getRegistryMaterials &&
+                   g_getGameInput &&
                    g_getGameResourceRegistry &&
                    g_setMaterial &&
                    g_setCommandUniformMat4 &&

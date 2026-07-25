@@ -17,7 +17,7 @@ Pyramid Engine is a monolithic C++17 library with a Win32/WGL platform implement
 | Math | `Pyramid::Math` | Vectors, matrices, quaternions, geometry, and SIMD helpers |
 | Utilities | `Pyramid::Util` | Logging, image loading, bit reading, DEFLATE, zlib, and libjpeg integration |
 
-Input, audio, physics, editor, scripting, and asset-pipeline systems are not currently present.
+Direct Win32 keyboard/mouse polling is present. Action mapping, controllers, audio, physics, editor, scripting, and the asset pipeline are not currently present.
 
 ## Application lifecycle
 
@@ -36,6 +36,12 @@ Derived `onCreate()` implementations must call `Game::onCreate()` before creatin
 `Window` is a strict interface. Initialization, presentation, context activation, close state, title, size, position, visibility, and minimized/maximized queries are all required operations.
 
 The base interface owns a replaceable resize callback and emits platform-neutral `WindowResizeEvent` values. `Win32OpenGLWindow` maps `WM_SIZE` to restored, minimized, or maximized states, updates its cached client dimensions before delivery, and suppresses duplicate events. During message processing, `Game` updates the default viewport, active camera, and registered render system before forwarding delivery to `onWindowResize()` on the game thread. Minimized and zero-sized events suspend rendering without recreating GPU targets.
+
+## Input lifecycle
+
+`InputState` is platform-neutral and owned by the native window. At the start of each `Window::ProcessMessages()` call, transient press/release flags, pointer deltas, and wheel deltas are cleared. Win32 then translates `WM_KEY*`, `WM_MOUSE*`, capture, and focus messages into the state object. `Game::onUpdate()` reads the resulting snapshot through `GetInput()` on the same thread.
+
+Held states persist across frames. Repeated native key-down messages do not create repeated presses. Focus loss releases every held key and mouse button, clears mouse motion, and resets the next pointer sample baseline. The current input layer intentionally does not own gameplay action semantics; action mapping belongs above it.
 
 ## Graphics device
 

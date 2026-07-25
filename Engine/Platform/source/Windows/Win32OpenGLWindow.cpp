@@ -1,36 +1,333 @@
 #include <Pyramid/Platform/Windows/Win32OpenGLWindow.hpp>
-#include <Pyramid/Util/Log.hpp> // For logging OpenGL context creation
+#include <Pyramid/Util/Log.hpp>
 #include <glad/glad.h>
 #include <glad/glad_wgl.h>
-#include <string> // For strlen
-#include <vector> // For dynamic buffer for wide string conversion
-
-// Ensure <windows.h> is available for MultiByteToWideChar,
-// It's usually pulled in by glad_wgl.h or other Windows-specific headers.
-// If not, it would need to be explicitly included, but that's unlikely here.
+#include <string>
+#include <vector>
+#include <windowsx.h>
 
 namespace Pyramid
 {
-
-    LRESULT CALLBACK Win32OpenGLWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    Key Win32OpenGLWindow::TranslateKey(WPARAM virtualKey, LPARAM keyData)
     {
-        Win32OpenGLWindow *window = nullptr;
+        if (virtualKey >= static_cast<WPARAM>('0') &&
+            virtualKey <= static_cast<WPARAM>('9'))
+        {
+            return static_cast<Key>(
+                static_cast<u16>(Key::Num0) +
+                static_cast<u16>(virtualKey - static_cast<WPARAM>('0')));
+        }
+
+        if (virtualKey >= static_cast<WPARAM>('A') &&
+            virtualKey <= static_cast<WPARAM>('Z'))
+        {
+            return static_cast<Key>(
+                static_cast<u16>(Key::A) +
+                static_cast<u16>(virtualKey - static_cast<WPARAM>('A')));
+        }
+
+        if (virtualKey >= VK_F1 && virtualKey <= VK_F24)
+        {
+            return static_cast<Key>(
+                static_cast<u16>(Key::F1) +
+                static_cast<u16>(virtualKey - VK_F1));
+        }
+
+        if (virtualKey >= VK_NUMPAD0 && virtualKey <= VK_NUMPAD9)
+        {
+            return static_cast<Key>(
+                static_cast<u16>(Key::Keypad0) +
+                static_cast<u16>(virtualKey - VK_NUMPAD0));
+        }
+
+        switch (virtualKey)
+        {
+        case VK_SPACE: return Key::Space;
+        case VK_OEM_7: return Key::Apostrophe;
+        case VK_OEM_COMMA: return Key::Comma;
+        case VK_OEM_MINUS: return Key::Minus;
+        case VK_OEM_PERIOD: return Key::Period;
+        case VK_OEM_2: return Key::Slash;
+        case VK_OEM_1: return Key::Semicolon;
+        case VK_OEM_PLUS: return Key::Equal;
+        case VK_OEM_4: return Key::LeftBracket;
+        case VK_OEM_5: return Key::Backslash;
+        case VK_OEM_102: return Key::Backslash;
+        case VK_OEM_6: return Key::RightBracket;
+        case VK_OEM_3: return Key::GraveAccent;
+        case VK_ESCAPE: return Key::Escape;
+        case VK_TAB: return Key::Tab;
+        case VK_BACK: return Key::Backspace;
+        case VK_INSERT:
+            return (keyData & (static_cast<LPARAM>(1) << 24)) != 0
+                ? Key::Insert
+                : Key::Keypad0;
+        case VK_DELETE:
+            return (keyData & (static_cast<LPARAM>(1) << 24)) != 0
+                ? Key::Delete
+                : Key::KeypadDecimal;
+        case VK_END:
+            return (keyData & (static_cast<LPARAM>(1) << 24)) != 0
+                ? Key::End
+                : Key::Keypad1;
+        case VK_DOWN:
+            return (keyData & (static_cast<LPARAM>(1) << 24)) != 0
+                ? Key::Down
+                : Key::Keypad2;
+        case VK_NEXT:
+            return (keyData & (static_cast<LPARAM>(1) << 24)) != 0
+                ? Key::PageDown
+                : Key::Keypad3;
+        case VK_LEFT:
+            return (keyData & (static_cast<LPARAM>(1) << 24)) != 0
+                ? Key::Left
+                : Key::Keypad4;
+        case VK_CLEAR: return Key::Keypad5;
+        case VK_RIGHT:
+            return (keyData & (static_cast<LPARAM>(1) << 24)) != 0
+                ? Key::Right
+                : Key::Keypad6;
+        case VK_HOME:
+            return (keyData & (static_cast<LPARAM>(1) << 24)) != 0
+                ? Key::Home
+                : Key::Keypad7;
+        case VK_UP:
+            return (keyData & (static_cast<LPARAM>(1) << 24)) != 0
+                ? Key::Up
+                : Key::Keypad8;
+        case VK_PRIOR:
+            return (keyData & (static_cast<LPARAM>(1) << 24)) != 0
+                ? Key::PageUp
+                : Key::Keypad9;
+        case VK_CAPITAL: return Key::CapsLock;
+        case VK_SCROLL: return Key::ScrollLock;
+        case VK_NUMLOCK: return Key::NumLock;
+        case VK_SNAPSHOT: return Key::PrintScreen;
+        case VK_PAUSE: return Key::Pause;
+        case VK_DECIMAL: return Key::KeypadDecimal;
+        case VK_DIVIDE: return Key::KeypadDivide;
+        case VK_MULTIPLY: return Key::KeypadMultiply;
+        case VK_SUBTRACT: return Key::KeypadSubtract;
+        case VK_ADD: return Key::KeypadAdd;
+        case VK_LWIN: return Key::LeftSuper;
+        case VK_RWIN: return Key::RightSuper;
+        case VK_APPS: return Key::Menu;
+        case VK_RETURN:
+            return (keyData & (static_cast<LPARAM>(1) << 24)) != 0
+                ? Key::KeypadEnter
+                : Key::Enter;
+        case VK_LSHIFT: return Key::LeftShift;
+        case VK_RSHIFT: return Key::RightShift;
+        case VK_LCONTROL: return Key::LeftControl;
+        case VK_RCONTROL: return Key::RightControl;
+        case VK_LMENU: return Key::LeftAlt;
+        case VK_RMENU: return Key::RightAlt;
+        case VK_SHIFT:
+        {
+            const UINT scanCode = static_cast<UINT>((keyData >> 16) & 0xff);
+            const UINT translated = MapVirtualKeyW(scanCode, MAPVK_VSC_TO_VK_EX);
+            return translated == VK_RSHIFT ? Key::RightShift : Key::LeftShift;
+        }
+        case VK_CONTROL:
+            return (keyData & (static_cast<LPARAM>(1) << 24)) != 0
+                ? Key::RightControl
+                : Key::LeftControl;
+        case VK_MENU:
+            return (keyData & (static_cast<LPARAM>(1) << 24)) != 0
+                ? Key::RightAlt
+                : Key::LeftAlt;
+        default:
+            return Key::Unknown;
+        }
+    }
+
+    void Win32OpenGLWindow::UpdateMouseCapture()
+    {
+        const bool anyButtonDown =
+            m_input.IsMouseButtonDown(MouseButton::Left) ||
+            m_input.IsMouseButtonDown(MouseButton::Right) ||
+            m_input.IsMouseButtonDown(MouseButton::Middle) ||
+            m_input.IsMouseButtonDown(MouseButton::X1) ||
+            m_input.IsMouseButtonDown(MouseButton::X2);
+
+        if (anyButtonDown)
+        {
+            if (GetCapture() != m_hwnd)
+            {
+                SetCapture(m_hwnd);
+            }
+        }
+        else if (GetCapture() == m_hwnd)
+        {
+            ReleaseCapture();
+        }
+    }
+
+    LRESULT CALLBACK Win32OpenGLWindow::WndProc(
+        HWND hwnd,
+        UINT msg,
+        WPARAM wParam,
+        LPARAM lParam)
+    {
+        Win32OpenGLWindow* window = nullptr;
         if (msg == WM_CREATE)
         {
-            CREATESTRUCT *createStruct = reinterpret_cast<CREATESTRUCT *>(lParam);
-            window = reinterpret_cast<Win32OpenGLWindow *>(createStruct->lpCreateParams);
-            SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
+            auto* createStruct = reinterpret_cast<CREATESTRUCT*>(lParam);
+            window = reinterpret_cast<Win32OpenGLWindow*>(
+                createStruct->lpCreateParams);
+            SetWindowLongPtr(
+                hwnd,
+                GWLP_USERDATA,
+                reinterpret_cast<LONG_PTR>(window));
         }
         else
         {
-            window = reinterpret_cast<Win32OpenGLWindow *>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+            window = reinterpret_cast<Win32OpenGLWindow*>(
+                GetWindowLongPtr(hwnd, GWLP_USERDATA));
         }
 
         switch (msg)
         {
+        case WM_SETFOCUS:
+            if (window)
+            {
+                window->m_input.SetFocused(true);
+            }
+            return 0;
+
+        case WM_KILLFOCUS:
+            if (window)
+            {
+                window->m_input.SetFocused(false);
+                window->UpdateMouseCapture();
+            }
+            return 0;
+
+        case WM_KEYDOWN:
+        case WM_SYSKEYDOWN:
+            if (window)
+            {
+                window->m_input.ProcessKey(
+                    TranslateKey(wParam, lParam),
+                    true);
+            }
+            return msg == WM_SYSKEYDOWN
+                ? DefWindowProcW(hwnd, msg, wParam, lParam)
+                : 0;
+
+        case WM_KEYUP:
+        case WM_SYSKEYUP:
+            if (window)
+            {
+                window->m_input.ProcessKey(
+                    TranslateKey(wParam, lParam),
+                    false);
+            }
+            return msg == WM_SYSKEYUP
+                ? DefWindowProcW(hwnd, msg, wParam, lParam)
+                : 0;
+
+        case WM_MOUSEMOVE:
+            if (window)
+            {
+                window->m_input.ProcessMouseMove(
+                    static_cast<f32>(GET_X_LPARAM(lParam)),
+                    static_cast<f32>(GET_Y_LPARAM(lParam)));
+            }
+            return 0;
+
+        case WM_LBUTTONDOWN:
+        case WM_RBUTTONDOWN:
+        case WM_MBUTTONDOWN:
+        case WM_XBUTTONDOWN:
+            if (window)
+            {
+                SetFocus(hwnd);
+                MouseButton button = MouseButton::Left;
+                if (msg == WM_RBUTTONDOWN)
+                {
+                    button = MouseButton::Right;
+                }
+                else if (msg == WM_MBUTTONDOWN)
+                {
+                    button = MouseButton::Middle;
+                }
+                else if (msg == WM_XBUTTONDOWN)
+                {
+                    button = GET_XBUTTON_WPARAM(wParam) == XBUTTON1
+                        ? MouseButton::X1
+                        : MouseButton::X2;
+                }
+
+                window->m_input.ProcessMouseMove(
+                    static_cast<f32>(GET_X_LPARAM(lParam)),
+                    static_cast<f32>(GET_Y_LPARAM(lParam)));
+                window->m_input.ProcessMouseButton(button, true);
+                window->UpdateMouseCapture();
+            }
+            return msg == WM_XBUTTONDOWN ? TRUE : 0;
+
+        case WM_LBUTTONUP:
+        case WM_RBUTTONUP:
+        case WM_MBUTTONUP:
+        case WM_XBUTTONUP:
+            if (window)
+            {
+                MouseButton button = MouseButton::Left;
+                if (msg == WM_RBUTTONUP)
+                {
+                    button = MouseButton::Right;
+                }
+                else if (msg == WM_MBUTTONUP)
+                {
+                    button = MouseButton::Middle;
+                }
+                else if (msg == WM_XBUTTONUP)
+                {
+                    button = GET_XBUTTON_WPARAM(wParam) == XBUTTON1
+                        ? MouseButton::X1
+                        : MouseButton::X2;
+                }
+
+                window->m_input.ProcessMouseMove(
+                    static_cast<f32>(GET_X_LPARAM(lParam)),
+                    static_cast<f32>(GET_Y_LPARAM(lParam)));
+                window->m_input.ProcessMouseButton(button, false);
+                window->UpdateMouseCapture();
+            }
+            return msg == WM_XBUTTONUP ? TRUE : 0;
+
+        case WM_MOUSEWHEEL:
+            if (window)
+            {
+                window->m_input.ProcessMouseWheel(
+                    static_cast<f32>(GET_WHEEL_DELTA_WPARAM(wParam)) /
+                    static_cast<f32>(WHEEL_DELTA));
+            }
+            return 0;
+
+        case WM_MOUSEHWHEEL:
+            if (window)
+            {
+                window->m_input.ProcessMouseWheel(
+                    0.0f,
+                    static_cast<f32>(GET_WHEEL_DELTA_WPARAM(wParam)) /
+                    static_cast<f32>(WHEEL_DELTA));
+            }
+            return 0;
+
+        case WM_CAPTURECHANGED:
+            if (window && reinterpret_cast<HWND>(lParam) != hwnd)
+            {
+                window->m_input.ReleaseMouseButtons();
+            }
+            return 0;
+
         case WM_CLOSE:
             if (window)
+            {
                 window->m_shouldClose = true;
+            }
             return 0;
 
         case WM_SIZE:
@@ -68,9 +365,9 @@ namespace Pyramid
         case WM_DESTROY:
             PostQuitMessage(0);
             return 0;
+        default:
+            return DefWindowProcW(hwnd, msg, wParam, lParam);
         }
-
-        return DefWindowProcW(hwnd, msg, wParam, lParam);
     }
 
     Win32OpenGLWindow::Win32OpenGLWindow()
@@ -102,7 +399,7 @@ namespace Pyramid
     bool Win32OpenGLWindow::Initialize(const char *title, int width, int height)
     {
         PYRAMID_LOG_INFO("Initializing Win32 OpenGL window (", width, "x", height, ")...");
-        
+
         m_width = width;
         m_height = height;
 
@@ -111,7 +408,7 @@ namespace Pyramid
             PYRAMID_LOG_ERROR("Failed to register window class");
             return false;
         }
-        
+
         PYRAMID_LOG_INFO("Window class registered successfully");
 
         // Create the window
@@ -159,7 +456,7 @@ namespace Pyramid
             PYRAMID_LOG_ERROR("Failed to create window");
             return false;
         }
-        
+
         PYRAMID_LOG_INFO("Window created successfully");
 
         // Get the device context
@@ -169,7 +466,7 @@ namespace Pyramid
             PYRAMID_LOG_ERROR("Failed to get device context");
             return false;
         }
-        
+
         PYRAMID_LOG_INFO("Device context obtained successfully");
 
         // Create OpenGL context
@@ -179,12 +476,13 @@ namespace Pyramid
             PYRAMID_LOG_ERROR("Failed to create OpenGL context");
             return false;
         }
-        
+
         PYRAMID_LOG_INFO("OpenGL context created successfully");
 
         // Show the window
         ShowWindow(m_hwnd, SW_SHOW);
         UpdateWindow(m_hwnd);
+        m_input.SetFocused(GetFocus() == m_hwnd);
 
         return true;
     }
@@ -198,7 +496,7 @@ namespace Pyramid
             PYRAMID_LOG_INFO("Window class already registered, reusing existing class");
             return true; // Class already exists, no need to register again
         }
-        
+
         WNDCLASSEXW wc = {};
         wc.cbSize = sizeof(WNDCLASSEXW);
         wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
@@ -222,7 +520,7 @@ namespace Pyramid
                 return false;
             }
         }
-        
+
         PYRAMID_LOG_INFO("Window class registered successfully");
         return true;
     }
@@ -370,6 +668,8 @@ namespace Pyramid
 
     bool Win32OpenGLWindow::ProcessMessages()
     {
+        m_input.BeginFrame();
+
         MSG msg = {};
         while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {

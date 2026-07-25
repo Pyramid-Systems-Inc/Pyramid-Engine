@@ -9,6 +9,11 @@ target_include_directories(OpenGLDiagnosticsTests PRIVATE "${PROJECT_SOURCE_DIR}
 set_target_properties(OpenGLDiagnosticsTests PROPERTIES FOLDER "Tests/Graphics")
 add_test(NAME Graphics.OpenGLDiagnostics COMMAND $<TARGET_FILE:OpenGLDiagnosticsTests>)
 
+add_executable(InputStateTests InputStateTests.cpp)
+target_link_libraries(InputStateTests PRIVATE Pyramid::Engine)
+set_target_properties(InputStateTests PROPERTIES FOLDER "Tests/Platform")
+add_test(NAME Platform.InputState COMMAND $<TARGET_FILE:InputStateTests>)
+
 add_executable(WindowResizeEventTests WindowResizeEventTests.cpp)
 target_include_directories(WindowResizeEventTests
     PRIVATE

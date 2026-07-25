@@ -17,7 +17,7 @@ The current `0.6.0-pre-alpha` baseline includes:
 - strict required window operations with Win32 implementations;
 - relocatable install/export package and external-consumer test;
 - Windows Debug/Release CI for build, CTest, install, and package consumption;
-- 29 registered tests, including engine-owned mesh resources, immutable geometry bounds, real PNG/JPEG decoding, transactional texture loading, OpenGL diagnostics, window events, camera resize/frustum behavior, framebuffer resize, scene-hierarchy transforms, incremental octree synchronization, bounds-accurate spatial queries, bounds-aware nearest-neighbor queries, transactional octree configuration, and automatic octree compaction/health metrics, stable shader identifiers, compile-once shader reuse, and transactional shader replacement;
+- 30 registered tests, including engine-owned mesh resources, immutable geometry bounds, real PNG/JPEG decoding, transactional texture loading, OpenGL diagnostics, window events, camera resize/frustum behavior, framebuffer resize, scene-hierarchy transforms, incremental octree synchronization, bounds-accurate spatial queries, bounds-aware nearest-neighbor queries, transactional octree configuration, and automatic octree compaction/health metrics, stable shader identifiers, compile-once shader reuse, and transactional shader replacement;
 - corrected standards-invalid PNG, zlib, and JPEG test fixtures;
 - public texture convenience definitions and explicit depth-target failure;
 - definitions for scene events, box queries, visibility statistics, spatial test scenes, and octree operations;
@@ -26,6 +26,7 @@ The current `0.6.0-pre-alpha` baseline includes:
 - a missing `<cstring>` dependency fixed in the image loader;
 - Debug-context negotiation and OpenGL driver callback diagnostics;
 - platform-neutral resize events delivered from Win32 `WM_SIZE` through `Game::onWindowResize()`;
+- real Win32 keyboard/mouse polling with per-frame transitions, pointer/wheel deltas, mouse capture, and focus-safe release;
 - automatic default-viewport updates, active-camera projection synchronization, and minimized-window render suspension;
 - transactional framebuffer recreation, unified render-target ownership, and render-system resize propagation;
 - an authoritative stable-ID entity/component scene with cycle-safe hierarchy operations, recursive world-transform invalidation, mesh-renderer/light components, and generated renderer proxies;
@@ -110,8 +111,8 @@ Target outcome: a trustworthy rendering SDK rather than a larger feature list.
 
 Target outcome: one interactive Ruqoom RTS vertical slice that validates the engine rather than adding more infrastructure in isolation.
 
-1. real Win32 keyboard/mouse input and action mapping;
-2. RTS camera movement, zoom, edge scrolling, selection, and command input;
+1. [x] real Win32 keyboard/mouse polling and focus-safe per-frame state;
+2. configurable action mapping, then RTS camera movement, zoom, edge scrolling, selection, and command input;
 3. engine-owned model/scene import pipeline feeding existing mesh/material/resource types;
 4. RTS components such as selectable, team/owner, movement target, health, and basic unit state;
 5. terrain/large-map rendering and scalable visibility/spatial updates;

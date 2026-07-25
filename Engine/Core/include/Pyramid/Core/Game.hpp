@@ -101,6 +101,14 @@ protected:
     ResourceRegistry* GetResourceRegistry() const { return m_resourceRegistry.get(); }
 
     /**
+     * @brief Current keyboard and mouse state for the game window.
+     *
+     * Pressed/released flags and mouse/wheel deltas are valid for the current
+     * update frame. Held states remain active until release or focus loss.
+     */
+    const InputState& GetInput() const;
+
+    /**
      * @brief Register the camera whose projection follows the window client size.
      * @param camera Non-owning camera pointer, or nullptr to detach it.
      *

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Pyramid/Core/Prerequisites.hpp>
+#include <Pyramid/Platform/Input.hpp>
 
 #include <functional>
 #include <utility>
@@ -61,6 +62,11 @@ namespace Pyramid
         virtual void SetVisible(bool visible) = 0;
         virtual bool IsMinimized() const = 0;
         virtual bool IsMaximized() const = 0;
+
+        /**
+         * @brief Current per-frame keyboard and mouse state for this window.
+         */
+        [[nodiscard]] virtual const InputState& GetInputState() const = 0;
 
         /**
          * @brief Replaces the callback invoked for client-area size changes.

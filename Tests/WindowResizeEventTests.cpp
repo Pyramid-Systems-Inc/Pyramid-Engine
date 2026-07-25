@@ -27,6 +27,10 @@ namespace
         void SetVisible(bool) override {}
         bool IsMinimized() const override { return false; }
         bool IsMaximized() const override { return false; }
+        const Pyramid::InputState& GetInputState() const override { return m_input; }
+
+    private:
+        Pyramid::InputState m_input;
     };
 
     bool Expect(bool condition, const char* message)

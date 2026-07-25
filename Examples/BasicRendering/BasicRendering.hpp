@@ -67,6 +67,7 @@ private:
     float m_cameraOrbitRadius = 5.0f;
     float m_cameraOrbitSpeed = 0.5f;
     float m_cameraHeight = 2.0f;
+    float m_cameraOrbitOffset = 0.0f;
 
     // Uniform data structures
     struct SceneUniforms

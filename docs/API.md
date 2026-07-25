@@ -21,6 +21,7 @@ protected:
     virtual void onRender();
     virtual void onWindowResize(const WindowResizeEvent& event);
     IGraphicsDevice* GetGraphicsDevice() const;
+    const InputState& GetInput() const;
     void SetActiveCamera(Camera* camera);
     Camera* GetActiveCamera() const;
     void SetRenderSystem(Renderer::RenderSystem* renderSystem);
@@ -51,6 +52,38 @@ void MyGame::onWindowResize(const Pyramid::WindowResizeEvent& event)
     // Resize standalone framebuffers here.
 }
 ```
+
+## Input
+
+Header: `Pyramid/Platform/Input.hpp`
+
+`Win32OpenGLWindow` converts native keyboard, mouse-button, pointer, wheel, and focus messages into one platform-neutral `InputState`. `Window::ProcessMessages()` starts a new input frame before dispatching messages, so transitions and deltas are valid during the immediately following `Game::onUpdate()`.
+
+```cpp
+void MyGame::onUpdate(float deltaTime)
+{
+    Game::onUpdate(deltaTime);
+    const auto& input = GetInput();
+
+    if (input.WasKeyPressed(Pyramid::Key::Escape))
+        quit();
+
+    if (input.IsKeyDown(Pyramid::Key::W))
+        MoveForward(deltaTime);
+
+    if (input.IsMouseButtonDown(Pyramid::MouseButton::Right))
+    {
+        const auto delta = input.GetMouseDelta();
+        RotateCamera(delta.x, delta.y);
+    }
+
+    ZoomCamera(input.GetMouseWheelDelta());
+}
+```
+
+Queries include held, pressed-this-frame, and released-this-frame states for keyboard and mouse buttons; client-space pointer position; aggregated pointer movement; and vertical/horizontal wheel steps. Native key-repeat messages do not retrigger `WasKeyPressed()`. Losing focus releases every held key/button and resets the pointer baseline, preventing stuck controls or a large mouse jump after focus returns.
+
+Input is currently a direct polling layer. Action names, rebinding, chords, device abstraction, text input, raw relative mouse mode, and controllers are future work.
 
 ## Graphics device and resources
 

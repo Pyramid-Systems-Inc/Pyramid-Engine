@@ -43,4 +43,5 @@ private:
     std::shared_ptr<Pyramid::Material> m_floorMaterial;
 
     float m_elapsedTime = 0.0f;
+    bool m_animationPaused = false;
 };

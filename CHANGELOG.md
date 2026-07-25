@@ -4,6 +4,17 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### Win32 input foundation
+
+- Added platform-neutral keyboard and mouse enums plus per-frame `InputState` polling.
+- Added held, pressed, and released transitions for keys and five mouse buttons.
+- Added client-space pointer position, aggregated movement, and vertical/horizontal wheel deltas.
+- Translated Win32 key, system-key, mouse, wheel, capture, and focus messages without exposing native codes publicly.
+- Added left/right modifier and keypad-aware key translation.
+- Added mouse capture while buttons are held and focus/capture-loss release behavior to prevent stuck input.
+- Exposed window input through `Game::GetInput()` and migrated both examples away from simulated controls.
+- Added `Platform.InputState`; CTest now registers 30 tests.
+
 ### Authoritative entity/component scene model
 
 - Replaced the independent `SceneNode` graph and flat render-object authoring model with stable scene-local `EntityId` values and a lightweight, non-owning `Entity` facade.

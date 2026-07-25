@@ -115,6 +115,10 @@ Include:
 - known limitations and follow-up work;
 - documentation and changelog updates.
 
+## Input changes
+
+Keep native virtual-key codes and Win32 message types inside the platform implementation. Public gameplay code should consume `Key`, `MouseButton`, and `InputState` only. Every new transition rule must be covered in `Tests/InputStateTests.cpp`, especially repeat handling, focus/capture loss, and one-frame reset behavior. Action mapping and controller support should build on top of `InputState` instead of adding gameplay concepts to `Window`.
+
 ## Release hygiene
 
 Before tagging:

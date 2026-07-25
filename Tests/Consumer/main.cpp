@@ -1,5 +1,6 @@
 #include <Pyramid/Core/Prerequisites.hpp>
 #include <Pyramid/Math/Math.hpp>
+#include <Pyramid/Platform/Input.hpp>
 #include <Pyramid/Graphics/Geometry/MeshCache.hpp>
 #include <Pyramid/Graphics/Shader/ShaderCache.hpp>
 #include <Pyramid/Graphics/Texture/TextureCache.hpp>
@@ -21,6 +22,10 @@ int main()
     const auto textureId = Pyramid::TextureAssetId::FromString("consumer/texture");
     const auto materialId = Pyramid::MaterialAssetId::FromString("consumer/material");
     Pyramid::MaterialCache materialCache;
+    Pyramid::InputState input;
+    input.SetFocused(true);
+    input.BeginFrame();
+    input.ProcessKey(Pyramid::Key::W, true);
     Pyramid::ResourceRegistryReleaseStats released;
     const auto meshHandle = Pyramid::MeshHandle::FromParts(meshId, 1);
     const auto materialHandle = Pyramid::MaterialHandle::FromParts(materialId, 1);
@@ -42,10 +47,13 @@ int main()
               << " | cached materials: " << materialCache.GetResidentCount()
               << " | manifest entries: " << manifest.GetEntryCount()
               << " | serialized scene objects: " << sceneSerialization.serializedObjects
+              << " | input W: " << input.IsKeyDown(Pyramid::Key::W)
               << " | released resources: " << released.GetTotal() << '\n';
     return value.LengthSquared() > 0.0f && meshId.IsValid() && shaderId.IsValid() &&
         textureId.IsValid() && materialId.IsValid() && meshHandle.IsValid() &&
-        materialHandle.IsValid() && entity.IsValid() && entity.GetId() == Pyramid::EntityId(42) &&
+        materialHandle.IsValid() && input.IsKeyDown(Pyramid::Key::W) &&
+        input.WasKeyPressed(Pyramid::Key::W) &&
+        entity.IsValid() && entity.GetId() == Pyramid::EntityId(42) &&
         manifest.GetMeshHandle("consumer.mesh") == meshHandle
         ? 0
         : 1;

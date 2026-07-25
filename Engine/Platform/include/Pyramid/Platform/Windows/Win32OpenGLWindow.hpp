@@ -28,12 +28,15 @@ namespace Pyramid
         void SetVisible(bool visible) override;
         bool IsMinimized() const override;
         bool IsMaximized() const override;
+        const InputState& GetInputState() const override { return m_input; }
 
     private:
         static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
         bool RegisterWindowClass();
         bool CreateOpenGLContext();
         void LogOpenGLContextInfo();
+        static Key TranslateKey(WPARAM virtualKey, LPARAM keyData);
+        void UpdateMouseCapture();
 
         HWND m_hwnd;
         HDC m_hdc;
@@ -42,6 +45,7 @@ namespace Pyramid
         int m_height;
         bool m_shouldClose;
         WindowResizeState m_resizeState;
+        InputState m_input;
     };
 
 } // namespace Pyramid

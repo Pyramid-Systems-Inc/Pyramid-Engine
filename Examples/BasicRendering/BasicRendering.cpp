@@ -2,6 +2,7 @@
 
 #include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
 
+#include <algorithm>
 #include <array>
 #include <Pyramid/Graphics/GraphicsDevice.hpp>
 #include <Pyramid/Graphics/Buffer/BufferLayout.hpp>
@@ -370,10 +371,11 @@ void BasicRendering::onUpdate(float deltaTime)
     Game::onUpdate(deltaTime);
     m_time += deltaTime;
 
-    // Update systems
+    // Update input before camera and uniform state so changes are visible
+    // during the same rendered frame.
+    HandleInput(deltaTime);
     UpdateCamera(deltaTime);
     UpdateUniformBuffers(deltaTime);
-    HandleInput(deltaTime);
 }
 
 void BasicRendering::UpdateCamera(float deltaTime)
@@ -385,7 +387,7 @@ void BasicRendering::UpdateCamera(float deltaTime)
     using namespace Pyramid::Math;
 
     // Orbital camera movement - ensure we're using the right trigonometric functions
-    float angle = m_time * m_cameraOrbitSpeed;
+    const float angle = m_time * m_cameraOrbitSpeed + m_cameraOrbitOffset;
     Vec3 position(
         cos(angle) * m_cameraOrbitRadius,
         m_cameraHeight,
@@ -437,19 +439,58 @@ void BasicRendering::UpdateUniformBuffers(float deltaTime)
 
 void BasicRendering::HandleInput(float deltaTime)
 {
-    // Simple input simulation for demonstration
-    // In a real implementation, this would get input from the window system
+    const auto& input = GetInput();
 
-    // Simulate pressing '1' to reset camera
-    static float resetTimer = 0.0f;
-    resetTimer += deltaTime;
-    if (resetTimer > 10.0f)
+    if (input.WasKeyPressed(Pyramid::Key::Escape))
     {
-        resetTimer = 0.0f;
+        quit();
+        return;
+    }
+
+    if (input.WasKeyPressed(Pyramid::Key::R) ||
+        input.WasKeyPressed(Pyramid::Key::Num1))
+    {
         m_cameraOrbitRadius = 5.0f;
         m_cameraHeight = 2.0f;
+        m_cameraOrbitOffset = 0.0f;
         PYRAMID_LOG_INFO("Camera reset to default position");
     }
+
+    const float keyboardOrbitSpeed = 1.5f;
+    const float keyboardHeightSpeed = 2.5f;
+    if (input.IsKeyDown(Pyramid::Key::A) ||
+        input.IsKeyDown(Pyramid::Key::Left))
+    {
+        m_cameraOrbitOffset -= keyboardOrbitSpeed * deltaTime;
+    }
+    if (input.IsKeyDown(Pyramid::Key::D) ||
+        input.IsKeyDown(Pyramid::Key::Right))
+    {
+        m_cameraOrbitOffset += keyboardOrbitSpeed * deltaTime;
+    }
+    if (input.IsKeyDown(Pyramid::Key::W) ||
+        input.IsKeyDown(Pyramid::Key::Up))
+    {
+        m_cameraHeight += keyboardHeightSpeed * deltaTime;
+    }
+    if (input.IsKeyDown(Pyramid::Key::S) ||
+        input.IsKeyDown(Pyramid::Key::Down))
+    {
+        m_cameraHeight -= keyboardHeightSpeed * deltaTime;
+    }
+
+    const auto mouseDelta = input.GetMouseDelta();
+    if (input.IsMouseButtonDown(Pyramid::MouseButton::Right))
+    {
+        m_cameraOrbitOffset += mouseDelta.x * 0.01f;
+        m_cameraHeight -= mouseDelta.y * 0.01f;
+    }
+
+    m_cameraOrbitRadius = std::clamp(
+        m_cameraOrbitRadius - input.GetMouseWheelDelta() * 0.5f,
+        1.5f,
+        20.0f);
+    m_cameraHeight = std::clamp(m_cameraHeight, -5.0f, 10.0f);
 }
 
 void BasicRendering::onRender()
