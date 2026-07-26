@@ -18,6 +18,7 @@ Demonstrates:
 - texture loading;
 - frame update by mutating entity transforms and rendering through generated scene proxies;
 - engine-generic named actions: `Escape` maps to `Quit` and `Space` maps to `ToggleAnimation`;
+- the reusable `OrbitCameraController`: arrow keys or right-drag orbit, middle-drag pans, the wheel zooms, and `R` restores the captured home pose;
 - automatic default-viewport updates and active-camera projection resizing;
 - platform-neutral resize-event logging through `Game::onWindowResize()`;
 - logging configuration.
@@ -50,7 +51,7 @@ This is the lower-level reference rendering path. It demonstrates:
 - scene and material uniform buffers;
 - perspective camera setup registered through `Game::SetActiveCamera()`;
 - topology-aware indexed rendering and basic lighting;
-- an RTS-style reference input context built entirely from generic actions: `Escape` quits, `R`/`1` resets, WASD/arrows adjust the camera, right-drag supplies a chord-gated 2D axis, and the mouse wheel supplies zoom.
+- the optional `RTSCameraController` consuming a reference action profile: `Escape` quits, `R`/`1` resets, WASD/arrows move across the XZ plane, `Q`/`E` rotate, right-drag orbits/tilts, Page Up/Down and the wheel zoom, and Shift boosts movement. The controller API and input module contain no game-specific physical bindings.
 
 Run:
 

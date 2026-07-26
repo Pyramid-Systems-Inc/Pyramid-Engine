@@ -6,6 +6,7 @@
 #include <Pyramid/Graphics/Texture.hpp>
 #include <Pyramid/Math/Math.hpp>
 #include <Pyramid/Graphics/Camera.hpp>
+#include <Pyramid/Graphics/CameraController.hpp>
 #include <memory>
 
 /**
@@ -41,14 +42,13 @@ private:
     bool SetupInputActions();
 
     // Update methods
-    void UpdateCamera(float deltaTime);
     void UpdateUniformBuffers(float deltaTime);
 
     // Rendering methods
     void RenderScene();
 
     // Input handling
-    void HandleInput(float deltaTime);
+    void HandleInput();
 
     // Core rendering components
     std::shared_ptr<Pyramid::ShaderProgram> m_shader;
@@ -60,15 +60,10 @@ private:
 
     // Camera system
     std::unique_ptr<Pyramid::Camera> m_camera;
+    std::unique_ptr<Pyramid::RTSCameraController> m_cameraController;
 
     // Timing and animation
     float m_time = 0.0f;
-
-    // Camera controls
-    float m_cameraOrbitRadius = 5.0f;
-    float m_cameraOrbitSpeed = 0.5f;
-    float m_cameraHeight = 2.0f;
-    float m_cameraOrbitOffset = 0.0f;
 
     // Uniform data structures
     struct SceneUniforms

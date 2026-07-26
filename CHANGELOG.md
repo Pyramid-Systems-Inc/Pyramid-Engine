@@ -4,6 +4,15 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### Reusable camera controllers
+
+- Added a non-owning `CameraController` interface plus reusable free-fly, target-orbit, and XZ-ground-plane strategy controller implementations.
+- Kept physical bindings outside the controller layer: every controller consumes configurable context/action references from `InputActionSystem`.
+- Separated per-frame delta actions from rate actions so mouse deltas and held keyboard/controller axes remain frame-rate correct.
+- Added finite settings validation, pitch/elevation and distance limits, home-pose capture/reset, synchronization from externally positioned cameras, controller enable/disable state, boost movement, panning, orbiting, and zooming.
+- Migrated `BasicGame` to `OrbitCameraController` and `BasicRendering` to the optional `RTSCameraController` reference utility.
+- Added `Graphics.CameraControllers`; CTest now registers 32 tests.
+
 ### Generic input action mapping
 
 - Added engine-generic button, one-dimensional, and two-dimensional named actions above the platform `InputState` snapshot.

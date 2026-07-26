@@ -2,24 +2,27 @@
 
 #include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
 #include <Pyramid/Input/InputActions.hpp>
+#include <Pyramid/Graphics/CameraController.hpp>
 
-#include <algorithm>
 #include <array>
 #include <Pyramid/Graphics/GraphicsDevice.hpp>
 #include <Pyramid/Graphics/Buffer/BufferLayout.hpp>
 #include <Pyramid/Util/Log.hpp>
 #include <cmath>
 #include <string_view>
+#include <utility>
 
 namespace
 {
     constexpr std::string_view kCameraContext = "rts-camera-reference";
     constexpr std::string_view kQuitAction = "Quit";
     constexpr std::string_view kResetAction = "ResetCamera";
-    constexpr std::string_view kOrbitAction = "Orbit";
-    constexpr std::string_view kHeightAction = "Height";
-    constexpr std::string_view kDragAction = "Drag";
-    constexpr std::string_view kZoomAction = "Zoom";
+    constexpr std::string_view kMoveAction = "Move";
+    constexpr std::string_view kOrbitDeltaAction = "OrbitDelta";
+    constexpr std::string_view kOrbitRateAction = "OrbitRate";
+    constexpr std::string_view kZoomDeltaAction = "ZoomDelta";
+    constexpr std::string_view kZoomRateAction = "ZoomRate";
+    constexpr std::string_view kBoostAction = "Boost";
 }
 
 // Vertex shader source
@@ -332,9 +335,33 @@ void BasicRendering::SetupCamera()
         100.0f          // Far plane
     );
 
-    // Set initial camera position
-    m_camera->SetPosition(Vec3(0.0f, 2.0f, 5.0f));
+    // Set an initial strategy-camera pose. The controller remains an optional
+    // example utility; the Camera class itself has no RTS assumptions.
+    m_camera->SetPosition(Vec3(0.0f, 6.0f, 8.0f));
     m_camera->LookAt(Vec3::Zero, Vec3::Up);
+
+    Pyramid::RTSCameraActions controllerActions;
+    controllerActions.move = {std::string(kCameraContext), std::string(kMoveAction)};
+    controllerActions.orbitDelta = {std::string(kCameraContext), std::string(kOrbitDeltaAction)};
+    controllerActions.orbitRate = {std::string(kCameraContext), std::string(kOrbitRateAction)};
+    controllerActions.zoomDelta = {std::string(kCameraContext), std::string(kZoomDeltaAction)};
+    controllerActions.zoomRate = {std::string(kCameraContext), std::string(kZoomRateAction)};
+    controllerActions.boost = {std::string(kCameraContext), std::string(kBoostAction)};
+    controllerActions.reset = {std::string(kCameraContext), std::string(kResetAction)};
+
+    Pyramid::RTSCameraSettings controllerSettings;
+    controllerSettings.movementSpeed = 4.0f;
+    controllerSettings.orbitSensitivity = 0.005f;
+    controllerSettings.zoomSensitivity = 1.0f;
+    controllerSettings.minimumDistance = 2.0f;
+    controllerSettings.maximumDistance = 40.0f;
+    controllerSettings.distanceMovementScale = 0.04f;
+
+    m_cameraController = std::make_unique<Pyramid::RTSCameraController>(
+        Vec3::Zero,
+        std::move(controllerActions),
+        controllerSettings);
+    m_cameraController->CaptureHome(*m_camera);
     SetActiveCamera(m_camera.get());
 
     PYRAMID_LOG_INFO("Camera setup completed");
@@ -391,30 +418,14 @@ void BasicRendering::onUpdate(float deltaTime)
     Game::onUpdate(deltaTime);
     m_time += deltaTime;
 
-    // Update input before camera and uniform state so changes are visible
-    // during the same rendered frame.
-    HandleInput(deltaTime);
-    UpdateCamera(deltaTime);
+    // Update input before uniform state so camera changes are visible during
+    // the same rendered frame.
+    HandleInput();
+    if (m_camera && m_cameraController)
+    {
+        m_cameraController->Update(*m_camera, GetInputActions(), deltaTime);
+    }
     UpdateUniformBuffers(deltaTime);
-}
-
-void BasicRendering::UpdateCamera(float deltaTime)
-{
-    (void)deltaTime;
-    if (!m_camera)
-        return;
-
-    using namespace Pyramid::Math;
-
-    // Orbital camera movement - ensure we're using the right trigonometric functions
-    const float angle = m_time * m_cameraOrbitSpeed + m_cameraOrbitOffset;
-    Vec3 position(
-        cos(angle) * m_cameraOrbitRadius,
-        m_cameraHeight,
-        sin(angle) * m_cameraOrbitRadius);
-
-    m_camera->SetPosition(position);
-    m_camera->LookAt(Vec3::Zero, Vec3::Up);
 }
 
 void BasicRendering::UpdateUniformBuffers(float deltaTime)
@@ -482,90 +493,82 @@ bool BasicRendering::SetupInputActions()
         kResetAction,
         Pyramid::InputBinding::KeyBinding(Pyramid::Key::Num1)) && valid;
 
-    valid = context->AddAction(std::string(kOrbitAction), Pyramid::InputActionType::Axis1D) && valid;
+    valid = context->AddAction(std::string(kMoveAction), Pyramid::InputActionType::Axis2D) && valid;
     valid = context->AddBinding(
-        kOrbitAction,
-        Pyramid::InputBinding::KeyBinding(Pyramid::Key::A, -1.0f)) && valid;
+        kMoveAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::A, -1.0f, Pyramid::InputAxisComponent::X)) && valid;
     valid = context->AddBinding(
-        kOrbitAction,
-        Pyramid::InputBinding::KeyBinding(Pyramid::Key::Left, -1.0f)) && valid;
+        kMoveAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::Left, -1.0f, Pyramid::InputAxisComponent::X)) && valid;
     valid = context->AddBinding(
-        kOrbitAction,
-        Pyramid::InputBinding::KeyBinding(Pyramid::Key::D, 1.0f)) && valid;
+        kMoveAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::D, 1.0f, Pyramid::InputAxisComponent::X)) && valid;
     valid = context->AddBinding(
-        kOrbitAction,
-        Pyramid::InputBinding::KeyBinding(Pyramid::Key::Right, 1.0f)) && valid;
+        kMoveAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::Right, 1.0f, Pyramid::InputAxisComponent::X)) && valid;
+    valid = context->AddBinding(
+        kMoveAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::W, 1.0f, Pyramid::InputAxisComponent::Y)) && valid;
+    valid = context->AddBinding(
+        kMoveAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::Up, 1.0f, Pyramid::InputAxisComponent::Y)) && valid;
+    valid = context->AddBinding(
+        kMoveAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::S, -1.0f, Pyramid::InputAxisComponent::Y)) && valid;
+    valid = context->AddBinding(
+        kMoveAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::Down, -1.0f, Pyramid::InputAxisComponent::Y)) && valid;
 
-    valid = context->AddAction(std::string(kHeightAction), Pyramid::InputActionType::Axis1D) && valid;
+    valid = context->AddAction(std::string(kOrbitRateAction), Pyramid::InputActionType::Axis2D) && valid;
     valid = context->AddBinding(
-        kHeightAction,
-        Pyramid::InputBinding::KeyBinding(Pyramid::Key::S, -1.0f)) && valid;
+        kOrbitRateAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::Q, -1.0f, Pyramid::InputAxisComponent::X)) && valid;
     valid = context->AddBinding(
-        kHeightAction,
-        Pyramid::InputBinding::KeyBinding(Pyramid::Key::Down, -1.0f)) && valid;
-    valid = context->AddBinding(
-        kHeightAction,
-        Pyramid::InputBinding::KeyBinding(Pyramid::Key::W, 1.0f)) && valid;
-    valid = context->AddBinding(
-        kHeightAction,
-        Pyramid::InputBinding::KeyBinding(Pyramid::Key::Up, 1.0f)) && valid;
+        kOrbitRateAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::E, 1.0f, Pyramid::InputAxisComponent::X)) && valid;
 
-    valid = context->AddAction(std::string(kDragAction), Pyramid::InputActionType::Axis2D) && valid;
-    auto dragX = Pyramid::InputBinding::MouseDeltaXBinding(
-        0.01f,
+    valid = context->AddAction(std::string(kOrbitDeltaAction), Pyramid::InputActionType::Axis2D) && valid;
+    auto orbitX = Pyramid::InputBinding::MouseDeltaXBinding(
+        1.0f,
         Pyramid::InputAxisComponent::X);
-    dragX.RequireMouseButton(Pyramid::MouseButton::Right);
-    auto dragY = Pyramid::InputBinding::MouseDeltaYBinding(
-        -0.01f,
+    orbitX.RequireMouseButton(Pyramid::MouseButton::Right);
+    auto orbitY = Pyramid::InputBinding::MouseDeltaYBinding(
+        -1.0f,
         Pyramid::InputAxisComponent::Y);
-    dragY.RequireMouseButton(Pyramid::MouseButton::Right);
-    valid = context->AddBinding(kDragAction, dragX) && valid;
-    valid = context->AddBinding(kDragAction, dragY) && valid;
+    orbitY.RequireMouseButton(Pyramid::MouseButton::Right);
+    valid = context->AddBinding(kOrbitDeltaAction, orbitX) && valid;
+    valid = context->AddBinding(kOrbitDeltaAction, orbitY) && valid;
 
-    valid = context->AddAction(std::string(kZoomAction), Pyramid::InputActionType::Axis1D) && valid;
+    valid = context->AddAction(std::string(kZoomDeltaAction), Pyramid::InputActionType::Axis1D) && valid;
     valid = context->AddBinding(
-        kZoomAction,
-        Pyramid::InputBinding::MouseWheelBinding(-0.5f)) && valid;
+        kZoomDeltaAction,
+        Pyramid::InputBinding::MouseWheelBinding(-1.0f)) && valid;
+
+    valid = context->AddAction(std::string(kZoomRateAction), Pyramid::InputActionType::Axis1D) && valid;
+    valid = context->AddBinding(
+        kZoomRateAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::PageUp, -1.0f)) && valid;
+    valid = context->AddBinding(
+        kZoomRateAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::PageDown, 1.0f)) && valid;
+
+    valid = context->AddAction(std::string(kBoostAction), Pyramid::InputActionType::Button) && valid;
+    valid = context->AddBinding(
+        kBoostAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::LeftShift)) && valid;
+    valid = context->AddBinding(
+        kBoostAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::RightShift)) && valid;
 
     return valid;
 }
 
-void BasicRendering::HandleInput(float deltaTime)
+void BasicRendering::HandleInput()
 {
-    const auto& actions = GetInputActions();
-
-    if (actions.WasActionPressed(kCameraContext, kQuitAction))
+    if (GetInputActions().WasActionPressed(kCameraContext, kQuitAction))
     {
         quit();
-        return;
     }
-
-    if (actions.WasActionPressed(kCameraContext, kResetAction))
-    {
-        m_cameraOrbitRadius = 5.0f;
-        m_cameraHeight = 2.0f;
-        m_cameraOrbitOffset = 0.0f;
-        PYRAMID_LOG_INFO("Camera reset to default position");
-    }
-
-    const float keyboardOrbitSpeed = 1.5f;
-    const float keyboardHeightSpeed = 2.5f;
-    m_cameraOrbitOffset +=
-        actions.GetActionValue(kCameraContext, kOrbitAction) *
-        keyboardOrbitSpeed * deltaTime;
-    m_cameraHeight +=
-        actions.GetActionValue(kCameraContext, kHeightAction) *
-        keyboardHeightSpeed * deltaTime;
-
-    const auto drag = actions.GetActionValue2D(kCameraContext, kDragAction);
-    m_cameraOrbitOffset += drag.x;
-    m_cameraHeight += drag.y;
-
-    m_cameraOrbitRadius = std::clamp(
-        m_cameraOrbitRadius + actions.GetActionValue(kCameraContext, kZoomAction),
-        1.5f,
-        20.0f);
-    m_cameraHeight = std::clamp(m_cameraHeight, -5.0f, 10.0f);
 }
 
 void BasicRendering::onRender()

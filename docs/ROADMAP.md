@@ -113,13 +113,14 @@ Target outcome: one interactive Ruqoom RTS vertical slice that validates the eng
 
 1. [x] real Win32 keyboard/mouse polling and focus-safe per-frame state;
 2. [x] engine-generic configurable action mapping with prioritized contexts, control consumption, chords, runtime rebinding, and an RTS camera reference profile;
-3. reusable camera-controller layer, then RTS movement, zoom, edge scrolling, selection, and command input;
-4. engine-owned model/scene import pipeline feeding existing mesh/material/resource types;
-5. RTS components such as selectable, team/owner, movement target, health, and basic unit state;
-6. terrain/large-map rendering and scalable visibility/spatial updates;
-7. debug statistics and inspection UI as the first editor foundation;
-8. versioned scene extensions for camera, environment, gameplay components, and editor metadata;
-9. verified Windows `0.7.0-pre-alpha` vertical slice, then Linux platform work.
+3. [x] reusable, action-driven free-fly, target-orbit, and optional strategy camera controllers with validated settings and home-pose reset;
+4. RTS reference-game input features built above the generic engine: edge scrolling, selection, and command input;
+5. engine-owned model/scene import pipeline feeding existing mesh/material/resource types;
+6. RTS components such as selectable, team/owner, movement target, health, and basic unit state;
+7. terrain/large-map rendering and scalable visibility/spatial updates;
+8. debug statistics and inspection UI as the first editor foundation;
+9. versioned scene extensions for camera, environment, gameplay components, and editor metadata;
+10. verified Windows `0.7.0-pre-alpha` vertical slice, then Linux platform work.
 
 A full editor follows the validated runtime model. Baa integration starts as gameplay scripting only after its runtime, ABI/FFI, debugger, and hot-reload semantics are defined; engine reimplementation is a later compatibility project, not a blind source translation.
 

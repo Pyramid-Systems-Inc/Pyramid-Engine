@@ -2,6 +2,7 @@
 
 #include <Pyramid/Core/Game.hpp>
 #include <Pyramid/Graphics/Camera.hpp>
+#include <Pyramid/Graphics/CameraController.hpp>
 #include <Pyramid/Graphics/Material/Material.hpp>
 #include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
 #include <Pyramid/Graphics/Renderer/RenderSystem.hpp>
@@ -32,11 +33,11 @@ private:
     std::shared_ptr<Pyramid::Mesh> CreateColoredCube(float size);
     bool SetupScene();
     bool SetupInputActions();
-    void UpdateCamera(float deltaTime);
 
     std::unique_ptr<Pyramid::Renderer::RenderSystem> m_renderSystem;
     std::shared_ptr<Pyramid::Scene> m_scene;
     std::unique_ptr<Pyramid::Camera> m_camera;
+    std::unique_ptr<Pyramid::OrbitCameraController> m_cameraController;
     Pyramid::Entity m_cubeEntity;
     std::shared_ptr<Pyramid::ShaderProgram> m_shader;
     std::shared_ptr<Pyramid::TextureResource> m_debugTexture;

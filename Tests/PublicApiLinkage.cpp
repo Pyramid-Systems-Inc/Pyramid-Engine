@@ -8,6 +8,7 @@
 #include <Pyramid/Graphics/Scene/Octree.hpp>
 #include <Pyramid/Graphics/Scene.hpp>
 #include <Pyramid/Graphics/Camera.hpp>
+#include <Pyramid/Graphics/CameraController.hpp>
 #include <Pyramid/Graphics/OpenGL/OpenGLFramebuffer.hpp>
 #include <Pyramid/Graphics/Geometry/MeshBounds.hpp>
 #include <Pyramid/Graphics/Geometry/Mesh.hpp>
@@ -162,6 +163,18 @@ namespace
         &Pyramid::Camera::GetFrustumPlanes;
     volatile decltype(&Pyramid::Camera::IsAABBVisible) g_isCameraAABBVisible =
         &Pyramid::Camera::IsAABBVisible;
+    volatile decltype(&Pyramid::FreeFlyCameraController::Update) g_updateFreeFlyCamera =
+        &Pyramid::FreeFlyCameraController::Update;
+    volatile decltype(&Pyramid::OrbitCameraController::Update) g_updateOrbitCamera =
+        &Pyramid::OrbitCameraController::Update;
+    volatile decltype(&Pyramid::RTSCameraController::Update) g_updateRtsCamera =
+        &Pyramid::RTSCameraController::Update;
+    volatile decltype(&Pyramid::FreeFlyCameraController::CaptureHome) g_captureFreeFlyHome =
+        &Pyramid::FreeFlyCameraController::CaptureHome;
+    volatile decltype(&Pyramid::OrbitCameraController::SetTarget) g_setOrbitTarget =
+        &Pyramid::OrbitCameraController::SetTarget;
+    volatile decltype(&Pyramid::RTSCameraController::SetFocusPoint) g_setRtsFocusPoint =
+        &Pyramid::RTSCameraController::SetFocusPoint;
     volatile decltype(&Pyramid::RenderObject::TryGetGeometryBounds) g_tryGetGeometryBounds =
         &Pyramid::RenderObject::TryGetGeometryBounds;
     volatile decltype(&Pyramid::RenderObject::GetLocalBounds) g_getRenderObjectLocalBounds =
@@ -425,6 +438,12 @@ int main()
                    g_setCameraViewport &&
                    g_getCameraFrustumPlanes &&
                    g_isCameraAABBVisible &&
+                   g_updateFreeFlyCamera &&
+                   g_updateOrbitCamera &&
+                   g_updateRtsCamera &&
+                   g_captureFreeFlyHome &&
+                   g_setOrbitTarget &&
+                   g_setRtsFocusPoint &&
                    g_tryGetGeometryBounds &&
                    g_getRenderObjectLocalBounds &&
                    g_useAutomaticBounds &&

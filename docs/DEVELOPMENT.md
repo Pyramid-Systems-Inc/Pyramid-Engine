@@ -117,7 +117,7 @@ Include:
 
 ## Input changes
 
-Keep native virtual-key codes and Win32 message types inside the platform implementation. `InputState` is the platform-neutral physical snapshot; `InputActionSystem` is the engine-generic semantic layer above it. Do not hard-code RTS, editor, UI, vehicle, or other product-specific action names into the input module. Every physical transition rule belongs in `Tests/InputStateTests.cpp`; action aggregation, priority, consumption, chords, and rebinding belong in `Tests/InputActionTests.cpp`. Controller support must feed the same action layer instead of adding gameplay concepts to `Window`.
+Keep native virtual-key codes and Win32 message types inside the platform implementation. `InputState` is the platform-neutral physical snapshot; `InputActionSystem` is the engine-generic semantic layer above it. Do not hard-code RTS, editor, UI, vehicle, or other product-specific action names into the input module. Every physical transition rule belongs in `Tests/InputStateTests.cpp`; action aggregation, priority, consumption, chords, and rebinding belong in `Tests/InputActionTests.cpp`. Camera controllers must feed the same action layer instead of adding gameplay concepts to `Window`. Keep their action references configurable, keep physical defaults in examples/games, and use separate delta actions for mouse motion versus rate actions for held digital or analog axes. Controller behavior belongs in `Tests/CameraControllerTests.cpp`.
 
 ## Release hygiene
 

@@ -35,6 +35,7 @@ target_sources(PyramidEngine
         source/Renderer/DeferredGeometryPass.cpp
         source/Renderer/DeferredLightingPass.cpp
         source/Camera.cpp
+        source/CameraController.cpp
         source/Scene.cpp
         source/Scene/SceneSerializer.cpp
         source/Scene/SceneManager.cpp
@@ -68,6 +69,7 @@ target_sources(PyramidEngine
         include/Pyramid/Graphics/Renderer/ShaderPathResolver.hpp
         include/Pyramid/Graphics/Renderer/RenderPasses.hpp
         include/Pyramid/Graphics/Camera.hpp
+        include/Pyramid/Graphics/CameraController.hpp
         include/Pyramid/Graphics/Scene.hpp
         include/Pyramid/Graphics/Scene/Entity.hpp
         include/Pyramid/Graphics/Scene/SceneSerializer.hpp

@@ -18,7 +18,7 @@ The project is intended for engine development and experimentation. It is not ye
 | Scene | Stable-ID entities, hierarchical transforms, optional mesh-renderer/light components, scene serialization, and octree queries |
 | Math | Vectors, matrices, quaternions, geometry helpers, and SIMD-oriented utilities |
 | Images | TGA/BMP subsets, custom non-interlaced PNG, and libjpeg-turbo JPEG decoding |
-| Tests | 31 CTest targets: 5 image/utility tests plus API linkage and focused graphics/platform/input coverage |
+| Tests | 32 CTest targets: 5 image/utility tests plus API linkage and focused graphics/platform/input coverage |
 | CI | GCC and Clang, Debug and Release, package install, and external-consumer validation |
 
 ## Implemented
@@ -26,6 +26,7 @@ The project is intended for engine development and experimentation. It is not ye
 - Application lifecycle and frame loop through `Pyramid::Game`.
 - Real Win32 keyboard and mouse input with held/pressed/released states, pointer movement, wheel deltas, and focus-safe reset behavior.
 - Engine-generic named input actions with button/1D/2D values, prioritized contexts, control consumption, chords, and runtime rebinding.
+- Reusable camera-controller framework with free-fly, target-orbit, and optional XZ-ground-plane strategy controllers. Controllers consume configurable named actions and never own physical bindings.
 - Win32 window creation, resize-event delivery, resize-safe viewport updates, visibility, positioning, and WGL context management.
 - OpenGL device, a game-owned `ResourceRegistry`, generation-checked typed resource handles, versioned resource manifests and entity-scene serialization, engine-owned mesh and material resources, stable resource identifiers, content-deduplicating mesh, shader-program, texture, and material caches, buffers, vertex arrays, shaders, textures, resize-safe framebuffers, and state caching.
 - Forward, cascaded-shadow, deferred-geometry, and deferred-lighting passes.
@@ -45,7 +46,7 @@ The project is intended for engine development and experimentation. It is not ye
 - Occlusion culling remains a placeholder and is disabled by default.
 - `ITexture2D::CreateDepthTarget` fails explicitly; use the framebuffer API for depth attachments.
 - JPEG decoding requires the open-source libjpeg-turbo package installed by the MSYS2 bootstrap script.
-- Audio and physics modules are not part of the current source tree. Controllers, text input, raw relative mouse mode, and persisted user bindings are not implemented yet.
+- Audio and physics modules are not part of the current source tree. Text input, raw relative mouse mode, edge scrolling, collision-aware cameras, camera blending, and persisted user bindings are not implemented yet.
 
 See [Roadmap and known issues](docs/ROADMAP.md) before building new systems on top of the engine.
 

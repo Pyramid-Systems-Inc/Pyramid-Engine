@@ -11,14 +11,14 @@ Pyramid Engine is a monolithic C++17 library with a Win32/WGL platform implement
 | Core | `Pyramid` | Application lifecycle, common types, and graphics API selection |
 | Platform | `Pyramid` | Window, message pump, native input translation, and OpenGL context |
 | Input | `Pyramid` | Named actions, bindings, prioritized contexts, consumption, and rebinding |
-| Graphics resources | `Pyramid` | Device, buffers, arrays, immutable meshes, mesh/shader caches, textures, framebuffers, and camera |
+| Graphics resources | `Pyramid` | Device, buffers, arrays, immutable meshes, mesh/shader caches, textures, framebuffers, camera, and optional camera controllers |
 | Renderer | `Pyramid::Renderer` | Command recording, materials, render targets, and render passes |
 | Scene | `Pyramid` | Stable-ID entities, hierarchical transforms, optional components, renderer proxies, and environment |
 | Spatial management | `Pyramid::SceneManagement` | Scene manager, octree, AABB, and query helpers |
 | Math | `Pyramid::Math` | Vectors, matrices, quaternions, geometry, and SIMD helpers |
 | Utilities | `Pyramid::Util` | Logging, image loading, bit reading, DEFLATE, zlib, and libjpeg integration |
 
-Direct Win32 keyboard/mouse polling and engine-generic action mapping are present. Controllers, audio, physics, editor, scripting, and the asset pipeline are not currently present.
+Direct Win32 keyboard/mouse polling, engine-generic action mapping, and reusable free-fly/orbit/strategy camera controllers are present. Audio, physics, editor, scripting, and the asset pipeline are not currently present.
 
 ## Application lifecycle
 
@@ -42,7 +42,7 @@ The base interface owns a replaceable resize callback and emits platform-neutral
 
 `InputState` is platform-neutral and owned by the native window. At the start of each `Window::ProcessMessages()` call, transient press/release flags, pointer deltas, and wheel deltas are cleared. Win32 then translates `WM_KEY*`, `WM_MOUSE*`, capture, and focus messages into the state object.
 
-Held states persist across frames. Repeated native key-down messages do not create repeated presses. Focus loss releases every held key and mouse button, clears mouse motion, and resets the next pointer sample baseline. After message processing, `Game` evaluates its `InputActionSystem` before `onUpdate()`. Named contexts map the snapshot to button, one-dimensional, and two-dimensional actions. Context priority and control consumption allow modal UI/editor/gameplay layers without embedding game-specific concepts in the platform backend. The RTS camera bindings in `BasicRendering` are an example profile only; the input subsystem remains general-purpose.
+Held states persist across frames. Repeated native key-down messages do not create repeated presses. Focus loss releases every held key and mouse button, clears mouse motion, and resets the next pointer sample baseline. After message processing, `Game` evaluates its `InputActionSystem` before `onUpdate()`. Named contexts map the snapshot to button, one-dimensional, and two-dimensional actions. Context priority and control consumption allow modal UI/editor/gameplay layers without embedding game-specific concepts in the platform backend. The controller layer consumes configurable context/action references and does not create physical bindings. Separate delta and rate action references preserve correct semantics for mouse movement versus held axes. `BasicGame` demonstrates the target-orbit controller and `BasicRendering` demonstrates the optional XZ-ground-plane strategy controller; both profiles are examples only, and the input and camera subsystems remain general-purpose.
 
 ## Graphics device
 

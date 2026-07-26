@@ -12,6 +12,7 @@
 #include <Pyramid/Graphics/Resources/ResourceManifest.hpp>
 #include <Pyramid/Graphics/Scene.hpp>
 #include <Pyramid/Graphics/Scene/SceneSerializer.hpp>
+#include <Pyramid/Graphics/CameraController.hpp>
 
 #include <iostream>
 
@@ -35,6 +36,17 @@ int main()
             "MoveForward",
             Pyramid::InputBinding::KeyBinding(Pyramid::Key::W));
     inputActions.Update(input);
+    Pyramid::Camera consumerCamera;
+    Pyramid::FreeFlyCameraActions cameraActions;
+    cameraActions.move = {"consumer-gameplay", "MoveForward"};
+    cameraActions.elevate = {};
+    cameraActions.lookDelta = {};
+    cameraActions.lookRate = {};
+    cameraActions.boost = {};
+    cameraActions.reset = {};
+    Pyramid::FreeFlyCameraController cameraController(cameraActions);
+    cameraController.CaptureHome(consumerCamera);
+    cameraController.Update(consumerCamera, inputActions, 0.25f);
     Pyramid::ResourceRegistryReleaseStats released;
     const auto meshHandle = Pyramid::MeshHandle::FromParts(meshId, 1);
     const auto materialHandle = Pyramid::MaterialHandle::FromParts(materialId, 1);
@@ -59,12 +71,14 @@ int main()
               << " | input W: " << input.IsKeyDown(Pyramid::Key::W)
               << " | move action: "
               << inputActions.GetActionValue("consumer-gameplay", "MoveForward")
+              << " | camera z: " << consumerCamera.GetPosition().z
               << " | released resources: " << released.GetTotal() << '\n';
     return value.LengthSquared() > 0.0f && meshId.IsValid() && shaderId.IsValid() &&
         textureId.IsValid() && materialId.IsValid() && meshHandle.IsValid() &&
         materialHandle.IsValid() && input.IsKeyDown(Pyramid::Key::W) &&
         input.WasKeyPressed(Pyramid::Key::W) && actionConfigured &&
         inputActions.IsActionDown("consumer-gameplay", "MoveForward") &&
+        consumerCamera.GetPosition().z < 0.0f &&
         entity.IsValid() && entity.GetId() == Pyramid::EntityId(42) &&
         manifest.GetMeshHandle("consumer.mesh") == meshHandle
         ? 0

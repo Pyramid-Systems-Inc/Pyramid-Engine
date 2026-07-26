@@ -150,7 +150,7 @@ After building, run from PowerShell:
 ./scripts/run-smoke.ps1 -BuildDir build/gcc-debug-tests -DurationSeconds 5
 ```
 
-The script starts `BasicGame` and `BasicRenderingExample`, then fails if either exits abnormally during the requested interval. Visually inspect both windows after renderer changes.
+The script starts `BasicGame` and `BasicRenderingExample`, then fails if either exits abnormally during the requested interval. Visually inspect both windows after renderer changes. Verify the orbit and strategy camera controls after input or camera-controller changes.
 
 Typical GCC Debug outputs:
 

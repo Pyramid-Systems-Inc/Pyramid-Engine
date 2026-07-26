@@ -61,6 +61,7 @@ Headers:
 
 - `Pyramid/Platform/Input.hpp`
 - `Pyramid/Input/InputActions.hpp`
+- `Pyramid/Graphics/CameraController.hpp`
 
 `Win32OpenGLWindow` converts native keyboard, mouse-button, pointer, wheel, and focus messages into one platform-neutral `InputState`. `Window::ProcessMessages()` starts a new input frame before dispatching messages, so transitions and deltas are valid during the immediately following `Game::onUpdate()`.
 
@@ -112,7 +113,36 @@ void MyGame::onUpdate(float deltaTime)
 }
 ```
 
-Contexts are evaluated from highest to lowest priority. An enabled consuming context blocks only controls that were active during that frame, allowing UI, editor, console, gameplay, and vehicle modes to coexist. Controller input, text input, raw relative mouse mode, and persisted binding files remain future work.
+### Camera controllers
+
+`CameraController` is a non-owning update interface over `Camera`. Pyramid provides three optional implementations:
+
+- `FreeFlyCameraController` for six-degree movement;
+- `OrbitCameraController` for target-centered orbit, pan, and zoom;
+- `RTSCameraController` for XZ-ground-plane movement around a focus point.
+
+Controllers consume configurable `CameraActionReference` values. They do not know which keys, mouse buttons, future gamepads, editor tools, or Baa scripts produce an action. Per-frame delta actions are applied directly; rate actions are multiplied by `deltaTime`.
+
+```cpp
+Pyramid::RTSCameraActions controllerActions;
+controllerActions.move = {"camera", "Move"};
+controllerActions.orbitDelta = {"camera", "OrbitDelta"};
+controllerActions.orbitRate = {"camera", "OrbitRate"};
+controllerActions.zoomDelta = {"camera", "ZoomDelta"};
+controllerActions.reset = {"camera", "Reset"};
+
+Pyramid::RTSCameraController controller(
+    Pyramid::Math::Vec3::Zero,
+    controllerActions);
+controller.CaptureHome(camera);
+
+// Game has already evaluated InputActionSystem for this frame.
+controller.Update(camera, GetInputActions(), deltaTime);
+```
+
+Call `Synchronize()` after external code changes a camera pose, `CaptureHome()` to define the reset pose, and `SetEnabled(false)` when another mode owns the camera. Physical bindings remain in the game or editor layer.
+
+Contexts are evaluated from highest to lowest priority. An enabled consuming context blocks only controls that were active during that frame, allowing UI, editor, console, gameplay, and vehicle modes to coexist. Gamepad input, text input, raw relative mouse mode, camera blending/collision, and persisted binding files remain future work.
 
 ## Graphics device and resources
 
