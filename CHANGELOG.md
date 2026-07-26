@@ -4,13 +4,22 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### RTS reference interaction layer
+
+- Added `Pyramid::RTSReference`, a game-side support target that combines configurable named select/command actions with the generic strategy camera and scene-query APIs without adding RTS concepts to `Pyramid::Engine`.
+- Added focus-safe, first-pointer-sample-aware edge scrolling with viewport margins, diagonal normalization, delta-time scaling, and optional camera-distance speed scaling.
+- Added nearest selectable-entity ray picking, stable-ID selection state, destroyed-entity invalidation, configurable miss clearing, and one-shot command requests projected onto a validated plane.
+- Migrated `BasicGame` to the strategy camera plus left-click selection, right-click commands, edge scrolling, WASD movement, middle-drag/Q/E orbit, wheel zoom, Shift boost, and selection/command diagnostics.
+- Exposed `InputState::HasMousePosition()` so higher layers can distinguish a valid client-space pointer sample from the default coordinates.
+- Added `Examples.RTSInteraction`; CTest now registers 33 tests.
+
 ### Reusable camera controllers
 
 - Added a non-owning `CameraController` interface plus reusable free-fly, target-orbit, and XZ-ground-plane strategy controller implementations.
 - Kept physical bindings outside the controller layer: every controller consumes configurable context/action references from `InputActionSystem`.
 - Separated per-frame delta actions from rate actions so mouse deltas and held keyboard/controller axes remain frame-rate correct.
 - Added finite settings validation, pitch/elevation and distance limits, home-pose capture/reset, synchronization from externally positioned cameras, controller enable/disable state, boost movement, panning, orbiting, and zooming.
-- Migrated `BasicGame` to `OrbitCameraController` and `BasicRendering` to the optional `RTSCameraController` reference utility.
+- Added `OrbitCameraController` coverage and migrated both examples to action-driven controllers; `BasicGame` now uses the strategy controller as the Step 28 RTS interaction host.
 - Added `Graphics.CameraControllers`; CTest now registers 32 tests.
 
 ### Generic input action mapping

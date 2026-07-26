@@ -17,8 +17,9 @@ Pyramid Engine is a monolithic C++17 library with a Win32/WGL platform implement
 | Spatial management | `Pyramid::SceneManagement` | Scene manager, octree, AABB, and query helpers |
 | Math | `Pyramid::Math` | Vectors, matrices, quaternions, geometry, and SIMD helpers |
 | Utilities | `Pyramid::Util` | Logging, image loading, bit reading, DEFLATE, zlib, and libjpeg integration |
+| RTS reference | `Pyramid::Examples::RTSReference` | Game-side edge scrolling, selectable filtering, ray picking, and command requests; not installed with `Pyramid::Engine` |
 
-Direct Win32 keyboard/mouse polling, engine-generic action mapping, and reusable free-fly/orbit/strategy camera controllers are present. Audio, physics, editor, scripting, and the asset pipeline are not currently present.
+Direct Win32 keyboard/mouse polling, engine-generic action mapping, reusable free-fly/orbit/strategy camera controllers, and a separate game-side RTS interaction reference are present. Audio, physics, editor, scripting, and the asset pipeline are not currently present.
 
 ## Application lifecycle
 
@@ -42,7 +43,7 @@ The base interface owns a replaceable resize callback and emits platform-neutral
 
 `InputState` is platform-neutral and owned by the native window. At the start of each `Window::ProcessMessages()` call, transient press/release flags, pointer deltas, and wheel deltas are cleared. Win32 then translates `WM_KEY*`, `WM_MOUSE*`, capture, and focus messages into the state object.
 
-Held states persist across frames. Repeated native key-down messages do not create repeated presses. Focus loss releases every held key and mouse button, clears mouse motion, and resets the next pointer sample baseline. After message processing, `Game` evaluates its `InputActionSystem` before `onUpdate()`. Named contexts map the snapshot to button, one-dimensional, and two-dimensional actions. Context priority and control consumption allow modal UI/editor/gameplay layers without embedding game-specific concepts in the platform backend. The controller layer consumes configurable context/action references and does not create physical bindings. Separate delta and rate action references preserve correct semantics for mouse movement versus held axes. `BasicGame` demonstrates the target-orbit controller and `BasicRendering` demonstrates the optional XZ-ground-plane strategy controller; both profiles are examples only, and the input and camera subsystems remain general-purpose.
+Held states persist across frames. Repeated native key-down messages do not create repeated presses. Focus loss releases every held key and mouse button, clears mouse motion, and resets the next pointer sample baseline. After message processing, `Game` evaluates its `InputActionSystem` before `onUpdate()`. Named contexts map the snapshot to button, one-dimensional, and two-dimensional actions. Context priority and control consumption allow modal UI/editor/gameplay layers without embedding game-specific concepts in the platform backend. The controller layer consumes configurable context/action references and does not create physical bindings. Separate delta and rate action references preserve correct semantics for mouse movement versus held axes. `BasicGame` demonstrates the strategy controller plus the separate `Examples/RTSReference` layer for edge scrolling, selection, and command requests; `BasicRendering` remains the lower-level strategy-camera rendering reference. Pointer validity is explicit through `InputState::HasMousePosition()`, preventing edge motion or click rays before the first client-space sample. RTS action names, selectable policy, and command semantics remain outside the engine library.
 
 ## Graphics device
 

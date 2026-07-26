@@ -4,7 +4,7 @@ add_executable(BasicGame WIN32
     include/BasicGame.hpp
 )
 
-target_link_libraries(BasicGame PRIVATE Pyramid::Engine)
+target_link_libraries(BasicGame PRIVATE Pyramid::Engine Pyramid::RTSReference)
 
 target_include_directories(BasicGame
     PRIVATE

@@ -38,6 +38,11 @@ target_link_libraries(CameraControllerTests PRIVATE Pyramid::Engine)
 set_target_properties(CameraControllerTests PROPERTIES FOLDER "Tests/Graphics")
 add_test(NAME Graphics.CameraControllers COMMAND $<TARGET_FILE:CameraControllerTests>)
 
+add_executable(RTSInteractionTests RTSInteractionTests.cpp)
+target_link_libraries(RTSInteractionTests PRIVATE Pyramid::RTSReference)
+set_target_properties(RTSInteractionTests PROPERTIES FOLDER "Tests/Examples")
+add_test(NAME Examples.RTSInteraction COMMAND $<TARGET_FILE:RTSInteractionTests>)
+
 add_executable(FramebufferResizeTests FramebufferResizeTests.cpp)
 target_link_libraries(FramebufferResizeTests PRIVATE Pyramid::Engine)
 set_target_properties(FramebufferResizeTests PROPERTIES FOLDER "Tests/Graphics")

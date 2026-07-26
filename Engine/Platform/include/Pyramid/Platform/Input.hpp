@@ -176,6 +176,7 @@ namespace Pyramid
         void Reset(bool emitReleaseEvents = true);
 
         [[nodiscard]] bool HasFocus() const { return m_focused; }
+        [[nodiscard]] bool HasMousePosition() const { return m_hasMousePosition; }
 
         [[nodiscard]] bool IsKeyDown(Key key) const;
         [[nodiscard]] bool WasKeyPressed(Key key) const;

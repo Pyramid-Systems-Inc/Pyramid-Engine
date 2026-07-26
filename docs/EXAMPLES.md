@@ -1,6 +1,6 @@
 # Examples
 
-The repository contains two Windows graphical applications. Both use GLSL 3.30 and require an OpenGL 3.3-or-newer core context.
+The repository contains two Windows graphical applications plus one non-installed RTS reference support library. Both applications use GLSL 3.30 and require an OpenGL 3.3-or-newer core context.
 
 ## BasicGame
 
@@ -17,8 +17,10 @@ Demonstrates:
 - content-derived mesh-cache reuse: the cube and floor request identical geometry but perform one GPU upload;
 - texture loading;
 - frame update by mutating entity transforms and rendering through generated scene proxies;
-- engine-generic named actions: `Escape` maps to `Quit` and `Space` maps to `ToggleAnimation`;
-- the reusable `OrbitCameraController`: arrow keys or right-drag orbit, middle-drag pans, the wheel zooms, and `R` restores the captured home pose;
+- engine-generic named actions with game-owned physical bindings;
+- the reusable `RTSCameraController`: WASD pans, Q/E or middle-drag orbits, the wheel zooms, Shift boosts movement, and `R` restores the captured home pose;
+- `Pyramid::RTSReference` game-side interaction: moving the pointer to a window edge scrolls, left click selects the demo cube through a selectable predicate, and right click emits a ground-plane command for the selected entity;
+- `Escape` quits and `Space` toggles cube animation;
 - automatic default-viewport updates and active-camera projection resizing;
 - platform-neutral resize-event logging through `Game::onWindowResize()`;
 - logging configuration.
@@ -36,6 +38,7 @@ Run:
 ./build/gcc-debug/bin/BasicGame.exe
 ```
 
+Selection and command requests are logged. The reference helper lives under `Examples/RTSReference`; it is deliberately not exported by the installed `Pyramid::Engine` package.
 
 ## BasicRenderingExample
 
@@ -75,6 +78,7 @@ A successful timed process run proves that startup did not immediately fail. Aft
 - minimizing suspends rendering until a renderable client area is restored;
 - resizing does not crash;
 - named keyboard and mouse actions respond without repeated one-frame presses;
+- BasicGame edge scrolling waits for a valid pointer sample, left-click selection follows the visible cube, and right-click commands log a ground-plane target;
 - switching focus does not leave keys or mouse buttons stuck;
 - closing exits cleanly;
 - the OpenGL debug/error log remains clean.

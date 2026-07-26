@@ -87,7 +87,7 @@ void MyGame::onUpdate(float deltaTime)
 }
 ```
 
-Queries include held, pressed-this-frame, and released-this-frame states for keyboard and mouse buttons; client-space pointer position; aggregated pointer movement; and vertical/horizontal wheel steps. Native key-repeat messages do not retrigger `WasKeyPressed()`. Losing focus releases every held key/button and resets the pointer baseline, preventing stuck controls or a large mouse jump after focus returns.
+Queries include held, pressed-this-frame, and released-this-frame states for keyboard and mouse buttons; `HasMousePosition()` for distinguishing a valid client-space pointer sample from default coordinates; client-space pointer position; aggregated pointer movement; and vertical/horizontal wheel steps. Native key-repeat messages do not retrigger `WasKeyPressed()`. Losing focus releases every held key/button and resets the pointer baseline, preventing stuck controls or a large mouse jump after focus returns.
 
 `InputState` remains the low-level polling layer. `InputActionSystem` evaluates engine-generic named actions from that snapshot once per frame before `Game::onUpdate()`. It supports button, one-dimensional, and two-dimensional actions; prioritized enabled/disabled contexts; optional control consumption; key and mouse-button chords; mouse movement/wheel axes; and runtime binding replacement.
 
@@ -140,7 +140,7 @@ controller.CaptureHome(camera);
 controller.Update(camera, GetInputActions(), deltaTime);
 ```
 
-Call `Synchronize()` after external code changes a camera pose, `CaptureHome()` to define the reset pose, and `SetEnabled(false)` when another mode owns the camera. Physical bindings remain in the game or editor layer.
+Call `Synchronize()` after external code changes a camera pose, `CaptureHome()` to define the reset pose, and `SetEnabled(false)` when another mode owns the camera. Physical bindings remain in the game or editor layer. The optional `Examples/RTSReference` target demonstrates edge scrolling, selection, and command requests above these APIs; it is game-side source support, not installed `Pyramid::Engine` API.
 
 Contexts are evaluated from highest to lowest priority. An enabled consuming context blocks only controls that were active during that frame, allowing UI, editor, console, gameplay, and vehicle modes to coexist. Gamepad input, text input, raw relative mouse mode, camera blending/collision, and persisted binding files remain future work.
 

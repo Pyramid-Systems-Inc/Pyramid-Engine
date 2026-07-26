@@ -27,6 +27,7 @@ int main()
 
     InputState input;
     Require(!input.HasFocus(), "new input state should not assume focus");
+    Require(!input.HasMousePosition(), "new input state should not assume a pointer sample");
     Require(!input.IsKeyDown(Key::W), "keys should start released");
 
     input.SetFocused(true);
@@ -61,6 +62,7 @@ int main()
     Require(!input.IsKeyDown(Key::Unknown), "unknown keys must be ignored");
 
     input.ProcessMouseMove(10.0f, 20.0f);
+    Require(input.HasMousePosition(), "first mouse sample should be observable");
     Require(NearlyEqual(input.GetMouseDelta().x, 0.0f), "first mouse sample should not jump");
     input.ProcessMouseMove(14.0f, 18.0f);
     input.ProcessMouseMove(17.0f, 25.0f);
@@ -92,6 +94,7 @@ int main()
     input.ProcessMouseButton(MouseButton::Left, true);
     input.SetFocused(false);
     Require(!input.HasFocus(), "focus loss should be recorded");
+    Require(!input.HasMousePosition(), "focus loss should invalidate the pointer baseline");
     Require(!input.IsKeyDown(Key::A), "focus loss should clear held keys");
     Require(input.WasKeyReleased(Key::A), "focus loss should release keys");
     Require(!input.IsMouseButtonDown(MouseButton::Left), "focus loss should clear mouse buttons");
@@ -103,9 +106,11 @@ int main()
 
     input.SetFocused(true);
     input.ProcessMouseMove(200.0f, 100.0f);
+    Require(input.HasMousePosition(), "focus regain should accept a new pointer baseline");
     Require(NearlyEqual(input.GetMouseDelta().x, 0.0f), "focus regain should reset pointer baseline");
 
     input.Reset(false);
+    Require(!input.HasMousePosition(), "hard reset should invalidate pointer position");
     Require(!input.IsKeyDown(Key::A), "hard reset should clear keys");
     Require(!input.WasKeyReleased(Key::A), "hard reset should not emit release events");
 

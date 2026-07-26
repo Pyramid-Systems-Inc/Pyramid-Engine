@@ -37,6 +37,10 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 add_subdirectory(vendor/glad)
 add_subdirectory(Engine)
 
+if(PYRAMID_BUILD_EXAMPLES OR PYRAMID_BUILD_TESTS)
+    add_subdirectory(Examples/RTSReference)
+endif()
+
 if(PYRAMID_BUILD_EXAMPLES)
     add_subdirectory(Examples/BasicGame)
     add_subdirectory(Examples/BasicRendering)

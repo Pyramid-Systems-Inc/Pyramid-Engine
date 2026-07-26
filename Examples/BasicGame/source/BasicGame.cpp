@@ -8,6 +8,7 @@
 #include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
 #include <Pyramid/Input/InputActions.hpp>
 #include <Pyramid/Graphics/CameraController.hpp>
+#include <Pyramid/Examples/RTSReference/RTSInteractionController.hpp>
 #include <Pyramid/Math/Math.hpp>
 #include <Pyramid/Util/Log.hpp>
 
@@ -23,10 +24,13 @@ namespace
     constexpr std::string_view kQuitAction = "Quit";
     constexpr std::string_view kToggleAnimationAction = "ToggleAnimation";
     constexpr std::string_view kResetCameraAction = "ResetCamera";
+    constexpr std::string_view kMoveAction = "Move";
     constexpr std::string_view kOrbitDeltaAction = "OrbitDelta";
     constexpr std::string_view kOrbitRateAction = "OrbitRate";
-    constexpr std::string_view kPanDeltaAction = "PanDelta";
     constexpr std::string_view kZoomDeltaAction = "ZoomDelta";
+    constexpr std::string_view kBoostAction = "Boost";
+    constexpr std::string_view kSelectAction = "Select";
+    constexpr std::string_view kCommandAction = "Command";
 
     constexpr const char* kForwardVertexShader = R"(
 #version 330 core
@@ -122,35 +126,55 @@ void BasicGame::onCreate()
     SetRenderSystem(m_renderSystem.get());
 
     m_scene = std::make_shared<Pyramid::Scene>("BasicGame Scene");
+    m_sceneManager = std::make_unique<Pyramid::SceneManagement::SceneManager>();
+    m_sceneManager->SetActiveScene(m_scene);
+
     m_camera = std::make_unique<Pyramid::Camera>(
         Pyramid::Math::Radians(60.0f),
         1280.0f / 720.0f,
         0.1f,
         200.0f);
 
-    m_camera->SetPosition(Pyramid::Math::Vec3(0.0f, 2.5f, 6.0f));
+    m_camera->SetPosition(Pyramid::Math::Vec3(0.0f, 7.0710678f, 7.0710678f));
     m_camera->LookAt(Pyramid::Math::Vec3::Zero);
 
-    Pyramid::OrbitCameraActions cameraActions;
-    cameraActions.panDelta = {std::string(kInputContext), std::string(kPanDeltaAction)};
-    cameraActions.panRate = {};
+    Pyramid::RTSCameraActions cameraActions;
+    cameraActions.move = {std::string(kInputContext), std::string(kMoveAction)};
     cameraActions.orbitDelta = {std::string(kInputContext), std::string(kOrbitDeltaAction)};
     cameraActions.orbitRate = {std::string(kInputContext), std::string(kOrbitRateAction)};
     cameraActions.zoomDelta = {std::string(kInputContext), std::string(kZoomDeltaAction)};
     cameraActions.zoomRate = {};
+    cameraActions.boost = {std::string(kInputContext), std::string(kBoostAction)};
     cameraActions.reset = {std::string(kInputContext), std::string(kResetCameraAction)};
 
-    Pyramid::OrbitCameraSettings cameraSettings;
+    Pyramid::RTSCameraSettings cameraSettings;
+    cameraSettings.movementSpeed = 4.0f;
     cameraSettings.orbitSensitivity = 0.005f;
-    cameraSettings.panSensitivity = 0.01f;
     cameraSettings.zoomSensitivity = 0.75f;
-    cameraSettings.minimumDistance = 2.0f;
-    cameraSettings.maximumDistance = 20.0f;
-    m_cameraController = std::make_unique<Pyramid::OrbitCameraController>(
+    cameraSettings.minimumDistance = 3.0f;
+    cameraSettings.maximumDistance = 30.0f;
+    cameraSettings.distanceMovementScale = 0.04f;
+    m_cameraController = std::make_unique<Pyramid::RTSCameraController>(
         Pyramid::Math::Vec3::Zero,
         std::move(cameraActions),
         cameraSettings);
     m_cameraController->CaptureHome(*m_camera);
+
+    Pyramid::Examples::RTSReference::RTSInteractionActions interactionActions;
+    interactionActions.select = {std::string(kInputContext), std::string(kSelectAction)};
+    interactionActions.command = {std::string(kInputContext), std::string(kCommandAction)};
+
+    Pyramid::Examples::RTSReference::RTSInteractionSettings interactionSettings;
+    interactionSettings.edgeMarginPixels = 18.0f;
+    interactionSettings.edgeScrollSpeed = 4.0f;
+    interactionSettings.edgeScrollDistanceScale = 0.04f;
+    interactionSettings.maximumRayDistance = 200.0f;
+    m_interactionController =
+        std::make_unique<Pyramid::Examples::RTSReference::RTSInteractionController>(
+            std::move(interactionActions),
+            interactionSettings);
+    m_interactionController->SetViewportSize(1280, 720);
+
     SetActiveCamera(m_camera.get());
 
     Pyramid::ShaderProgramSpecification shaderSpecification;
@@ -199,6 +223,13 @@ void BasicGame::onCreate()
         return;
     }
 
+    const Pyramid::EntityId selectableUnit = m_cubeEntity.GetId();
+    m_interactionController->SetSelectablePredicate(
+        [selectableUnit](const Pyramid::Entity& entity)
+        {
+            return entity.GetId() == selectableUnit;
+        });
+
     Pyramid::Entity sun = m_scene->CreateEntity("Sun");
     Pyramid::LightComponent sunLight;
     sunLight.type = Pyramid::LightType::Directional;
@@ -211,7 +242,8 @@ void BasicGame::onCreate()
     environment.skyColor = Pyramid::Math::Vec3(0.09f, 0.12f, 0.18f);
     environment.ambientColor = Pyramid::Math::Vec3(0.12f, 0.12f, 0.14f);
 
-    PYRAMID_LOG_INFO("BasicGame ready: engine API pipeline active (Scene + Camera + RenderSystem).");
+    PYRAMID_LOG_INFO(
+        "BasicGame ready: RTS reference input active (edge scroll, selection, commands).");
 }
 
 void BasicGame::onUpdate(float deltaTime)
@@ -246,9 +278,39 @@ void BasicGame::onUpdate(float deltaTime)
             0.0f));
     }
 
-    if (m_camera && m_cameraController)
+    if (m_camera && m_cameraController && m_interactionController && m_sceneManager)
     {
-        m_cameraController->Update(*m_camera, GetInputActions(), deltaTime);
+        m_sceneManager->Update(deltaTime);
+        m_interactionController->Update(
+            GetInput(),
+            GetInputActions(),
+            *m_camera,
+            *m_sceneManager,
+            *m_cameraController,
+            deltaTime);
+
+        const Pyramid::EntityId selected =
+            m_interactionController->GetSelectedEntityId();
+        if (selected != m_reportedSelection)
+        {
+            if (selected)
+            {
+                PYRAMID_LOG_INFO("Selected entity ", selected.GetValue());
+            }
+            else
+            {
+                PYRAMID_LOG_INFO("Selection cleared");
+            }
+            m_reportedSelection = selected;
+        }
+
+        if (const auto command = m_interactionController->ConsumeCommand())
+        {
+            PYRAMID_LOG_INFO(
+                "Command requested for entity ", command->entity.GetValue(),
+                " at (", command->target.x, ", ", command->target.y, ", ",
+                command->target.z, ")");
+        }
     }
 }
 
@@ -412,48 +474,73 @@ bool BasicGame::SetupInputActions()
         kResetCameraAction,
         Pyramid::InputBinding::KeyBinding(Pyramid::Key::R)) && valid;
 
+    valid = context->AddAction(std::string(kMoveAction), Pyramid::InputActionType::Axis2D) && valid;
+    valid = context->AddBinding(
+        kMoveAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::A, -1.0f, Pyramid::InputAxisComponent::X)) && valid;
+    valid = context->AddBinding(
+        kMoveAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::D, 1.0f, Pyramid::InputAxisComponent::X)) && valid;
+    valid = context->AddBinding(
+        kMoveAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::W, 1.0f, Pyramid::InputAxisComponent::Y)) && valid;
+    valid = context->AddBinding(
+        kMoveAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::S, -1.0f, Pyramid::InputAxisComponent::Y)) && valid;
+
     valid = context->AddAction(std::string(kOrbitDeltaAction), Pyramid::InputActionType::Axis2D) && valid;
     auto orbitX = Pyramid::InputBinding::MouseDeltaXBinding(
         1.0f,
         Pyramid::InputAxisComponent::X);
-    orbitX.RequireMouseButton(Pyramid::MouseButton::Right);
+    orbitX.RequireMouseButton(Pyramid::MouseButton::Middle);
     auto orbitY = Pyramid::InputBinding::MouseDeltaYBinding(
         -1.0f,
         Pyramid::InputAxisComponent::Y);
-    orbitY.RequireMouseButton(Pyramid::MouseButton::Right);
+    orbitY.RequireMouseButton(Pyramid::MouseButton::Middle);
     valid = context->AddBinding(kOrbitDeltaAction, orbitX) && valid;
     valid = context->AddBinding(kOrbitDeltaAction, orbitY) && valid;
 
     valid = context->AddAction(std::string(kOrbitRateAction), Pyramid::InputActionType::Axis2D) && valid;
     valid = context->AddBinding(
         kOrbitRateAction,
-        Pyramid::InputBinding::KeyBinding(Pyramid::Key::Left, -1.0f, Pyramid::InputAxisComponent::X)) && valid;
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::Q, -1.0f, Pyramid::InputAxisComponent::X)) && valid;
     valid = context->AddBinding(
         kOrbitRateAction,
-        Pyramid::InputBinding::KeyBinding(Pyramid::Key::Right, 1.0f, Pyramid::InputAxisComponent::X)) && valid;
-    valid = context->AddBinding(
-        kOrbitRateAction,
-        Pyramid::InputBinding::KeyBinding(Pyramid::Key::Up, 1.0f, Pyramid::InputAxisComponent::Y)) && valid;
-    valid = context->AddBinding(
-        kOrbitRateAction,
-        Pyramid::InputBinding::KeyBinding(Pyramid::Key::Down, -1.0f, Pyramid::InputAxisComponent::Y)) && valid;
-
-    valid = context->AddAction(std::string(kPanDeltaAction), Pyramid::InputActionType::Axis2D) && valid;
-    auto panX = Pyramid::InputBinding::MouseDeltaXBinding(
-        -1.0f,
-        Pyramid::InputAxisComponent::X);
-    panX.RequireMouseButton(Pyramid::MouseButton::Middle);
-    auto panY = Pyramid::InputBinding::MouseDeltaYBinding(
-        1.0f,
-        Pyramid::InputAxisComponent::Y);
-    panY.RequireMouseButton(Pyramid::MouseButton::Middle);
-    valid = context->AddBinding(kPanDeltaAction, panX) && valid;
-    valid = context->AddBinding(kPanDeltaAction, panY) && valid;
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::E, 1.0f, Pyramid::InputAxisComponent::X)) && valid;
 
     valid = context->AddAction(std::string(kZoomDeltaAction), Pyramid::InputActionType::Axis1D) && valid;
     valid = context->AddBinding(
         kZoomDeltaAction,
         Pyramid::InputBinding::MouseWheelBinding(-1.0f)) && valid;
 
+    valid = context->AddAction(std::string(kBoostAction), Pyramid::InputActionType::Button) && valid;
+    valid = context->AddBinding(
+        kBoostAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::LeftShift)) && valid;
+    valid = context->AddBinding(
+        kBoostAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::RightShift)) && valid;
+
+    valid = context->AddAction(std::string(kSelectAction), Pyramid::InputActionType::Button) && valid;
+    valid = context->AddBinding(
+        kSelectAction,
+        Pyramid::InputBinding::MouseButtonBinding(Pyramid::MouseButton::Left)) && valid;
+
+    valid = context->AddAction(std::string(kCommandAction), Pyramid::InputActionType::Button) && valid;
+    valid = context->AddBinding(
+        kCommandAction,
+        Pyramid::InputBinding::MouseButtonBinding(Pyramid::MouseButton::Right)) && valid;
+
     return valid;
+}
+
+void BasicGame::onWindowResize(const Pyramid::WindowResizeEvent& event)
+{
+    Game::onWindowResize(event);
+    if (m_interactionController && event.HasRenderableArea())
+    {
+        m_interactionController->SetViewportSize(
+            static_cast<Pyramid::u32>(event.width),
+            static_cast<Pyramid::u32>(event.height));
+    }
 }

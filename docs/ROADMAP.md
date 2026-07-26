@@ -6,7 +6,7 @@ Priorities are based on technical risk. They are not delivery dates.
 
 Pyramid is a general-purpose engine whose first proving game will be a Ruqoom RTS. The authoritative runtime model is a stable-ID entity/component scene with hierarchical transforms. The first playable milestone remains Windows-only; Linux follows after it. A full editor is planned. Baa is the long-term scripting language and eventual engine implementation language, but the C++ engine remains the behavioral reference until the Baa toolchain/runtime can reproduce it. New engine/editor/gameplay subsystems should be owned by the Pyramid ecosystem; existing GL/JPEG dependencies remain until native replacements are deliberately scheduled.
 
-## Stabilization completed through July 25, 2026
+## Stabilization completed through July 26, 2026
 
 The current `0.6.0-pre-alpha` baseline includes:
 
@@ -17,7 +17,7 @@ The current `0.6.0-pre-alpha` baseline includes:
 - strict required window operations with Win32 implementations;
 - relocatable install/export package and external-consumer test;
 - Windows Debug/Release CI for build, CTest, install, and package consumption;
-- 30 registered tests, including engine-owned mesh resources, immutable geometry bounds, real PNG/JPEG decoding, transactional texture loading, OpenGL diagnostics, window events, camera resize/frustum behavior, framebuffer resize, scene-hierarchy transforms, incremental octree synchronization, bounds-accurate spatial queries, bounds-aware nearest-neighbor queries, transactional octree configuration, and automatic octree compaction/health metrics, stable shader identifiers, compile-once shader reuse, and transactional shader replacement;
+- 33 registered tests, including platform input, action mapping, reusable camera controllers, game-side RTS interaction, engine-owned mesh resources, immutable geometry bounds, real PNG/JPEG decoding, transactional texture loading, OpenGL diagnostics, window events, camera resize/frustum behavior, framebuffer resize, scene-hierarchy transforms, incremental octree synchronization, bounds-accurate spatial queries, bounds-aware nearest-neighbor queries, transactional octree configuration, and automatic octree compaction/health metrics, stable shader identifiers, compile-once shader reuse, and transactional shader replacement;
 - corrected standards-invalid PNG, zlib, and JPEG test fixtures;
 - public texture convenience definitions and explicit depth-target failure;
 - definitions for scene events, box queries, visibility statistics, spatial test scenes, and octree operations;
@@ -26,7 +26,8 @@ The current `0.6.0-pre-alpha` baseline includes:
 - a missing `<cstring>` dependency fixed in the image loader;
 - Debug-context negotiation and OpenGL driver callback diagnostics;
 - platform-neutral resize events delivered from Win32 `WM_SIZE` through `Game::onWindowResize()`;
-- real Win32 keyboard/mouse polling with per-frame transitions, pointer/wheel deltas, mouse capture, and focus-safe release;
+- real Win32 keyboard/mouse polling with per-frame transitions, pointer/wheel deltas, explicit pointer-sample validity, mouse capture, and focus-safe release;
+- game-side RTS edge scrolling, selectable-filtered ray picking, stable selection, and ground-plane command requests without engine-level RTS concepts;
 - automatic default-viewport updates, active-camera projection synchronization, and minimized-window render suspension;
 - transactional framebuffer recreation, unified render-target ownership, and render-system resize propagation;
 - an authoritative stable-ID entity/component scene with cycle-safe hierarchy operations, recursive world-transform invalidation, mesh-renderer/light components, and generated renderer proxies;
@@ -114,7 +115,7 @@ Target outcome: one interactive Ruqoom RTS vertical slice that validates the eng
 1. [x] real Win32 keyboard/mouse polling and focus-safe per-frame state;
 2. [x] engine-generic configurable action mapping with prioritized contexts, control consumption, chords, runtime rebinding, and an RTS camera reference profile;
 3. [x] reusable, action-driven free-fly, target-orbit, and optional strategy camera controllers with validated settings and home-pose reset;
-4. RTS reference-game input features built above the generic engine: edge scrolling, selection, and command input;
+4. [x] RTS reference-game input features built above the generic engine: edge scrolling, selection, and command input;
 5. engine-owned model/scene import pipeline feeding existing mesh/material/resource types;
 6. RTS components such as selectable, team/owner, movement target, health, and basic unit state;
 7. terrain/large-map rendering and scalable visibility/spatial updates;
