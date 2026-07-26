@@ -6,15 +6,21 @@
 #include <Pyramid/Graphics/Shader/Shader.hpp>
 #include <Pyramid/Graphics/Material/Material.hpp>
 #include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
+#include <Pyramid/Input/InputActions.hpp>
 #include <Pyramid/Math/Math.hpp>
 #include <Pyramid/Util/Log.hpp>
 
 #include <array>
 #include <cmath>
 #include <vector>
+#include <string_view>
 
 namespace
 {
+    constexpr std::string_view kInputContext = "basic-game";
+    constexpr std::string_view kQuitAction = "Quit";
+    constexpr std::string_view kToggleAnimationAction = "ToggleAnimation";
+
     constexpr const char* kForwardVertexShader = R"(
 #version 330 core
 
@@ -72,6 +78,13 @@ void BasicGame::onCreate()
     if (!IsInitialized())
     {
         PYRAMID_LOG_CRITICAL("BasicGame aborted: engine initialization failed.");
+        quit();
+        return;
+    }
+
+    if (!SetupInputActions())
+    {
+        PYRAMID_LOG_CRITICAL("BasicGame aborted: input action setup failed.");
         quit();
         return;
     }
@@ -177,14 +190,14 @@ void BasicGame::onUpdate(float deltaTime)
 {
     Game::onUpdate(deltaTime);
 
-    const auto& input = GetInput();
-    if (input.WasKeyPressed(Pyramid::Key::Escape))
+    const auto& actions = GetInputActions();
+    if (actions.WasActionPressed(kInputContext, kQuitAction))
     {
         quit();
         return;
     }
 
-    if (input.WasKeyPressed(Pyramid::Key::Space))
+    if (actions.WasActionPressed(kInputContext, kToggleAnimationAction))
     {
         m_animationPaused = !m_animationPaused;
         PYRAMID_LOG_INFO(
@@ -340,6 +353,24 @@ bool BasicGame::SetupScene()
     }
 
     return true;
+}
+
+bool BasicGame::SetupInputActions()
+{
+    auto* context = GetInputActions().CreateContext(std::string(kInputContext), 0, true);
+    if (!context)
+    {
+        return false;
+    }
+
+    return context->AddAction(std::string(kQuitAction), Pyramid::InputActionType::Button) &&
+        context->AddBinding(kQuitAction, Pyramid::InputBinding::KeyBinding(Pyramid::Key::Escape)) &&
+        context->AddAction(
+            std::string(kToggleAnimationAction),
+            Pyramid::InputActionType::Button) &&
+        context->AddBinding(
+            kToggleAnimationAction,
+            Pyramid::InputBinding::KeyBinding(Pyramid::Key::Space));
 }
 
 void BasicGame::UpdateCamera(float deltaTime)

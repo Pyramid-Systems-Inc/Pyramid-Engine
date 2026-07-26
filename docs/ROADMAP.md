@@ -4,7 +4,7 @@ Priorities are based on technical risk. They are not delivery dates.
 
 ## Product direction locked July 25, 2026
 
-Pyramid will first power a Ruqoom RTS. The authoritative runtime model is a stable-ID entity/component scene with hierarchical transforms. The first playable milestone remains Windows-only; Linux follows after it. A full editor is planned. Baa is the long-term scripting language and eventual engine implementation language, but the C++ engine remains the behavioral reference until the Baa toolchain/runtime can reproduce it. New engine/editor/gameplay subsystems should be owned by the Pyramid ecosystem; existing GL/JPEG dependencies remain until native replacements are deliberately scheduled.
+Pyramid is a general-purpose engine whose first proving game will be a Ruqoom RTS. The authoritative runtime model is a stable-ID entity/component scene with hierarchical transforms. The first playable milestone remains Windows-only; Linux follows after it. A full editor is planned. Baa is the long-term scripting language and eventual engine implementation language, but the C++ engine remains the behavioral reference until the Baa toolchain/runtime can reproduce it. New engine/editor/gameplay subsystems should be owned by the Pyramid ecosystem; existing GL/JPEG dependencies remain until native replacements are deliberately scheduled.
 
 ## Stabilization completed through July 25, 2026
 
@@ -112,13 +112,14 @@ Target outcome: a trustworthy rendering SDK rather than a larger feature list.
 Target outcome: one interactive Ruqoom RTS vertical slice that validates the engine rather than adding more infrastructure in isolation.
 
 1. [x] real Win32 keyboard/mouse polling and focus-safe per-frame state;
-2. configurable action mapping, then RTS camera movement, zoom, edge scrolling, selection, and command input;
-3. engine-owned model/scene import pipeline feeding existing mesh/material/resource types;
-4. RTS components such as selectable, team/owner, movement target, health, and basic unit state;
-5. terrain/large-map rendering and scalable visibility/spatial updates;
-6. debug statistics and inspection UI as the first editor foundation;
-7. versioned scene extensions for camera, environment, gameplay components, and editor metadata;
-8. verified Windows `0.7.0-pre-alpha` vertical slice, then Linux platform work.
+2. [x] engine-generic configurable action mapping with prioritized contexts, control consumption, chords, runtime rebinding, and an RTS camera reference profile;
+3. reusable camera-controller layer, then RTS movement, zoom, edge scrolling, selection, and command input;
+4. engine-owned model/scene import pipeline feeding existing mesh/material/resource types;
+5. RTS components such as selectable, team/owner, movement target, health, and basic unit state;
+6. terrain/large-map rendering and scalable visibility/spatial updates;
+7. debug statistics and inspection UI as the first editor foundation;
+8. versioned scene extensions for camera, environment, gameplay components, and editor metadata;
+9. verified Windows `0.7.0-pre-alpha` vertical slice, then Linux platform work.
 
 A full editor follows the validated runtime model. Baa integration starts as gameplay scripting only after its runtime, ABI/FFI, debugger, and hot-reload semantics are defined; engine reimplementation is a later compatibility project, not a blind source translation.
 

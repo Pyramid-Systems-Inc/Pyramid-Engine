@@ -4,6 +4,15 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### Generic input action mapping
+
+- Added engine-generic button, one-dimensional, and two-dimensional named actions above the platform `InputState` snapshot.
+- Added prioritized input contexts with enable/disable state, active-control consumption, deterministic ordering, and non-consuming observation contexts.
+- Added keyboard, mouse-button, mouse-delta, and wheel bindings with scaling, axis selection, optional key/mouse-button chords, and runtime rebinding/removal.
+- Integrated one `InputActionSystem` into `Game`; actions are evaluated after native message processing and before every `onUpdate()`.
+- Migrated both examples to named actions. `BasicRendering` provides an RTS-style reference profile without placing RTS semantics in the engine module.
+- Added `Input.ActionMapping`; CTest now registers 31 tests.
+
 ### Win32 input foundation
 
 - Added platform-neutral keyboard and mouse enums plus per-frame `InputState` polling.

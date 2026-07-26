@@ -17,7 +17,7 @@ Demonstrates:
 - content-derived mesh-cache reuse: the cube and floor request identical geometry but perform one GPU upload;
 - texture loading;
 - frame update by mutating entity transforms and rendering through generated scene proxies;
-- real keyboard polling: `Escape` quits and `Space` pauses/resumes cube animation;
+- engine-generic named actions: `Escape` maps to `Quit` and `Space` maps to `ToggleAnimation`;
 - automatic default-viewport updates and active-camera projection resizing;
 - platform-neutral resize-event logging through `Game::onWindowResize()`;
 - logging configuration.
@@ -50,7 +50,7 @@ This is the lower-level reference rendering path. It demonstrates:
 - scene and material uniform buffers;
 - perspective camera setup registered through `Game::SetActiveCamera()`;
 - topology-aware indexed rendering and basic lighting;
-- real keyboard/mouse polling: `Escape` quits, `R`/`1` resets, WASD/arrows adjust the camera, right-drag orbits, and the mouse wheel zooms.
+- an RTS-style reference input context built entirely from generic actions: `Escape` quits, `R`/`1` resets, WASD/arrows adjust the camera, right-drag supplies a chord-gated 2D axis, and the mouse wheel supplies zoom.
 
 Run:
 
@@ -73,7 +73,7 @@ A successful timed process run proves that startup did not immediately fail. Aft
 - the cube keeps the correct proportions after resizing;
 - minimizing suspends rendering until a renderable client area is restored;
 - resizing does not crash;
-- keyboard and mouse controls respond without repeated one-frame presses;
+- named keyboard and mouse actions respond without repeated one-frame presses;
 - switching focus does not leave keys or mouse buttons stuck;
 - closing exits cleanly;
 - the OpenGL debug/error log remains clean.

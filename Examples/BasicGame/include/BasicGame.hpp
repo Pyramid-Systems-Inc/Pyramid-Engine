@@ -31,6 +31,7 @@ protected:
 private:
     std::shared_ptr<Pyramid::Mesh> CreateColoredCube(float size);
     bool SetupScene();
+    bool SetupInputActions();
     void UpdateCamera(float deltaTime);
 
     std::unique_ptr<Pyramid::Renderer::RenderSystem> m_renderSystem;

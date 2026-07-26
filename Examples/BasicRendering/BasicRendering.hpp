@@ -38,6 +38,7 @@ private:
     void CreateGeometry();
     void SetupCamera();
     void SetupUniformBuffers();
+    bool SetupInputActions();
 
     // Update methods
     void UpdateCamera(float deltaTime);

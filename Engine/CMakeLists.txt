@@ -4,6 +4,7 @@ add_library(Pyramid::Engine ALIAS PyramidEngine)
 add_subdirectory(Core)
 add_subdirectory(Graphics)
 add_subdirectory(Platform)
+add_subdirectory(Input)
 add_subdirectory(Math)
 add_subdirectory(Utils)
 
@@ -19,6 +20,7 @@ target_include_directories(PyramidEngine
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Engine/Core/include>
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Engine/Graphics/include>
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Engine/Platform/include>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Engine/Input/include>
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Engine/Math/include>
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Engine/Utils/include>
         $<INSTALL_INTERFACE:include>

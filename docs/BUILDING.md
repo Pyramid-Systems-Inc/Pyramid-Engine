@@ -132,7 +132,7 @@ CTest registers 30 executables: five image/utility tests plus 25 API, platform, 
 ctest --test-dir build/gcc-debug-tests -N
 ```
 
-The platform input contract is covered by `Platform.InputState`; resize delivery is covered by `Platform.WindowResizeEvents`.
+The platform input contract is covered by `Platform.InputState`; generic actions, contexts, consumption, chords, and rebinding are covered by `Input.ActionMapping`; resize delivery is covered by `Platform.WindowResizeEvents`.
 
 Key scene tests are:
 

@@ -117,7 +117,7 @@ Include:
 
 ## Input changes
 
-Keep native virtual-key codes and Win32 message types inside the platform implementation. Public gameplay code should consume `Key`, `MouseButton`, and `InputState` only. Every new transition rule must be covered in `Tests/InputStateTests.cpp`, especially repeat handling, focus/capture loss, and one-frame reset behavior. Action mapping and controller support should build on top of `InputState` instead of adding gameplay concepts to `Window`.
+Keep native virtual-key codes and Win32 message types inside the platform implementation. `InputState` is the platform-neutral physical snapshot; `InputActionSystem` is the engine-generic semantic layer above it. Do not hard-code RTS, editor, UI, vehicle, or other product-specific action names into the input module. Every physical transition rule belongs in `Tests/InputStateTests.cpp`; action aggregation, priority, consumption, chords, and rebinding belong in `Tests/InputActionTests.cpp`. Controller support must feed the same action layer instead of adding gameplay concepts to `Window`.
 
 ## Release hygiene
 

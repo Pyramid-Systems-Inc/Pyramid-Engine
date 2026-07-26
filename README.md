@@ -1,6 +1,6 @@
 # Pyramid Engine
 
-Pyramid Engine is a Windows-first, C++17 game-engine project built around a Win32/WGL platform layer and an OpenGL renderer.
+Pyramid Engine is a Windows-first, general-purpose C++17 game-engine project built around a Win32/WGL platform layer and an OpenGL renderer. A future Ruqoom RTS is the first proving game, not a constraint on the engine architecture.
 
 **Current development version:** `0.6.0-pre-alpha`
 
@@ -18,13 +18,14 @@ The project is intended for engine development and experimentation. It is not ye
 | Scene | Stable-ID entities, hierarchical transforms, optional mesh-renderer/light components, scene serialization, and octree queries |
 | Math | Vectors, matrices, quaternions, geometry helpers, and SIMD-oriented utilities |
 | Images | TGA/BMP subsets, custom non-interlaced PNG, and libjpeg-turbo JPEG decoding |
-| Tests | 30 CTest targets: 5 image/utility tests plus API linkage and focused graphics/platform coverage |
+| Tests | 31 CTest targets: 5 image/utility tests plus API linkage and focused graphics/platform/input coverage |
 | CI | GCC and Clang, Debug and Release, package install, and external-consumer validation |
 
 ## Implemented
 
 - Application lifecycle and frame loop through `Pyramid::Game`.
 - Real Win32 keyboard and mouse input with held/pressed/released states, pointer movement, wheel deltas, and focus-safe reset behavior.
+- Engine-generic named input actions with button/1D/2D values, prioritized contexts, control consumption, chords, and runtime rebinding.
 - Win32 window creation, resize-event delivery, resize-safe viewport updates, visibility, positioning, and WGL context management.
 - OpenGL device, a game-owned `ResourceRegistry`, generation-checked typed resource handles, versioned resource manifests and entity-scene serialization, engine-owned mesh and material resources, stable resource identifiers, content-deduplicating mesh, shader-program, texture, and material caches, buffers, vertex arrays, shaders, textures, resize-safe framebuffers, and state caching.
 - Forward, cascaded-shadow, deferred-geometry, and deferred-lighting passes.
@@ -44,7 +45,7 @@ The project is intended for engine development and experimentation. It is not ye
 - Occlusion culling remains a placeholder and is disabled by default.
 - `ITexture2D::CreateDepthTarget` fails explicitly; use the framebuffer API for depth attachments.
 - JPEG decoding requires the open-source libjpeg-turbo package installed by the MSYS2 bootstrap script.
-- Audio and physics modules are not part of the current source tree. Input currently provides direct per-frame polling; configurable action mapping and RTS controls are the next milestone.
+- Audio and physics modules are not part of the current source tree. Controllers, text input, raw relative mouse mode, and persisted user bindings are not implemented yet.
 
 See [Roadmap and known issues](docs/ROADMAP.md) before building new systems on top of the engine.
 
@@ -110,6 +111,7 @@ This catches early process failure. It does not replace visual inspection or ren
 
 ```cpp
 #include <Pyramid/Core/Game.hpp>
+#include <Pyramid/Input/InputActions.hpp>
 
 class MyGame final : public Pyramid::Game
 {
@@ -118,13 +120,26 @@ protected:
     {
         Game::onCreate();
         if (!IsInitialized() || !GetResourceRegistry())
+        {
             quit();
+            return;
+        }
+
+        auto* gameplay = GetInputActions().CreateContext("gameplay");
+        if (!gameplay ||
+            !gameplay->AddAction("Quit", Pyramid::InputActionType::Button) ||
+            !gameplay->AddBinding(
+                "Quit",
+                Pyramid::InputBinding::KeyBinding(Pyramid::Key::Escape)))
+        {
+            quit();
+        }
     }
 
     void onUpdate(float deltaTime) override
     {
         Game::onUpdate(deltaTime);
-        if (GetInput().WasKeyPressed(Pyramid::Key::Escape))
+        if (GetInputActions().WasActionPressed("gameplay", "Quit"))
             quit();
     }
 

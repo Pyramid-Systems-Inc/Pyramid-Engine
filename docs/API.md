@@ -22,6 +22,8 @@ protected:
     virtual void onWindowResize(const WindowResizeEvent& event);
     IGraphicsDevice* GetGraphicsDevice() const;
     const InputState& GetInput() const;
+    InputActionSystem& GetInputActions();
+    const InputActionSystem& GetInputActions() const;
     void SetActiveCamera(Camera* camera);
     Camera* GetActiveCamera() const;
     void SetRenderSystem(Renderer::RenderSystem* renderSystem);
@@ -55,7 +57,10 @@ void MyGame::onWindowResize(const Pyramid::WindowResizeEvent& event)
 
 ## Input
 
-Header: `Pyramid/Platform/Input.hpp`
+Headers:
+
+- `Pyramid/Platform/Input.hpp`
+- `Pyramid/Input/InputActions.hpp`
 
 `Win32OpenGLWindow` converts native keyboard, mouse-button, pointer, wheel, and focus messages into one platform-neutral `InputState`. `Window::ProcessMessages()` starts a new input frame before dispatching messages, so transitions and deltas are valid during the immediately following `Game::onUpdate()`.
 
@@ -83,7 +88,31 @@ void MyGame::onUpdate(float deltaTime)
 
 Queries include held, pressed-this-frame, and released-this-frame states for keyboard and mouse buttons; client-space pointer position; aggregated pointer movement; and vertical/horizontal wheel steps. Native key-repeat messages do not retrigger `WasKeyPressed()`. Losing focus releases every held key/button and resets the pointer baseline, preventing stuck controls or a large mouse jump after focus returns.
 
-Input is currently a direct polling layer. Action names, rebinding, chords, device abstraction, text input, raw relative mouse mode, and controllers are future work.
+`InputState` remains the low-level polling layer. `InputActionSystem` evaluates engine-generic named actions from that snapshot once per frame before `Game::onUpdate()`. It supports button, one-dimensional, and two-dimensional actions; prioritized enabled/disabled contexts; optional control consumption; key and mouse-button chords; mouse movement/wheel axes; and runtime binding replacement.
+
+```cpp
+void MyGame::onCreate()
+{
+    Game::onCreate();
+    auto* gameplay = GetInputActions().CreateContext("gameplay");
+    gameplay->AddAction("Move", Pyramid::InputActionType::Axis2D);
+    gameplay->AddBinding(
+        "Move",
+        Pyramid::InputBinding::KeyBinding(
+            Pyramid::Key::W,
+            1.0f,
+            Pyramid::InputAxisComponent::Y));
+}
+
+void MyGame::onUpdate(float deltaTime)
+{
+    Game::onUpdate(deltaTime);
+    const auto move = GetInputActions().GetActionValue2D("gameplay", "Move");
+    MovePlayer(move.x, move.y, deltaTime);
+}
+```
+
+Contexts are evaluated from highest to lowest priority. An enabled consuming context blocks only controls that were active during that frame, allowing UI, editor, console, gameplay, and vehicle modes to coexist. Controller input, text input, raw relative mouse mode, and persisted binding files remain future work.
 
 ## Graphics device and resources
 

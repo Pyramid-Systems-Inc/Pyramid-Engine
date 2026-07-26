@@ -1,5 +1,6 @@
 #include <Pyramid/Core/Game.hpp>
 #include <Pyramid/Platform/Input.hpp>
+#include <Pyramid/Input/InputActions.hpp>
 #include <Pyramid/Graphics/Texture.hpp>
 #include <Pyramid/Graphics/Texture/TextureResource.hpp>
 #include <Pyramid/Graphics/Texture/TextureCache.hpp>
@@ -31,9 +32,22 @@ namespace
     {
     public:
         using Pyramid::Game::GetInput;
+        using Pyramid::Game::GetInputActions;
         using Pyramid::Game::GetResourceRegistry;
         using Pyramid::Game::SetRenderSystem;
     };
+
+
+    volatile decltype(&Pyramid::InputActionSystem::CreateContext) g_createInputContext =
+        &Pyramid::InputActionSystem::CreateContext;
+    volatile decltype(&Pyramid::InputActionSystem::Update) g_updateInputActions =
+        &Pyramid::InputActionSystem::Update;
+    volatile decltype(&Pyramid::InputContext::AddAction) g_addInputAction =
+        &Pyramid::InputContext::AddAction;
+    volatile decltype(&Pyramid::InputContext::AddBinding) g_addInputBinding =
+        &Pyramid::InputContext::AddBinding;
+    volatile decltype(&Pyramid::InputContext::Rebind) g_rebindInputAction =
+        &Pyramid::InputContext::Rebind;
 
     using Pyramid::ITexture2D;
     using Pyramid::TextureFormat;
@@ -315,6 +329,9 @@ namespace
         static_cast<GetRegistryMaterials>(&Pyramid::ResourceRegistry::Materials);
     volatile decltype(&GameLinkageProbe::GetInput) g_getGameInput =
         &GameLinkageProbe::GetInput;
+    using GetGameInputActions = Pyramid::InputActionSystem& (GameLinkageProbe::*)();
+    volatile GetGameInputActions g_getGameInputActions =
+        static_cast<GetGameInputActions>(&GameLinkageProbe::GetInputActions);
     volatile decltype(&GameLinkageProbe::GetResourceRegistry) g_getGameResourceRegistry =
         &GameLinkageProbe::GetResourceRegistry;
     volatile decltype(&Pyramid::Renderer::CommandBuffer::SetMaterial) g_setMaterial =
@@ -481,7 +498,13 @@ int main()
                    g_getRegistryShaders &&
                    g_getRegistryTextures &&
                    g_getRegistryMaterials &&
+                   g_createInputContext &&
+                   g_updateInputActions &&
+                   g_addInputAction &&
+                   g_addInputBinding &&
+                   g_rebindInputAction &&
                    g_getGameInput &&
+                   g_getGameInputActions &&
                    g_getGameResourceRegistry &&
                    g_setMaterial &&
                    g_setCommandUniformMat4 &&

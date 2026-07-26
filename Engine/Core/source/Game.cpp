@@ -282,6 +282,10 @@ namespace Pyramid
             // Clamp delta time to prevent large jumps (e.g., when debugging or system lag)
             deltaTime = (std::min)(deltaTime, maxDeltaTime);
 
+            // Evaluate engine-generic action contexts from the completed native
+            // input snapshot before game logic reads named actions.
+            m_inputActions.Update(GetInput());
+
             // Update game logic
             onUpdate(deltaTime);
 

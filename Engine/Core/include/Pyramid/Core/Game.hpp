@@ -1,6 +1,7 @@
 #pragma once
 #include <Pyramid/Graphics/GraphicsDevice.hpp>
 #include <Pyramid/Platform/Window.hpp> // Added for std::unique_ptr<Window>
+#include <Pyramid/Input/InputActions.hpp>
 #include <memory>
 
 namespace Pyramid {
@@ -109,6 +110,15 @@ protected:
     const InputState& GetInput() const;
 
     /**
+     * @brief Engine-generic named action and input-context system.
+     *
+     * Configure contexts and bindings during onCreate(). Game evaluates them
+     * once per frame after native input messages and before onUpdate().
+     */
+    InputActionSystem& GetInputActions() { return m_inputActions; }
+    const InputActionSystem& GetInputActions() const { return m_inputActions; }
+
+    /**
      * @brief Register the camera whose projection follows the window client size.
      * @param camera Non-owning camera pointer, or nullptr to detach it.
      *
@@ -144,6 +154,7 @@ private:
     std::unique_ptr<Window> m_window;
     std::unique_ptr<IGraphicsDevice> m_graphicsDevice;
     std::unique_ptr<ResourceRegistry> m_resourceRegistry;
+    InputActionSystem m_inputActions;
     Camera* m_activeCamera;
     Renderer::RenderSystem* m_renderSystem;
     bool m_isRunning;

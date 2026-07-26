@@ -1,6 +1,7 @@
 #include <Pyramid/Core/Prerequisites.hpp>
 #include <Pyramid/Math/Math.hpp>
 #include <Pyramid/Platform/Input.hpp>
+#include <Pyramid/Input/InputActions.hpp>
 #include <Pyramid/Graphics/Geometry/MeshCache.hpp>
 #include <Pyramid/Graphics/Shader/ShaderCache.hpp>
 #include <Pyramid/Graphics/Texture/TextureCache.hpp>
@@ -26,6 +27,14 @@ int main()
     input.SetFocused(true);
     input.BeginFrame();
     input.ProcessKey(Pyramid::Key::W, true);
+    Pyramid::InputActionSystem inputActions;
+    auto* gameplayContext = inputActions.CreateContext("consumer-gameplay");
+    const bool actionConfigured = gameplayContext &&
+        gameplayContext->AddAction("MoveForward", Pyramid::InputActionType::Axis1D) &&
+        gameplayContext->AddBinding(
+            "MoveForward",
+            Pyramid::InputBinding::KeyBinding(Pyramid::Key::W));
+    inputActions.Update(input);
     Pyramid::ResourceRegistryReleaseStats released;
     const auto meshHandle = Pyramid::MeshHandle::FromParts(meshId, 1);
     const auto materialHandle = Pyramid::MaterialHandle::FromParts(materialId, 1);
@@ -48,11 +57,14 @@ int main()
               << " | manifest entries: " << manifest.GetEntryCount()
               << " | serialized scene objects: " << sceneSerialization.serializedObjects
               << " | input W: " << input.IsKeyDown(Pyramid::Key::W)
+              << " | move action: "
+              << inputActions.GetActionValue("consumer-gameplay", "MoveForward")
               << " | released resources: " << released.GetTotal() << '\n';
     return value.LengthSquared() > 0.0f && meshId.IsValid() && shaderId.IsValid() &&
         textureId.IsValid() && materialId.IsValid() && meshHandle.IsValid() &&
         materialHandle.IsValid() && input.IsKeyDown(Pyramid::Key::W) &&
-        input.WasKeyPressed(Pyramid::Key::W) &&
+        input.WasKeyPressed(Pyramid::Key::W) && actionConfigured &&
+        inputActions.IsActionDown("consumer-gameplay", "MoveForward") &&
         entity.IsValid() && entity.GetId() == Pyramid::EntityId(42) &&
         manifest.GetMeshHandle("consumer.mesh") == meshHandle
         ? 0

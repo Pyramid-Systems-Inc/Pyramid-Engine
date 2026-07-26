@@ -53,6 +53,7 @@ install(
         Engine/Core/include/
         Engine/Graphics/include/
         Engine/Platform/include/
+        Engine/Input/include/
         Engine/Math/include/
         Engine/Utils/include/
         vendor/glad/include/

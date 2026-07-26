@@ -9,7 +9,8 @@ Pyramid Engine is a monolithic C++17 library with a Win32/WGL platform implement
 | Layer | Namespace | Responsibility |
 |---|---|---|
 | Core | `Pyramid` | Application lifecycle, common types, and graphics API selection |
-| Platform | `Pyramid` | Window, message pump, and OpenGL context |
+| Platform | `Pyramid` | Window, message pump, native input translation, and OpenGL context |
+| Input | `Pyramid` | Named actions, bindings, prioritized contexts, consumption, and rebinding |
 | Graphics resources | `Pyramid` | Device, buffers, arrays, immutable meshes, mesh/shader caches, textures, framebuffers, and camera |
 | Renderer | `Pyramid::Renderer` | Command recording, materials, render targets, and render passes |
 | Scene | `Pyramid` | Stable-ID entities, hierarchical transforms, optional components, renderer proxies, and environment |
@@ -17,7 +18,7 @@ Pyramid Engine is a monolithic C++17 library with a Win32/WGL platform implement
 | Math | `Pyramid::Math` | Vectors, matrices, quaternions, geometry, and SIMD helpers |
 | Utilities | `Pyramid::Util` | Logging, image loading, bit reading, DEFLATE, zlib, and libjpeg integration |
 
-Direct Win32 keyboard/mouse polling is present. Action mapping, controllers, audio, physics, editor, scripting, and the asset pipeline are not currently present.
+Direct Win32 keyboard/mouse polling and engine-generic action mapping are present. Controllers, audio, physics, editor, scripting, and the asset pipeline are not currently present.
 
 ## Application lifecycle
 
@@ -27,7 +28,7 @@ Direct Win32 keyboard/mouse polling is present. Action mapping, controllers, aud
 4. Context creation fails if no OpenGL 3.3-or-newer core context is available.
 5. `IGraphicsDevice::Create` creates `OpenGLDevice`.
 6. `Game` attaches a platform-neutral resize callback after window/device construction.
-7. `Game::run()` calls `onCreate()`, processes messages, computes clamped delta time, updates, renders, and shuts down.
+7. `Game::run()` calls `onCreate()`, processes messages, computes clamped delta time, evaluates input-action contexts, updates, renders, and shuts down.
 
 Derived `onCreate()` implementations must call `Game::onCreate()` before creating graphics resources.
 
@@ -39,9 +40,9 @@ The base interface owns a replaceable resize callback and emits platform-neutral
 
 ## Input lifecycle
 
-`InputState` is platform-neutral and owned by the native window. At the start of each `Window::ProcessMessages()` call, transient press/release flags, pointer deltas, and wheel deltas are cleared. Win32 then translates `WM_KEY*`, `WM_MOUSE*`, capture, and focus messages into the state object. `Game::onUpdate()` reads the resulting snapshot through `GetInput()` on the same thread.
+`InputState` is platform-neutral and owned by the native window. At the start of each `Window::ProcessMessages()` call, transient press/release flags, pointer deltas, and wheel deltas are cleared. Win32 then translates `WM_KEY*`, `WM_MOUSE*`, capture, and focus messages into the state object.
 
-Held states persist across frames. Repeated native key-down messages do not create repeated presses. Focus loss releases every held key and mouse button, clears mouse motion, and resets the next pointer sample baseline. The current input layer intentionally does not own gameplay action semantics; action mapping belongs above it.
+Held states persist across frames. Repeated native key-down messages do not create repeated presses. Focus loss releases every held key and mouse button, clears mouse motion, and resets the next pointer sample baseline. After message processing, `Game` evaluates its `InputActionSystem` before `onUpdate()`. Named contexts map the snapshot to button, one-dimensional, and two-dimensional actions. Context priority and control consumption allow modal UI/editor/gameplay layers without embedding game-specific concepts in the platform backend. The RTS camera bindings in `BasicRendering` are an example profile only; the input subsystem remains general-purpose.
 
 ## Graphics device
 
