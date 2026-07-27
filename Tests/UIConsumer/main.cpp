@@ -1,6 +1,7 @@
 #include <Pyramid/Platform/Input.hpp>
 #include <Pyramid/Text/Text.hpp>
 #include <Pyramid/UI/UI.hpp>
+#include <Pyramid/UI/GameUI.hpp>
 
 #include <cstdlib>
 #include <iostream>
@@ -12,6 +13,16 @@ int main()
     input.BeginFrame();
 
     Pyramid::UI::Context ui;
+    Pyramid::UI::ScreenStack screens;
+    Pyramid::UI::Rect available{0.0f, 0.0f, 320.0f, 180.0f};
+    const auto docked = Pyramid::UI::ResolveDockedRect(
+        available,
+        Pyramid::UI::Dock::Top,
+        32.0f);
+    if (!docked.IsValid())
+    {
+        return EXIT_FAILURE;
+    }
     const Pyramid::UI::FrameInfo frame{320.0f, 180.0f, 1.0f, 1.0f / 60.0f};
     if (!ui.BeginFrame(frame, input))
     {

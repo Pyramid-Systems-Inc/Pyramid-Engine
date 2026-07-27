@@ -12,3 +12,6 @@ target_include_directories(BasicGame
 )
 
 set_target_properties(BasicGame PROPERTIES FOLDER "Examples")
+
+pyramid_require_mingw_runtime(BasicGame)
+install(TARGETS BasicGame RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT PyramidExamples)

@@ -22,8 +22,8 @@ The project is intended for engine development and experimentation. It is not ye
 | Images | Standalone `Pyramid::Image` library with TGA/BMP subsets, custom non-interlaced PNG, and owned baseline/progressive JPEG decoding |
 | Models | Standalone `Pyramid::Model` OBJ/MTL parser with bounded diagnostics, triangulation, indexing, generated normals, and normalized dependencies |
 | Text | Standalone `Pyramid::Text` UTF-8 decoding, wrapping/alignment, glyph-run generation, and deterministic embedded ASCII debug atlas |
-| UI | Standalone hybrid `Pyramid::UI` retained state/immediate facade with layout, scrolling, collapsing sections, input capture, clipping, widgets, and renderer-independent draw lists |
-| Tests | 46 CTest targets, including standalone foundation, math, input, image, model, text, and UI coverage plus focused engine/reference-game tests |
+| UI | Standalone hybrid `Pyramid::UI` runtime with retained game screens, immediate debug tools, responsive layout, modal input blocking, clipping, widgets, and renderer-independent draw lists |
+| Tests | 47 CTest targets, including standalone foundation, math, input, image, model, text, and UI coverage plus focused engine/reference-game tests |
 | CI | GCC and Clang, Debug and Release, package install, and external-consumer validation |
 
 ## Implemented
@@ -43,9 +43,9 @@ The project is intended for engine development and experimentation. It is not ye
 - Foundation types/logging, math primitives, physical/action input, image decoding, CPU model importing, debug text, and UI layout/interaction are independently testable owned libraries.
 - Dependency-free OBJ/MTL import supports positive/negative indices, polygon triangulation, material groups, common MTL properties, generated smooth or hard-edge normals, vertex deduplication, bounds, file/memory input, and bounded malformed-input diagnostics.
 - `ModelResourceImporter` transactionally publishes imported meshes, diffuse textures, and immutable materials through the existing caches using a configurable shader/material profile; repeated content is reused and failed imports roll back only resources introduced by that operation.
-- Hybrid `Pyramid::UI` contexts reconcile immediate widget calls into retained state, generate renderer-independent clipped draw batches, and reserve handled controls before gameplay action evaluation.
+- Hybrid `Pyramid::UI` contexts reconcile immediate widgets into retained state, while `ScreenStack` owns persistent opaque, transparent, and modal game screens with deferred lifecycle-safe routing.
 - `UIRenderer` uploads batched quads through the graphics device, renders the embedded `Pyramid::Text` atlas, supports registered image textures, explicitly restores the final DPI-scaled surface viewport after off-screen passes, applies scissor clipping, and restores the engine render-state baseline.
-- `BasicGame` includes an F1 runtime overlay with collapsible frame/render/resource/input diagnostics, animation/camera controls, and a scrollable severity-colored runtime log.
+- `BasicGame` includes a retained main menu, responsive gameplay HUD, modal pause menu, and an F1 runtime overlay with collapsible diagnostics and a scrollable runtime log.
 - Installable CMake packages export `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, `Pyramid::Model`, `Pyramid::Text`, `Pyramid::UI`, and `Pyramid::Engine`.
 
 ## Important limitations
@@ -56,7 +56,7 @@ The project is intended for engine development and experimentation. It is not ye
 - `SceneSerializer` version 2 persists stable entities, hierarchy, transforms, mesh-renderer components, light components, and the primary light. Cameras, environment settings, gameplay components, and editor metadata are not serialized yet; the legacy `SceneManager` JSON/XML/Binary methods remain unsupported.
 - Occlusion culling remains a placeholder and is disabled by default.
 - `ITexture2D::CreateDepthTarget` fails explicitly; use the framebuffer API for depth attachments.
-- Audio and physics modules are not part of the current source tree. Text editing/input, runtime font import, bidirectional/Arabic shaping, advanced retained screen authoring, raw relative mouse mode, collision-aware cameras, camera blending, and persisted user bindings are not implemented yet. The reference edge-scrolling/selection/command layer is example support rather than an installed engine API. Model import currently supports OBJ/MTL and diffuse `map_Kd` material publication only; additional material maps, model formats, asset packaging, and scene-hierarchy instantiation remain later steps.
+- Audio and physics modules are not part of the current source tree. Text editing/input, runtime font import, bidirectional/Arabic shaping, style sheets, controller navigation, raw relative mouse mode, collision-aware cameras, camera blending, and persisted user bindings are not implemented yet. The reference edge-scrolling/selection/command layer is example support rather than an installed engine API. Model import currently supports OBJ/MTL and diffuse `map_Kd` material publication only; additional material maps, model formats, asset packaging, and scene-hierarchy instantiation remain later steps.
 
 See [Roadmap and known issues](docs/ROADMAP.md) before building new systems on top of the engine.
 
@@ -78,6 +78,9 @@ Pyramid does **not** require Visual Studio or the Microsoft C++ compiler. The su
 ```powershell
 ./scripts/build-mingw.ps1 -Compiler gcc -Configuration Debug
 ```
+
+The build copies the required MinGW runtime DLLs beside every executable in `build/gcc-debug-tests/bin`, so the `.exe` files can be launched directly from Explorer or PowerShell.
+Launch the retained game-UI example directly with `./scripts/run-example.ps1 -Example BasicGame`.
 
 That configures, builds, and runs all tests. A Release build is:
 

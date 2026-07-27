@@ -103,6 +103,8 @@ The engine-facing `ModelResourceImporter` is the graphics bridge for renderer-in
 
 `Pyramid::UI` is a hybrid retained/immediate runtime. Widget calls reconcile stable scoped IDs into retained element state, then shared layout, focus, hit-testing, pointer capture, nested clipping, persistent collapsing/scroll state, theme resolution, and draw generation produce a renderer-independent `UI::DrawList`. Logical item rectangles remain stable inside scroll areas while visible retained rectangles, hit testing, and generated batches are intersected with the active clip. Multiple contexts can coexist for debug, game, and future editor surfaces without parallel widget implementations.
 
+`UI::ScreenStack` is the application-level retained routing layer. It owns persistent screens, distinguishes opaque, transparent, and modal presentation, defers structural changes requested during callbacks, and exposes whether the active screen blocks gameplay. Anchors and incremental docking resolve responsive rectangles without introducing a CSS engine; the same draw list supports nine-slice composition for future themed controls.
+
 Before named action contexts evaluate, `Game` asks each registered UI context for an `InputConsumptionMask`. Controls handled by UI are seeded into `InputActionSystem`, so clicks, drags, wheel input, and focused navigation keys do not leak into gameplay. `Game` also exposes that merged mask to game-side systems that intentionally read raw physical input; the RTS reference uses it to block edge scrolling, selection, and commands while UI owns the pointer. UI libraries never depend on `Game`; registration is an engine integration convenience.
 
 `UIRenderer` is the engine graphics adapter. It owns the UI shader, font-atlas texture, dynamic buffers, texture-ID registration, alpha-blended batching, the explicit final-surface framebuffer/viewport, conservative DPI-scaled scissor rectangles, and deterministic baseline-state restoration. Initialization is transactional: failures remove only shader/texture aliases and content introduced by that attempt while preserving unrelated or previously resident cache resources. `Pyramid::UI` never includes GLAD or issues graphics calls.
@@ -144,6 +146,7 @@ Size-based, render-target, and solid-color convenience factories remain availabl
 - Public headers are installed separately rather than exported through `INTERFACE_SOURCES`, keeping the package relocatable.
 - CMake package configuration and version files support independent engine, foundation, math, input, image, model, text, and UI consumers. The engine package resolves every owned library as an explicit package dependency.
 - Windows CI validates separate engine, foundation/math/input, image, model, and UI consumers after installation.
+- Native MinGW build trees and installations copy the compiler runtime DLLs into their `bin` directory through `PyramidMinGWRuntime`; Pyramid executables therefore do not depend on an interactive MSYS2 shell or user-modified `PATH`.
 
 ## Dependency direction
 

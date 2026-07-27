@@ -50,6 +50,12 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & $cmake --build --preset $buildPreset
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+$repositoryRoot = Split-Path $PSScriptRoot -Parent
+$buildDirectory = Join-Path $repositoryRoot ("build\" + $configurePreset)
+$bundleScript = Join-Path $PSScriptRoot "bundle-mingw-runtime.ps1"
+& $bundleScript -BuildDir $buildDirectory -Msys2Root $Msys2Root
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 if ($testPreset) {
     & $ctest --preset $testPreset
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

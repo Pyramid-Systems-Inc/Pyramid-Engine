@@ -4,6 +4,14 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### Retained game screens and runnable Windows outputs
+
+- Added `Pyramid::UI::ScreenStack` with persistent screen ownership, opaque/transparent/modal presentation, deferred push/pop/replace/clear operations, deterministic enter/exit/update/build lifecycle, gameplay-input blocking, and delta-time transition state.
+- Added reusable anchored/docked rectangle resolution, safe UI signals, full-frame modal overlays, and renderer-neutral nine-slice draw generation.
+- Migrated `BasicGame` to a retained main menu, gameplay HUD, responsive selection/status panels, and a modal pause menu while preserving the F1 immediate debug overlay.
+- Added `PYRAMID_BUNDLE_MINGW_RUNTIME`, a CMake runtime-copy target, install-time runtime deployment, and a PowerShell post-build verifier so `BasicGame.exe`, `BasicRenderingExample.exe`, and test executables run directly from `build/*/bin` without manually locating MinGW DLLs.
+- Added `UI.GameScreens` lifecycle/layout/event/nine-slice coverage; CTest now registers 47 targets.
+
 ### UI diagnostics, text layout, and render-surface restoration
 
 - Fixed the visible `BasicGame` corruption caused by off-screen passes leaving a shadow-map-sized viewport active: `RenderSystem` now restores the default framebuffer and main viewport after every pass, and `UIRenderer` establishes the final DPI-scaled surface viewport explicitly.

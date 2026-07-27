@@ -108,6 +108,7 @@ Clean configuration helper from PowerShell:
 | `PYRAMID_BUILD_EXAMPLES` | `ON` | Build both graphical examples |
 | `PYRAMID_BUILD_TESTS` | `OFF` | Enable CTest and all maintained tests |
 | `PYRAMID_WARNINGS_AS_ERRORS` | `OFF` | Promote GCC/Clang warnings to errors |
+| `PYRAMID_BUNDLE_MINGW_RUNTIME` | `ON` | Copy MinGW runtime DLLs beside build and installed executables |
 | `PYRAMID_ALLOW_UNSUPPORTED_HOST_CONFIGURE` | `OFF` | Configure-only validation outside Windows |
 
 Manual GCC configuration from UCRT64:
@@ -125,7 +126,7 @@ ctest --test-dir build/manual --output-on-failure
 
 ## Tests
 
-CTest registers 35 executables: seven standalone image tests plus API, platform, input, graphics, resource, spatial, scene, and reference-game tests. List the exact graph with:
+CTest registers 47 executables: seven standalone image tests plus API, platform, input, graphics, resource, spatial, scene, and reference-game tests. List the exact graph with:
 
 ```powershell
 ctest --test-dir build/gcc-debug-tests -N
@@ -158,6 +159,25 @@ build/gcc-debug-tests/bin/BasicGame.exe
 build/gcc-debug-tests/bin/BasicRenderingExample.exe
 build/gcc-debug-tests/lib/libPyramidEngined.a
 ```
+
+### Running executables directly
+
+`PYRAMID_BUNDLE_MINGW_RUNTIME` is enabled by default. CMake copies the MinGW runtime files required by GCC or Clang into the common output directory, and `scripts/build-mingw.ps1` verifies the bundle after every build. You can therefore launch:
+
+```powershell
+.\build\gcc-debug-tests\bin\BasicGame.exe
+.\build\gcc-debug-tests\bin\BasicRenderingExample.exe
+```
+
+without adding `C:\msys64\ucrt64\bin` to `PATH`. Installation places the same runtime files in `install/bin`. Disable this behavior only for controlled packaging with `-DPYRAMID_BUNDLE_MINGW_RUNTIME=OFF`.
+
+Build and launch an example in one command:
+
+```powershell
+.\scripts\run-example.ps1 -Example BasicGame -Compiler gcc -Configuration Debug
+```
+
+Use `-SkipBuild` to launch an existing build after rechecking the runtime bundle.
 
 ## Installable package
 

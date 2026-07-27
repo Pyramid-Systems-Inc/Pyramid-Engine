@@ -66,6 +66,13 @@ namespace Pyramid::UI
             width == other.width && height == other.height;
     }
 
+    bool Insets::IsFiniteNonNegative() const
+    {
+        return left >= 0.0f && top >= 0.0f && right >= 0.0f && bottom >= 0.0f &&
+            std::isfinite(left) && std::isfinite(top) &&
+            std::isfinite(right) && std::isfinite(bottom);
+    }
+
     bool FrameInfo::IsValid() const
     {
         return width > 0.0f && height > 0.0f && dpiScale > 0.0f &&
@@ -132,6 +139,50 @@ namespace Pyramid::UI
         else
         {
             m_batches.back().indexCount += 6;
+        }
+    }
+
+    void DrawList::AddNineSlice(
+        const Rect& rect,
+        const Rect& uv,
+        const Insets& border,
+        const Insets& uvBorder,
+        const Color& color,
+        TextureId texture,
+        const Rect& clip)
+    {
+        if (!rect.IsValid() || !clip.IsValid() || texture == 0 ||
+            !IsFiniteRect(rect) || !IsFiniteRect(uv) || !IsFiniteRect(clip) ||
+            !border.IsFiniteNonNegative() || !uvBorder.IsFiniteNonNegative())
+        {
+            return;
+        }
+
+        const f32 left = (std::min)(border.left, rect.width * 0.5f);
+        const f32 right = (std::min)(border.right, rect.width - left);
+        const f32 top = (std::min)(border.top, rect.height * 0.5f);
+        const f32 bottom = (std::min)(border.bottom, rect.height - top);
+        const f32 uvLeft = (std::min)(uvBorder.left, uv.width);
+        const f32 uvRight = (std::min)(uvBorder.right, uv.width - uvLeft);
+        const f32 uvTop = (std::min)(uvBorder.top, uv.height);
+        const f32 uvBottom = (std::min)(uvBorder.bottom, uv.height - uvTop);
+
+        const f32 x[4] = {rect.x, rect.x + left, rect.x + rect.width - right, rect.x + rect.width};
+        const f32 y[4] = {rect.y, rect.y + top, rect.y + rect.height - bottom, rect.y + rect.height};
+        const f32 u[4] = {uv.x, uv.x + uvLeft, uv.x + uv.width - uvRight, uv.x + uv.width};
+        const f32 v[4] = {uv.y, uv.y + uvTop, uv.y + uv.height - uvBottom, uv.y + uv.height};
+
+        for (u32 row = 0; row < 3; ++row)
+        {
+            for (u32 column = 0; column < 3; ++column)
+            {
+                AddQuad(
+                    {x[column], y[row], x[column + 1] - x[column], y[row + 1] - y[row]},
+                    {u[column], v[row], u[column + 1] - u[column], v[row + 1] - v[row]},
+                    color,
+                    texture,
+                    clip);
+            }
         }
     }
 
@@ -273,6 +324,28 @@ namespace Pyramid::UI
         m_input = nullptr;
         m_layoutStack.clear();
         return m_drawList;
+    }
+
+    void Context::Overlay(
+        std::string_view idText,
+        const Color& color,
+        bool blocksPointer)
+    {
+        if (!m_frameActive)
+        {
+            return;
+        }
+        const Rect rect{0.0f, 0.0f, m_frame.width, m_frame.height};
+        const WidgetId id = MakeId(idText);
+        RecordElement(
+            id,
+            ElementKind::Overlay,
+            rect,
+            rect,
+            true,
+            false,
+            blocksPointer);
+        DrawSolid(rect, color, rect);
     }
 
     bool Context::BeginPanel(std::string_view label, const PanelOptions& options)

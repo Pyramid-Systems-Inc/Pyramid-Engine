@@ -189,6 +189,25 @@ if (ui.BeginPanel("DEBUG"))
 const Pyramid::UI::DrawList& drawList = ui.EndFrame();
 ```
 
+Persistent game flow uses the retained screen stack:
+
+```cpp
+#include <Pyramid/UI/GameUI.hpp>
+
+Pyramid::UI::ScreenStack screens;
+screens.Push(mainMenuScreen);
+screens.Replace(gameplayHudScreen, {
+    Pyramid::UI::ScreenTransitionType::Fade, 0.15f});
+screens.Push(pauseModal);
+
+screens.Update(deltaTime);
+screens.Build(ui);
+
+const bool gameplayBlocked = screens.BlocksGameplayInput();
+```
+
+Screens receive deterministic `OnEnter`, `OnExit`, `Update`, and `Build` callbacks. Push, pop, replace, and clear operations requested during callbacks are deferred until dispatch completes. `ResolveAnchoredRect()` and `ResolveDockedRect()` provide responsive placement, while `DrawList::AddNineSlice()` emits renderer-neutral scalable panel geometry.
+
 Stable widget identity derives from the parent scope and label; use `PushId()`/`PopId()` when repeated labels need independent state. `PrepareInput()` hit-tests the previous retained frame and returns an `InputConsumptionMask` before action evaluation. Current widgets are panels, labels/value rows, colored and wrapped labels, separators, spacers, persistent collapsing headers, clipped vertical scroll areas, buttons, checkboxes, float sliders, progress bars, and images.
 
 The engine graphics adapter is:

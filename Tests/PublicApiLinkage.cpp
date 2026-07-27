@@ -27,6 +27,7 @@
 #include <Pyramid/Graphics/UI/UIRenderer.hpp>
 #include <Pyramid/Text/Text.hpp>
 #include <Pyramid/UI/UI.hpp>
+#include <Pyramid/UI/GameUI.hpp>
 #include <Pyramid/Util/Log.hpp>
 
 #include <memory>
@@ -96,6 +97,22 @@ namespace
         &Pyramid::UI::Context::BeginScrollArea;
     volatile decltype(&Pyramid::UI::Context::EndScrollArea) g_endScrollArea =
         &Pyramid::UI::Context::EndScrollArea;
+    volatile decltype(&Pyramid::UI::Context::Overlay) g_uiOverlay =
+        &Pyramid::UI::Context::Overlay;
+    volatile decltype(&Pyramid::UI::DrawList::AddNineSlice) g_addNineSlice =
+        &Pyramid::UI::DrawList::AddNineSlice;
+    volatile decltype(&Pyramid::UI::ResolveAnchoredRect) g_resolveAnchoredRect =
+        &Pyramid::UI::ResolveAnchoredRect;
+    volatile decltype(&Pyramid::UI::ResolveDockedRect) g_resolveDockedRect =
+        &Pyramid::UI::ResolveDockedRect;
+    volatile decltype(&Pyramid::UI::ScreenStack::Push) g_pushUIScreen =
+        &Pyramid::UI::ScreenStack::Push;
+    volatile decltype(&Pyramid::UI::ScreenStack::Replace) g_replaceUIScreen =
+        &Pyramid::UI::ScreenStack::Replace;
+    volatile decltype(&Pyramid::UI::ScreenStack::Pop) g_popUIScreen =
+        &Pyramid::UI::ScreenStack::Pop;
+    volatile decltype(&Pyramid::UI::ScreenStack::Build) g_buildUIScreens =
+        &Pyramid::UI::ScreenStack::Build;
     volatile decltype(&Pyramid::Util::Logger::GetRecentEntries) g_getRecentLogEntries =
         &Pyramid::Util::Logger::GetRecentEntries;
     volatile decltype(&Pyramid::Util::Logger::ClearHistory) g_clearLogHistory =

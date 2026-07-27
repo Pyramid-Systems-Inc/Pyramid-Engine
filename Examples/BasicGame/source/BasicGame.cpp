@@ -12,6 +12,7 @@
 #include <Pyramid/Examples/RTSReference/RTSInteractionController.hpp>
 #include <Pyramid/Math/Math.hpp>
 #include <Pyramid/Util/Log.hpp>
+#include <Pyramid/UI/GameUI.hpp>
 
 #include <algorithm>
 #include <array>
@@ -27,6 +28,7 @@ namespace
 {
     constexpr std::string_view kInputContext = "basic-game";
     constexpr std::string_view kQuitAction = "Quit";
+    constexpr std::string_view kPauseAction = "Pause";
     constexpr std::string_view kToggleAnimationAction = "ToggleAnimation";
     constexpr std::string_view kResetCameraAction = "ResetCamera";
     constexpr std::string_view kMoveAction = "Move";
@@ -71,6 +73,184 @@ namespace
         return std::string("[") + Pyramid::Util::LogLevelToString(entry.level) +
             "] " + entry.message;
     }
+
+    class MainMenuScreen final : public Pyramid::UI::Screen
+    {
+    public:
+        MainMenuScreen(std::function<void()> start, std::function<void()> quit)
+            : m_start(std::move(start))
+            , m_quit(std::move(quit))
+        {
+        }
+
+        std::string_view GetName() const override { return "MainMenu"; }
+        Pyramid::UI::ScreenPresentation GetPresentation() const override
+        {
+            return Pyramid::UI::ScreenPresentation::Opaque;
+        }
+
+        void Build(Pyramid::UI::Context& ui) override
+        {
+            const auto& frame = ui.GetFrameInfo();
+            ui.Overlay("MAIN MENU BACKDROP", Pyramid::Color(0.025f, 0.03f, 0.05f, 0.90f), true);
+            const Pyramid::UI::Rect root{0.0f, 0.0f, frame.width, frame.height};
+            const Pyramid::UI::Rect rect = Pyramid::UI::ResolveAnchoredRect(
+                root,
+                Pyramid::Math::Vec2(440.0f, 330.0f),
+                Pyramid::UI::Anchor::Center,
+                {18.0f, 18.0f, 18.0f, 18.0f});
+
+            Pyramid::UI::PanelOptions panel;
+            panel.position = Pyramid::Math::Vec2(rect.x, rect.y);
+            panel.size = Pyramid::Math::Vec2(rect.width, rect.height);
+            if (ui.BeginPanel("PYRAMID ENGINE", panel))
+            {
+                ui.WrappedLabel(
+                    "Owned retained game screens running on the same UI runtime as the debug tools.");
+                ui.Spacer(12.0f);
+                if (ui.Button("START GAME") && m_start)
+                {
+                    m_start();
+                }
+                ui.Spacer();
+                ui.Label("F1  DEBUG OVERLAY");
+                ui.Label("ESC  PAUSE DURING GAMEPLAY");
+                ui.Spacer();
+                if (ui.Button("QUIT") && m_quit)
+                {
+                    m_quit();
+                }
+                ui.EndPanel();
+            }
+        }
+
+    private:
+        std::function<void()> m_start;
+        std::function<void()> m_quit;
+    };
+
+    class GameplayHUDScreen final : public Pyramid::UI::Screen
+    {
+    public:
+        GameplayHUDScreen(
+            std::function<void()> pause,
+            std::function<std::string()> selection)
+            : m_pause(std::move(pause))
+            , m_selection(std::move(selection))
+        {
+        }
+
+        std::string_view GetName() const override { return "GameplayHUD"; }
+        Pyramid::UI::ScreenPresentation GetPresentation() const override
+        {
+            return Pyramid::UI::ScreenPresentation::Transparent;
+        }
+
+        void Build(Pyramid::UI::Context& ui) override
+        {
+            const auto& frame = ui.GetFrameInfo();
+            const Pyramid::UI::Rect root{0.0f, 0.0f, frame.width, frame.height};
+            const Pyramid::UI::Rect pauseRect = Pyramid::UI::ResolveAnchoredRect(
+                root,
+                Pyramid::Math::Vec2(180.0f, 92.0f),
+                Pyramid::UI::Anchor::TopRight,
+                {12.0f, 12.0f, 12.0f, 12.0f});
+            Pyramid::UI::PanelOptions pausePanel;
+            pausePanel.position = Pyramid::Math::Vec2(pauseRect.x, pauseRect.y);
+            pausePanel.size = Pyramid::Math::Vec2(pauseRect.width, pauseRect.height);
+            if (ui.BeginPanel("GAME", pausePanel))
+            {
+                if (ui.Button("PAUSE  [ESC]") && m_pause)
+                {
+                    m_pause();
+                }
+                ui.EndPanel();
+            }
+
+            const Pyramid::UI::Rect statusRect = Pyramid::UI::ResolveAnchoredRect(
+                root,
+                Pyramid::Math::Vec2(320.0f, 126.0f),
+                Pyramid::UI::Anchor::BottomLeft,
+                {12.0f, 12.0f, 12.0f, 12.0f});
+            Pyramid::UI::PanelOptions statusPanel;
+            statusPanel.position = Pyramid::Math::Vec2(statusRect.x, statusRect.y);
+            statusPanel.size = Pyramid::Math::Vec2(statusRect.width, statusRect.height);
+            if (ui.BeginPanel("SELECTION", statusPanel))
+            {
+                ui.LabelValue("ENTITY", m_selection ? m_selection() : "NONE");
+                ui.Label("LEFT CLICK SELECT");
+                ui.Label("RIGHT CLICK COMMAND");
+                ui.EndPanel();
+            }
+        }
+
+    private:
+        std::function<void()> m_pause;
+        std::function<std::string()> m_selection;
+    };
+
+    class PauseScreen final : public Pyramid::UI::Screen
+    {
+    public:
+        PauseScreen(
+            std::function<void()> resume,
+            std::function<void()> resetCamera,
+            std::function<void()> mainMenu,
+            std::function<void()> quit)
+            : m_resume(std::move(resume))
+            , m_resetCamera(std::move(resetCamera))
+            , m_mainMenu(std::move(mainMenu))
+            , m_quit(std::move(quit))
+        {
+        }
+
+        std::string_view GetName() const override { return "Pause"; }
+        Pyramid::UI::ScreenPresentation GetPresentation() const override
+        {
+            return Pyramid::UI::ScreenPresentation::Modal;
+        }
+
+        void Build(Pyramid::UI::Context& ui) override
+        {
+            const auto& frame = ui.GetFrameInfo();
+            ui.Overlay("PAUSE BACKDROP", Pyramid::Color(0.01f, 0.015f, 0.025f, 0.72f), true);
+            const Pyramid::UI::Rect root{0.0f, 0.0f, frame.width, frame.height};
+            const Pyramid::UI::Rect rect = Pyramid::UI::ResolveAnchoredRect(
+                root,
+                Pyramid::Math::Vec2(390.0f, 320.0f),
+                Pyramid::UI::Anchor::Center,
+                {16.0f, 16.0f, 16.0f, 16.0f});
+            Pyramid::UI::PanelOptions panel;
+            panel.position = Pyramid::Math::Vec2(rect.x, rect.y);
+            panel.size = Pyramid::Math::Vec2(rect.width, rect.height);
+            if (ui.BeginPanel("PAUSED", panel))
+            {
+                if (ui.Button("RESUME") && m_resume)
+                {
+                    m_resume();
+                }
+                if (ui.Button("RESET CAMERA") && m_resetCamera)
+                {
+                    m_resetCamera();
+                }
+                if (ui.Button("RETURN TO MAIN MENU") && m_mainMenu)
+                {
+                    m_mainMenu();
+                }
+                if (ui.Button("QUIT") && m_quit)
+                {
+                    m_quit();
+                }
+                ui.EndPanel();
+            }
+        }
+
+    private:
+        std::function<void()> m_resume;
+        std::function<void()> m_resetCamera;
+        std::function<void()> m_mainMenu;
+        std::function<void()> m_quit;
+    };
 
     constexpr const char* kForwardVertexShader = R"(
 #version 330 core
@@ -126,6 +306,7 @@ BasicGame::BasicGame()
 BasicGame::~BasicGame()
 {
     UnregisterUIContext(&m_debugUI);
+    UnregisterUIContext(&m_gameUI);
 }
 
 void BasicGame::onCreate()
@@ -170,19 +351,28 @@ void BasicGame::onCreate()
     }
     SetRenderSystem(m_renderSystem.get());
 
+    auto gameTheme = m_gameUI.GetTheme();
+    gameTheme.textScale = 1.5f;
+    gameTheme.defaultRowHeight = 30.0f;
+    gameTheme.spacing = 8.0f;
+    gameTheme.padding = 10.0f;
+    m_gameUI.SetTheme(gameTheme);
+
     auto debugTheme = m_debugUI.GetTheme();
     debugTheme.textScale = 1.5f;
     debugTheme.defaultRowHeight = 28.0f;
     debugTheme.spacing = 7.0f;
     m_debugUI.SetTheme(debugTheme);
+    m_debugUI.SetEnabled(m_debugUIVisible);
 
     m_uiRenderer = std::make_unique<Pyramid::UIRenderer>();
-    if (!m_uiRenderer->Initialize(*device, *resources, m_debugUI.GetDebugFont()))
+    if (!m_uiRenderer->Initialize(*device, *resources, m_gameUI.GetDebugFont()))
     {
         PYRAMID_LOG_CRITICAL("BasicGame aborted: UI renderer initialization failed.");
         quit();
         return;
     }
+    RegisterUIContext(&m_gameUI);
     RegisterUIContext(&m_debugUI);
 
     m_scene = std::make_shared<Pyramid::Scene>("BasicGame Scene");
@@ -303,8 +493,10 @@ void BasicGame::onCreate()
     environment.skyColor = Pyramid::Math::Vec3(0.09f, 0.12f, 0.18f);
     environment.ambientColor = Pyramid::Math::Vec3(0.12f, 0.12f, 0.14f);
 
+    ShowMainMenu();
+
     PYRAMID_LOG_INFO(
-        "BasicGame ready: RTS reference input active (edge scroll, selection, commands).");
+        "BasicGame ready: retained game screens and RTS reference input are active.");
 }
 
 void BasicGame::onUpdate(float deltaTime)
@@ -324,7 +516,23 @@ void BasicGame::onUpdate(float deltaTime)
         m_debugUI.SetEnabled(m_debugUIVisible);
     }
 
-    if (actions.WasActionPressed(kInputContext, kToggleAnimationAction))
+    if (actions.WasActionPressed(kInputContext, kPauseAction))
+    {
+        if (m_gameScreens.GetTopName() == "Pause")
+        {
+            ResumeGameplay();
+        }
+        else if (m_gameScreens.GetTopName() == "GameplayHUD")
+        {
+            OpenPauseMenu();
+        }
+    }
+
+    m_gameScreens.Update(deltaTime);
+    const bool gameplayBlocked = m_gameScreens.BlocksGameplayInput();
+
+    if (!gameplayBlocked &&
+        actions.WasActionPressed(kInputContext, kToggleAnimationAction))
     {
         m_animationPaused = !m_animationPaused;
         PYRAMID_LOG_INFO(
@@ -332,7 +540,7 @@ void BasicGame::onUpdate(float deltaTime)
             m_animationPaused ? "paused" : "resumed");
     }
 
-    if (!m_animationPaused)
+    if (m_gameplayStarted && !gameplayBlocked && !m_animationPaused)
     {
         m_elapsedTime += deltaTime;
     }
@@ -345,7 +553,8 @@ void BasicGame::onUpdate(float deltaTime)
             0.0f));
     }
 
-    if (m_camera && m_cameraController && m_interactionController && m_sceneManager)
+    if (!gameplayBlocked && m_camera && m_cameraController &&
+        m_interactionController && m_sceneManager)
     {
         m_sceneManager->Update(deltaTime);
         m_interactionController->Update(
@@ -381,6 +590,7 @@ void BasicGame::onUpdate(float deltaTime)
         }
     }
 
+    BuildGameUI(deltaTime);
     BuildDebugUI(deltaTime);
 }
 
@@ -394,11 +604,96 @@ void BasicGame::onRender()
 
     m_renderSystem->BeginFrame();
     m_renderSystem->Render(*m_scene, *m_camera);
-    if (m_uiRenderer && m_debugUIVisible)
+    if (m_uiRenderer)
     {
-        (void)m_uiRenderer->Render(m_debugUI.GetDrawList(), m_uiFrame);
+        (void)m_uiRenderer->Render(m_gameUI.GetDrawList(), m_uiFrame);
+        if (m_debugUIVisible)
+        {
+            (void)m_uiRenderer->Render(m_debugUI.GetDrawList(), m_uiFrame);
+        }
     }
     m_renderSystem->EndFrame();
+}
+
+void BasicGame::BuildGameUI(float deltaTime)
+{
+    m_uiFrame.deltaTime = deltaTime;
+    if (!m_gameUI.BeginFrame(m_uiFrame, GetInput()))
+    {
+        return;
+    }
+    m_gameScreens.Build(m_gameUI);
+    (void)m_gameUI.EndFrame();
+}
+
+void BasicGame::ShowMainMenu()
+{
+    m_gameplayStarted = false;
+    auto screen = std::make_shared<MainMenuScreen>(
+        [this]() { StartGameplay(); },
+        [this]() { quit(); });
+    m_gameScreens.Clear();
+    (void)m_gameScreens.Push(
+        std::move(screen),
+        {Pyramid::UI::ScreenTransitionType::Fade, 0.20f});
+}
+
+void BasicGame::StartGameplay()
+{
+    m_gameplayStarted = true;
+    auto screen = std::make_shared<GameplayHUDScreen>(
+        [this]() { OpenPauseMenu(); },
+        [this]()
+        {
+            if (!m_interactionController)
+            {
+                return std::string("NONE");
+            }
+            const Pyramid::EntityId selected =
+                m_interactionController->GetSelectedEntityId();
+            return selected
+                ? std::string("ENTITY ") + std::to_string(selected.GetValue())
+                : std::string("NONE");
+        });
+    (void)m_gameScreens.Replace(
+        std::move(screen),
+        {Pyramid::UI::ScreenTransitionType::Fade, 0.15f});
+}
+
+void BasicGame::OpenPauseMenu()
+{
+    if (!m_gameplayStarted || m_gameScreens.GetTopName() == "Pause")
+    {
+        return;
+    }
+    auto screen = std::make_shared<PauseScreen>(
+        [this]() { ResumeGameplay(); },
+        [this]()
+        {
+            if (m_cameraController && m_camera)
+            {
+                m_cameraController->Reset(*m_camera);
+            }
+        },
+        [this]() { ReturnToMainMenu(); },
+        [this]() { quit(); });
+    (void)m_gameScreens.Push(
+        std::move(screen),
+        {Pyramid::UI::ScreenTransitionType::Fade, 0.12f});
+}
+
+void BasicGame::ResumeGameplay()
+{
+    if (m_gameScreens.GetTopName() == "Pause")
+    {
+        (void)m_gameScreens.Pop(
+            {Pyramid::UI::ScreenTransitionType::Fade, 0.12f});
+    }
+}
+
+void BasicGame::ReturnToMainMenu()
+{
+    ShowMainMenu();
 }
 
 void BasicGame::BuildDebugUI(float deltaTime)
@@ -710,6 +1005,12 @@ bool BasicGame::SetupInputActions()
     valid = context->AddAction(std::string(kQuitAction), Pyramid::InputActionType::Button) && valid;
     valid = context->AddBinding(
         kQuitAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::F10)) && valid;
+    valid = context->AddAction(
+        std::string(kPauseAction),
+        Pyramid::InputActionType::Button) && valid;
+    valid = context->AddBinding(
+        kPauseAction,
         Pyramid::InputBinding::KeyBinding(Pyramid::Key::Escape)) && valid;
     valid = context->AddAction(
         std::string(kToggleDebugUIAction),

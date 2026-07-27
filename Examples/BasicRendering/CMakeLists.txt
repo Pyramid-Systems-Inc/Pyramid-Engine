@@ -15,3 +15,6 @@ add_custom_command(TARGET BasicRenderingExample POST_BUILD
         "$<TARGET_FILE_DIR:BasicRenderingExample>/Assets"
     COMMENT "Copying BasicRendering model assets"
 )
+
+pyramid_require_mingw_runtime(BasicRenderingExample)
+install(TARGETS BasicRenderingExample RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT PyramidExamples)

@@ -134,7 +134,8 @@ A full editor follows the validated runtime model. Baa integration starts as gam
 - Runtime font import and owned font asset format.
 - [x] Strict UTF-8 decoding, malformed-sequence diagnostics, tab expansion, word/character wrapping, and horizontal alignment for the embedded debug atlas.
 - Bidirectional layout, Arabic shaping, fallback font chains, and text editing/IME integration.
-- Retained screen routing, style classes, animation, controller navigation, and game HUD composition.
+- [x] Retained opaque/transparent/modal screen routing, deferred lifecycle operations, responsive anchors/docking, safe events, transition state, nine-slice geometry, and reference main-menu/HUD/pause composition.
+- Style classes, visual transition application, controller navigation, and reusable list/tree widgets.
 - Editor widgets including tree views, property grids, splitters, menus, dialogs, docking, and scene/resource inspectors.
 
 ## Pre-release exit criteria

@@ -32,6 +32,16 @@ namespace Pyramid::UI
         [[nodiscard]] bool operator!=(const Rect& other) const { return !(*this == other); }
     };
 
+    struct Insets
+    {
+        f32 left = 0.0f;
+        f32 top = 0.0f;
+        f32 right = 0.0f;
+        f32 bottom = 0.0f;
+
+        [[nodiscard]] bool IsFiniteNonNegative() const;
+    };
+
     struct FrameInfo
     {
         f32 width = 0.0f;
@@ -82,6 +92,14 @@ namespace Pyramid::UI
         void AddQuad(
             const Rect& rect,
             const Rect& uv,
+            const Color& color,
+            TextureId texture,
+            const Rect& clip);
+        void AddNineSlice(
+            const Rect& rect,
+            const Rect& uv,
+            const Insets& border,
+            const Insets& uvBorder,
             const Color& color,
             TextureId texture,
             const Rect& clip);
@@ -160,6 +178,11 @@ namespace Pyramid::UI
         [[nodiscard]] bool BeginFrame(const FrameInfo& frame, const InputState& input);
         [[nodiscard]] const DrawList& EndFrame();
 
+        /** Full-frame overlay used by menus and modal screens. */
+        void Overlay(
+            std::string_view id,
+            const Color& color,
+            bool blocksPointer = true);
         [[nodiscard]] bool BeginPanel(std::string_view label, const PanelOptions& options = {});
         void EndPanel();
         [[nodiscard]] bool BeginHorizontal(std::string_view id, f32 height = 0.0f);
@@ -214,6 +237,7 @@ namespace Pyramid::UI
             const Rect& uv = Rect{0.0f, 0.0f, 1.0f, 1.0f});
 
         [[nodiscard]] const DrawList& GetDrawList() const { return m_drawList; }
+        [[nodiscard]] const FrameInfo& GetFrameInfo() const { return m_frame; }
         [[nodiscard]] ContextStats GetStats() const;
         [[nodiscard]] WidgetId GetFocusedWidget() const { return m_focusedId; }
         [[nodiscard]] bool WantsPointerInput() const { return m_wantsPointer; }
@@ -222,6 +246,7 @@ namespace Pyramid::UI
     private:
         enum class ElementKind : u8
         {
+            Overlay,
             Panel,
             Container,
             Label,

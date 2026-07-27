@@ -164,3 +164,13 @@ add_executable(ModelMaterialResourceImporterTests ModelMaterialResourceImporterT
 target_link_libraries(ModelMaterialResourceImporterTests PRIVATE Pyramid::Engine)
 set_target_properties(ModelMaterialResourceImporterTests PROPERTIES FOLDER "Tests/Graphics")
 add_test(NAME Graphics.ModelMaterialResourceImport COMMAND $<TARGET_FILE:ModelMaterialResourceImporterTests>)
+
+if(TARGET PyramidMinGWRuntime)
+    get_property(_pyramid_test_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+    foreach(_pyramid_test_target IN LISTS _pyramid_test_targets)
+        get_target_property(_pyramid_test_type "${_pyramid_test_target}" TYPE)
+        if(_pyramid_test_type STREQUAL "EXECUTABLE")
+            add_dependencies("${_pyramid_test_target}" PyramidMinGWRuntime)
+        endif()
+    endforeach()
+endif()
