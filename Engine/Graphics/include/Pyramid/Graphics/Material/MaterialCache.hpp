@@ -68,6 +68,9 @@ namespace Pyramid
         bool Contains(MaterialAssetId assetId) const;
         u32 GetGeneration(MaterialAssetId assetId) const;
 
+        /** Remove only a non-canonical alias without evicting resident material content. */
+        bool RemoveAlias(MaterialAssetId assetId);
+
         /** Evict the resolved material and every alias that references it. */
         bool Evict(MaterialAssetId assetId);
 

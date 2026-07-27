@@ -239,7 +239,7 @@ if (!imported.IsValid())
 
 `ImportedModel` contains CPU-side materials, primitives, indexed vertices, bounds, and structured diagnostics. `ObjImportOptions` controls V-coordinate flipping, missing-normal generation, declared-library strictness, and byte/count/diagnostic limits. The parser accepts positive and negative OBJ indices, polygons, object/group/material splits, source or generated normals, quoted paths, and common MTL properties. Unsupported or malformed data is reported explicitly.
 
-Publish imported primitives through the existing registry/cache:
+Publish imported meshes only when a tool intends to assign materials later:
 
 ```cpp
 Pyramid::ModelMeshImportOptions options;
@@ -249,12 +249,34 @@ auto uploaded = Pyramid::ModelResourceImporter::UploadMeshes(
     *GetResourceRegistry(),
     imported,
     options);
-
-if (uploaded.IsSuccess())
-    auto mesh = GetResourceRegistry()->Resolve(uploaded.meshes.front().mesh);
 ```
 
-The upload is transactional across the model: all primitives and stable-ID conflicts are validated first, and a graphics allocation failure removes aliases and geometry introduced by that operation while preserving pre-existing cache entries. `ImportedMeshResource::materialIndex` preserves the parsed material slot, but automatic texture/material creation is not implemented yet. `MeshCache::RemoveAlias()` exists for this transactional publication boundary and cannot remove canonical content IDs.
+For renderable resources, provide the shader-facing material profile explicitly:
+
+```cpp
+Pyramid::ModelResourceImportOptions options;
+options.assetPrefix = "models/tower";
+options.sourceDirectory = "Assets/Models";
+options.materialProfile.shader = towerShader;
+options.materialProfile.diffuseTexture.colorSpace =
+    Pyramid::TextureColorSpace::SRGB;
+options.materialProfile.missingTextureBehavior =
+    Pyramid::ModelMissingTextureBehavior::Error;
+
+auto resources = Pyramid::ModelResourceImporter::ImportModel(
+    *GetResourceRegistry(),
+    imported,
+    options);
+
+if (resources.IsSuccess())
+{
+    auto mesh = GetResourceRegistry()->Resolve(resources.renderables.front().mesh);
+    auto material = GetResourceRegistry()->Resolve(
+        resources.renderables.front().material);
+}
+```
+
+`ImportModel()` maps MTL ambient, diffuse, specular, shininess, opacity, illumination-model, and diffuse `map_Kd` data into immutable texture/material resources. Uniform and sampler names, render state, texture color space/filtering/wrapping, fallback material, missing-texture behavior, and opacity-driven alpha blending are configurable. The operation reuses exact resident content, rejects stable-ID conflicts, and rolls back only aliases and resources created by the failed operation. Mesh-only and complete imports preserve source material-slot indices. Non-canonical cache aliases can be removed transactionally through `MeshCache::RemoveAlias()`, `TextureCache::RemoveAlias()`, and `MaterialCache::RemoveAlias()`; canonical content IDs cannot be removed by those methods.
 
 ### Textures
 

@@ -47,17 +47,11 @@ const std::string vertexShaderSrc = R"(
         float u_Time;
     };
 
-    layout(std140) uniform MaterialData {
-        vec4 u_BaseColor;
-        vec4 u_EmissiveColor;
-        float u_Metallic;
-        float u_Roughness;
-    };
-
     out vec3 v_Color;
     out vec3 v_Normal;
     out vec3 v_WorldPos;
     out vec3 v_ViewPos;
+    out vec2 v_TexCoord;
 
     void main()
     {
@@ -65,6 +59,7 @@ const std::string vertexShaderSrc = R"(
         v_Normal = a_Normal;
         v_WorldPos = a_Position;
         v_ViewPos = u_CameraPosition.xyz;
+        v_TexCoord = a_TexCoord;
 
         gl_Position = u_ViewProjectionMatrix * vec4(a_Position, 1.0);
     }
@@ -79,6 +74,7 @@ const std::string fragmentShaderSrc = R"(
     in vec3 v_Normal;
     in vec3 v_WorldPos;
     in vec3 v_ViewPos;
+    in vec2 v_TexCoord;
 
     layout(std140) uniform SceneData {
         mat4 u_ViewMatrix;
@@ -90,39 +86,39 @@ const std::string fragmentShaderSrc = R"(
         float u_Time;
     };
 
-    layout(std140) uniform MaterialData {
-        vec4 u_BaseColor;
-        vec4 u_EmissiveColor;
-        float u_Metallic;
-        float u_Roughness;
-    };
+    uniform sampler2D u_AlbedoMap;
+    uniform int u_HasAlbedoMap;
+    uniform vec3 u_AmbientColor;
+    uniform vec4 u_BaseColor;
+    uniform vec3 u_SpecularColor;
+    uniform float u_SpecularExponent;
+    uniform float u_Opacity;
+    uniform int u_IlluminationModel;
 
     void main()
     {
-        // Normalize vectors
         vec3 normal = normalize(v_Normal);
         vec3 lightDir = normalize(-u_LightDirection.xyz);
         vec3 viewDir = normalize(v_ViewPos - v_WorldPos);
-
-        // Basic lighting calculations
         float NdotL = max(dot(normal, lightDir), 0.0);
 
-        // Diffuse lighting
-        vec3 diffuse = u_LightColor.rgb * NdotL;
+        vec4 sampled = u_HasAlbedoMap != 0
+            ? texture(u_AlbedoMap, v_TexCoord)
+            : vec4(1.0);
+        vec3 albedo = v_Color * u_BaseColor.rgb * sampled.rgb;
+        vec3 ambient = albedo * (u_AmbientColor + vec3(0.08));
+        vec3 diffuse = albedo * u_LightColor.rgb * NdotL;
 
-        // Ambient lighting
-        vec3 ambient = u_LightColor.rgb * 0.2;
+        vec3 specular = vec3(0.0);
+        if (u_IlluminationModel >= 2 && NdotL > 0.0)
+        {
+            vec3 reflectDir = reflect(-lightDir, normal);
+            float exponent = max(u_SpecularExponent, 1.0);
+            float factor = pow(max(dot(viewDir, reflectDir), 0.0), exponent);
+            specular = u_SpecularColor * u_LightColor.rgb * factor;
+        }
 
-        // Specular lighting (simplified)
-        vec3 reflectDir = reflect(-lightDir, normal);
-        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
-        vec3 specular = u_LightColor.rgb * spec * u_Metallic;
-
-        // Combine lighting with vertex colors and material properties
-        vec3 baseColor = v_Color * u_BaseColor.rgb;
-        vec3 finalColor = baseColor * (ambient + diffuse) + specular + u_EmissiveColor.rgb;
-
-        FragColor = vec4(finalColor, 1.0);
+        FragColor = vec4(ambient + diffuse + specular, u_Opacity * sampled.a);
     }
 )";
 
@@ -158,41 +154,13 @@ void BasicRendering::onCreate()
         return;
     }
 
-    // Initialize all components
+    // Initialize the shader before importing the model because the graphics-side
+    // import profile publishes immutable materials against that shader.
     InitializeShaders();
     CreateGeometry();
-
-    const std::array<Pyramid::u8, 4> whitePixel = {255, 255, 255, 255};
-    Pyramid::TextureResourceSpecification textureSpecification;
-    textureSpecification.texture.Width = 1;
-    textureSpecification.texture.Height = 1;
-    textureSpecification.texture.Format = Pyramid::TextureFormat::RGBA8;
-    textureSpecification.texture.GenerateMips = false;
-    textureSpecification.texture.MinFilter = Pyramid::TextureFilter::Linear;
-    textureSpecification.pixelData = whitePixel.data();
-    textureSpecification.pixelDataSize = whitePixel.size();
-    textureSpecification.colorSpace = Pyramid::TextureColorSpace::SRGB;
-    textureSpecification.assetId =
-        Pyramid::TextureAssetId::FromString("examples/basic-rendering/white");
-    textureSpecification.name = "BasicRendering White";
-    m_debugTexture = resources->Textures().GetOrCreate(textureSpecification);
-
-    Pyramid::MaterialSpecification materialSpecification;
-    materialSpecification.shader = m_shader;
-    materialSpecification.textures = {
-        {"u_AlbedoMap", 0, m_debugTexture}};
-    materialSpecification.uniforms = {
-        {"u_BaseColor", Pyramid::Math::Vec4(1.0f)},
-        {"u_EmissiveColor", Pyramid::Math::Vec4(0.0f)},
-        {"u_Metallic", 0.2f},
-        {"u_Roughness", 0.65f}};
-    materialSpecification.assetId =
-        Pyramid::MaterialAssetId::FromString("examples/basic-rendering/material");
-    materialSpecification.name = "BasicRendering Material";
-    m_material = resources->Materials().GetOrCreate(materialSpecification);
-    if (!m_material)
+    if (!m_mesh || !m_material)
     {
-        PYRAMID_LOG_ERROR("Failed to create the BasicRendering material");
+        PYRAMID_LOG_ERROR("Failed to import the BasicRendering renderable resources");
         return;
     }
 
@@ -273,29 +241,42 @@ void BasicRendering::CreateGeometry()
         return;
     }
 
-    Pyramid::ModelMeshImportOptions importOptions;
+    Pyramid::ModelResourceImportOptions importOptions;
     importOptions.assetPrefix = "examples/basic-rendering/pyramid";
-    const auto upload = Pyramid::ModelResourceImporter::UploadMeshes(
+    importOptions.materialProfile.shader = resources->GetHandle(m_shader->GetAssetId());
+    importOptions.materialProfile.diffuseTexture.colorSpace =
+        Pyramid::TextureColorSpace::SRGB;
+    importOptions.materialProfile.diffuseTexture.generateMips = true;
+    importOptions.materialProfile.diffuseTexture.flipY = false;
+
+    const auto upload = Pyramid::ModelResourceImporter::ImportModel(
         *resources,
         importedModel,
         importOptions);
-    if (!upload.IsSuccess() || upload.meshes.empty())
+    if (!upload.IsSuccess() || upload.renderables.empty())
     {
         for (const auto& diagnostic : upload.diagnostics)
         {
             if (diagnostic.IsError())
             {
-                PYRAMID_LOG_ERROR(diagnostic.message);
+                PYRAMID_LOG_ERROR(
+                    diagnostic.source, ":", diagnostic.line, ": ", diagnostic.message);
+            }
+            else
+            {
+                PYRAMID_LOG_WARN(
+                    diagnostic.source, ":", diagnostic.line, ": ", diagnostic.message);
             }
         }
-        PYRAMID_LOG_ERROR("Failed to publish the imported Pyramid mesh");
+        PYRAMID_LOG_ERROR("Failed to publish the imported Pyramid renderable resources");
         return;
     }
 
-    m_mesh = resources->Resolve(upload.meshes.front().mesh);
-    if (!m_mesh)
+    m_mesh = resources->Resolve(upload.renderables.front().mesh);
+    m_material = resources->Resolve(upload.renderables.front().material);
+    if (!m_mesh || !m_material)
     {
-        PYRAMID_LOG_ERROR("Imported Pyramid mesh handle could not be resolved");
+        PYRAMID_LOG_ERROR("Imported Pyramid mesh or material handle could not be resolved");
         return;
     }
 
@@ -355,13 +336,13 @@ void BasicRendering::SetupUniformBuffers()
     if (!device)
         return;
 
-    // Create uniform buffers
+    // Imported material properties are regular immutable material uniforms;
+    // only frame-varying scene data remains in a uniform buffer.
     m_sceneUBO = device->CreateUniformBuffer(sizeof(SceneUniforms));
-    m_materialUBO = device->CreateUniformBuffer(sizeof(MaterialUniforms));
 
-    if (!m_sceneUBO || !m_materialUBO)
+    if (!m_sceneUBO)
     {
-        PYRAMID_LOG_ERROR("Failed to create uniform buffers!");
+        PYRAMID_LOG_ERROR("Failed to create the scene uniform buffer!");
         return;
     }
 
@@ -373,22 +354,14 @@ void BasicRendering::SetupUniformBuffers()
     sceneData.lightColor = Pyramid::Math::Vec4(1.0f, 1.0f, 1.0f, 1.0f);
     sceneData.time = 0.0f;
 
-    MaterialUniforms materialData = {};
-    materialData.baseColor = Pyramid::Math::Vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    materialData.emissiveColor = Pyramid::Math::Vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    materialData.metallic = 0.5f;
-    materialData.roughness = 0.5f;
-
-    // Upload initial data
+    // Upload initial data.
     m_sceneUBO->UpdateData(&sceneData, sizeof(SceneUniforms));
-    m_materialUBO->UpdateData(&materialData, sizeof(MaterialUniforms));
 
-    // Bind uniform buffers to shader
+    // Bind the scene uniform buffer to the imported material shader.
     if (m_shader)
     {
         m_shader->Bind();
         m_shader->BindUniformBuffer("SceneData", m_sceneUBO.get(), 0);
-        m_shader->BindUniformBuffer("MaterialData", m_materialUBO.get(), 1);
         m_shader->Unbind();
     }
 
@@ -413,7 +386,7 @@ void BasicRendering::onUpdate(float deltaTime)
 void BasicRendering::UpdateUniformBuffers(float deltaTime)
 {
     (void)deltaTime;
-    if (!m_sceneUBO || !m_materialUBO || !m_camera)
+    if (!m_sceneUBO || !m_camera)
         return;
 
     // Update scene data
@@ -430,24 +403,8 @@ void BasicRendering::UpdateUniformBuffers(float deltaTime)
     sceneData.lightColor = Pyramid::Math::Vec4(1.0f, 0.95f, 0.8f, 1.0f);
     sceneData.time = m_time;
 
-    // Update material data with animated values
-    MaterialUniforms materialData = {};
-    materialData.baseColor = Pyramid::Math::Vec4(
-        0.8f + 0.2f * sin(m_time * 0.7f),
-        0.8f + 0.2f * sin(m_time * 0.9f + 2.0f),
-        0.8f + 0.2f * sin(m_time * 1.1f + 4.0f),
-        1.0f);
-    materialData.emissiveColor = Pyramid::Math::Vec4(
-        0.1f * sin(m_time * 2.0f),
-        0.1f * sin(m_time * 1.5f + 1.0f),
-        0.1f * sin(m_time * 1.8f + 3.0f),
-        1.0f);
-    materialData.metallic = 0.5f + 0.5f * sin(m_time * 0.4f);
-    materialData.roughness = 0.5f + 0.4f * sin(m_time * 0.6f + 1.5f);
-
-    // Upload updated data
+    // Imported material properties remain immutable; update only scene data.
     m_sceneUBO->UpdateData(&sceneData, sizeof(SceneUniforms));
-    m_materialUBO->UpdateData(&materialData, sizeof(MaterialUniforms));
 }
 
 bool BasicRendering::SetupInputActions()
@@ -575,17 +532,16 @@ void BasicRendering::onRender()
 
 void BasicRendering::RenderScene()
 {
-    if (!m_material || !m_mesh || !m_sceneUBO || !m_materialUBO)
+    if (!m_material || !m_mesh || !m_sceneUBO)
         return;
 
     auto device = GetGraphicsDevice();
     if (!device)
         return;
 
-    // Apply the engine-owned material and bind uniform buffers.
+    // Apply the imported immutable material and bind frame-varying scene data.
     m_material->Apply(*device);
     m_sceneUBO->Bind(0);
-    m_materialUBO->Bind(1);
 
     // Bind the engine-owned mesh and draw with its immutable metadata.
     m_mesh->Bind();

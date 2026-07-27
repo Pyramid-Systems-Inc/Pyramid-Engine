@@ -8,6 +8,14 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 - Fixed `WindowResizeEventTests` after the input-library extraction by linking it to `Pyramid::Input`, which propagates the required input and foundation headers.
 
+### Imported texture and material resources
+
+- Extended `ModelResourceImporter` with a configurable graphics profile that maps renderer-independent MTL data to a caller-supplied shader, sampler settings, uniform names, render state, fallback material, and missing-texture policy.
+- Added transactional `map_Kd` loading through `TextureCache`, immutable MTL material publication through `MaterialCache`, exact-content reuse, stable-ID conflict rejection, and dependency-safe rollback when a later texture, material, or mesh operation fails.
+- Added non-canonical `TextureCache::RemoveAlias()` and `MaterialCache::RemoveAlias()` operations with generation invalidation for transaction rollback without removing canonical content.
+- Added focused `Graphics.ModelMaterialResourceImport` coverage for MTL conversion, sRGB sampler settings, opacity blending, cache reuse, fallback materials, missing/malformed texture behavior, profile validation, stable-ID conflicts, and forced mid-import rollback.
+- Migrated `BasicRendering` to render the bundled OBJ with its imported MTL diffuse texture and immutable imported material rather than manually creating a texture/material; CTest now registers 42 targets.
+
 ### Owned model import foundation
 
 - Added the independently installable `PyramidModel` target exported as `Pyramid::Model`; it depends only on `Pyramid::Foundation` and `Pyramid::Math`.
@@ -16,7 +24,7 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 - Added transactional `ModelResourceImporter` publication through `MeshCache`, stable imported-mesh IDs, exact-content reuse, alias-conflict rejection, material-slot preservation, and rollback that leaves pre-existing resources intact.
 - Added non-canonical `MeshCache::RemoveAlias()` with generation invalidation for transaction-safe publication.
 - Replaced the hard-coded `BasicRendering` cube geometry with a bundled imported Pyramid OBJ/MTL asset copied beside the executable.
-- Added a standalone installed `Pyramid::Model` consumer and Windows CI validation; CTest now registers 41 targets.
+- Added a standalone installed `Pyramid::Model` consumer and Windows CI validation.
 
 ### Owned foundation, math, and input libraries
 

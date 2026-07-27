@@ -148,3 +148,8 @@ add_executable(ModelResourceImporterTests ModelResourceImporterTests.cpp)
 target_link_libraries(ModelResourceImporterTests PRIVATE Pyramid::Engine)
 set_target_properties(ModelResourceImporterTests PROPERTIES FOLDER "Tests/Graphics")
 add_test(NAME Graphics.ModelResourceImport COMMAND $<TARGET_FILE:ModelResourceImporterTests>)
+
+add_executable(ModelMaterialResourceImporterTests ModelMaterialResourceImporterTests.cpp)
+target_link_libraries(ModelMaterialResourceImporterTests PRIVATE Pyramid::Engine)
+set_target_properties(ModelMaterialResourceImporterTests PROPERTIES FOLDER "Tests/Graphics")
+add_test(NAME Graphics.ModelMaterialResourceImport COMMAND $<TARGET_FILE:ModelMaterialResourceImporterTests>)

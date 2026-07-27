@@ -207,6 +207,17 @@ namespace Pyramid
         return generation == m_generations.end() ? 0 : generation->second;
     }
 
+    bool MaterialCache::RemoveAlias(MaterialAssetId assetId)
+    {
+        const auto alias = m_assetToContent.find(assetId);
+        if (alias == m_assetToContent.end() || alias->second == assetId)
+        {
+            return false;
+        }
+        InvalidateAlias(assetId);
+        return true;
+    }
+
     bool MaterialCache::Evict(MaterialAssetId assetId)
     {
         const auto alias = m_assetToContent.find(assetId);

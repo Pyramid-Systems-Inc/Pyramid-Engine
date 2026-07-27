@@ -65,6 +65,10 @@ namespace Pyramid
         std::shared_ptr<TextureResource> Find(TextureAssetId assetId) const;
         bool Contains(TextureAssetId assetId) const;
         u32 GetGeneration(TextureAssetId assetId) const;
+
+        /** Remove only a non-canonical alias without evicting resident pixels. */
+        bool RemoveAlias(TextureAssetId assetId);
+
         bool Evict(TextureAssetId assetId);
         u32 CollectUnused();
         u32 Clear();

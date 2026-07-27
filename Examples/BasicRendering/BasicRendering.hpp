@@ -53,10 +53,8 @@ private:
     // Core rendering components
     std::shared_ptr<Pyramid::ShaderProgram> m_shader;
     std::shared_ptr<Pyramid::Mesh> m_mesh;
-    std::shared_ptr<Pyramid::TextureResource> m_debugTexture;
     std::shared_ptr<Pyramid::Material> m_material;
     std::shared_ptr<Pyramid::IUniformBuffer> m_sceneUBO;
-    std::shared_ptr<Pyramid::IUniformBuffer> m_materialUBO;
 
     // Camera system
     std::unique_ptr<Pyramid::Camera> m_camera;
@@ -78,12 +76,4 @@ private:
         float padding[3]; // Ensure 16-byte alignment
     };
 
-    struct MaterialUniforms
-    {
-        Pyramid::Math::Vec4 baseColor;
-        Pyramid::Math::Vec4 emissiveColor;
-        float metallic;
-        float roughness;
-        float padding[2]; // Ensure 16-byte alignment
-    };
 };

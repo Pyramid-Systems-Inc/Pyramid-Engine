@@ -106,6 +106,8 @@ namespace
         static_cast<ReloadTextureReplacement>(&Pyramid::TextureCache::Reload);
     volatile decltype(&Pyramid::TextureCache::Find) g_findCachedTexture =
         &Pyramid::TextureCache::Find;
+    volatile decltype(&Pyramid::TextureCache::RemoveAlias) g_removeCachedTextureAlias =
+        &Pyramid::TextureCache::RemoveAlias;
     volatile decltype(&Pyramid::TextureCache::Evict) g_evictCachedTexture =
         &Pyramid::TextureCache::Evict;
     volatile decltype(&Pyramid::TextureCache::CollectUnused) g_collectUnusedTextures =
@@ -238,6 +240,8 @@ namespace
         static_cast<UploadModelWithCache>(&Pyramid::ModelResourceImporter::UploadMeshes);
     volatile UploadModelWithRegistry g_uploadModelWithRegistry =
         static_cast<UploadModelWithRegistry>(&Pyramid::ModelResourceImporter::UploadMeshes);
+    volatile decltype(&Pyramid::ModelResourceImporter::ImportModel) g_importModelResources =
+        &Pyramid::ModelResourceImporter::ImportModel;
 
     using ShaderAssetIdFromString = Pyramid::ShaderAssetId (*)(std::string_view);
     volatile ShaderAssetIdFromString g_shaderAssetIdFromString =
@@ -283,6 +287,8 @@ namespace
         &Pyramid::MaterialCache::Replace;
     volatile decltype(&Pyramid::MaterialCache::Find) g_findCachedMaterial =
         &Pyramid::MaterialCache::Find;
+    volatile decltype(&Pyramid::MaterialCache::RemoveAlias) g_removeCachedMaterialAlias =
+        &Pyramid::MaterialCache::RemoveAlias;
     volatile decltype(&Pyramid::MaterialCache::Evict) g_evictCachedMaterial =
         &Pyramid::MaterialCache::Evict;
     volatile decltype(&Pyramid::MaterialCache::CollectUnused) g_collectUnusedMaterials =
@@ -426,6 +432,7 @@ int main()
                    g_reloadTexture &&
                    g_reloadTextureReplacement &&
                    g_findCachedTexture &&
+                   g_removeCachedTextureAlias &&
                    g_evictCachedTexture &&
                    g_collectUnusedTextures &&
                    g_clearTextureCache &&
@@ -492,6 +499,7 @@ int main()
                    g_importObjFile &&
                    g_uploadModelWithCache &&
                    g_uploadModelWithRegistry &&
+                   g_importModelResources &&
                    g_shaderAssetIdFromString &&
                    g_shaderAssetIdToString &&
                    g_calculateShaderContentId &&
@@ -513,6 +521,7 @@ int main()
                    g_getOrCreateCachedMaterial &&
                    g_replaceCachedMaterial &&
                    g_findCachedMaterial &&
+                   g_removeCachedMaterialAlias &&
                    g_evictCachedMaterial &&
                    g_collectUnusedMaterials &&
                    g_clearMaterialCache &&

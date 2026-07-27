@@ -21,7 +21,7 @@ The project is intended for engine development and experimentation. It is not ye
 | Input | Standalone `Pyramid::Input` physical state and named action mapping |
 | Images | Standalone `Pyramid::Image` library with TGA/BMP subsets, custom non-interlaced PNG, and owned baseline/progressive JPEG decoding |
 | Models | Standalone `Pyramid::Model` OBJ/MTL parser with bounded diagnostics, triangulation, indexing, generated normals, and normalized dependencies |
-| Tests | 41 CTest targets, including standalone foundation, math, input, image, and model coverage plus focused engine/reference-game tests |
+| Tests | 42 CTest targets, including standalone foundation, math, input, image, and model coverage plus focused engine/reference-game tests |
 | CI | GCC and Clang, Debug and Release, package install, and external-consumer validation |
 
 ## Implemented
@@ -40,7 +40,7 @@ The project is intended for engine development and experimentation. It is not ye
 - OpenGL driver debug callbacks and centralized error diagnostics in Debug builds.
 - Foundation types/logging, math primitives, physical/action input, image decoding, and CPU model importing are independently testable owned libraries.
 - Dependency-free OBJ/MTL import supports positive/negative indices, polygon triangulation, material groups, common MTL properties, generated smooth or hard-edge normals, vertex deduplication, bounds, file/memory input, and bounded malformed-input diagnostics.
-- `ModelResourceImporter` transactionally publishes imported primitives through the existing mesh cache and rolls back only resources introduced by a failed upload.
+- `ModelResourceImporter` transactionally publishes imported meshes, diffuse textures, and immutable materials through the existing caches using a configurable shader/material profile; repeated content is reused and failed imports roll back only resources introduced by that operation.
 - Installable CMake packages export `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, `Pyramid::Model`, and `Pyramid::Engine`.
 
 ## Important limitations
@@ -51,7 +51,7 @@ The project is intended for engine development and experimentation. It is not ye
 - `SceneSerializer` version 2 persists stable entities, hierarchy, transforms, mesh-renderer components, light components, and the primary light. Cameras, environment settings, gameplay components, and editor metadata are not serialized yet; the legacy `SceneManager` JSON/XML/Binary methods remain unsupported.
 - Occlusion culling remains a placeholder and is disabled by default.
 - `ITexture2D::CreateDepthTarget` fails explicitly; use the framebuffer API for depth attachments.
-- Audio and physics modules are not part of the current source tree. Text input, raw relative mouse mode, collision-aware cameras, camera blending, and persisted user bindings are not implemented yet. The reference edge-scrolling/selection/command layer is example support rather than an installed engine API. Model import currently supports OBJ/MTL only; imported MTL data is CPU metadata, while texture/material resource creation and scene hierarchy import remain later steps.
+- Audio and physics modules are not part of the current source tree. Text input, raw relative mouse mode, collision-aware cameras, camera blending, and persisted user bindings are not implemented yet. The reference edge-scrolling/selection/command layer is example support rather than an installed engine API. Model import currently supports OBJ/MTL and diffuse `map_Kd` material publication only; additional material maps, model formats, asset packaging, and scene-hierarchy instantiation remain later steps.
 
 See [Roadmap and known issues](docs/ROADMAP.md) before building new systems on top of the engine.
 

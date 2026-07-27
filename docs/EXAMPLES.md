@@ -50,9 +50,10 @@ This is the lower-level reference rendering path. It demonstrates:
 - typed resource handles suitable for scene-facing references without long-lived mesh/material ownership;
 - inline GLSL 3.30 shaders compiled through a stable shader-cache asset ID;
 - a Pyramid-owned OBJ/MTL parser loading the bundled pyramid reference asset beside the executable;
-- generated hard-edge normals, polygon triangulation, vertex colors, material-slot metadata, and transactional publication through the mesh cache;
-- caller-defined stable imported-mesh and shader asset identifiers resolved through their graphics-device-bound caches;
-- scene and material uniform buffers;
+- generated hard-edge normals, polygon triangulation, vertex colors, and material-slot metadata;
+- transactional publication of imported meshes, the MTL `map_Kd` image, and immutable material properties through the registry caches;
+- a caller-defined shader/material profile controlling uniform names, sRGB texture handling, sampler state, fallback behavior, and stable resource identifiers;
+- scene uniform buffers;
 - perspective camera setup registered through `Game::SetActiveCamera()`;
 - topology-aware indexed rendering and basic lighting;
 - the optional `RTSCameraController` consuming a reference action profile: `Escape` quits, `R`/`1` resets, WASD/arrows move across the XZ plane, `Q`/`E` rotate, right-drag orbits/tilts, Page Up/Down and the wheel zoom, and Shift boosts movement. The controller API and input module contain no game-specific physical bindings.

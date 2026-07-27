@@ -271,6 +271,17 @@ namespace Pyramid
         return generation == m_generations.end() ? 0 : generation->second;
     }
 
+    bool TextureCache::RemoveAlias(TextureAssetId assetId)
+    {
+        const auto alias = m_aliases.find(assetId);
+        if (alias == m_aliases.end() || alias->second.contentId == assetId)
+        {
+            return false;
+        }
+        InvalidateAlias(assetId);
+        return true;
+    }
+
     bool TextureCache::Evict(TextureAssetId assetId)
     {
         const auto alias = m_aliases.find(assetId);
