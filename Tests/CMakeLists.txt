@@ -20,7 +20,7 @@ set_target_properties(InputActionTests PROPERTIES FOLDER "Tests/Input")
 add_test(NAME Input.ActionMapping COMMAND $<TARGET_FILE:InputActionTests>)
 
 add_executable(WindowResizeEventTests WindowResizeEventTests.cpp)
-target_link_libraries(WindowResizeEventTests PRIVATE Pyramid::Foundation)
+target_link_libraries(WindowResizeEventTests PRIVATE Pyramid::Input)
 target_include_directories(WindowResizeEventTests
     PRIVATE
         "${PROJECT_SOURCE_DIR}/Engine/Core/include"

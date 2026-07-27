@@ -4,6 +4,10 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### Build fixes
+
+- Fixed `WindowResizeEventTests` after the input-library extraction by linking it to `Pyramid::Input`, which propagates the required input and foundation headers.
+
 ### Owned model import foundation
 
 - Added the independently installable `PyramidModel` target exported as `Pyramid::Model`; it depends only on `Pyramid::Foundation` and `Pyramid::Math`.
