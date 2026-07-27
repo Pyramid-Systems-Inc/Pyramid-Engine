@@ -39,9 +39,42 @@ int main()
     Util::LoggerConfig config;
     config.enableConsole = false;
     config.enableFile = false;
-    Util::Logger::GetInstance().Configure(config);
-    Util::Logger::GetInstance().Log(Util::LogLevel::Info, "foundation smoke test");
-    Util::Logger::GetInstance().Flush();
+    config.enableHistory = true;
+    config.historyLevel = Util::LogLevel::Info;
+    config.historyCapacity = 3;
+    auto& logger = Util::Logger::GetInstance();
+    logger.Configure(config);
+    logger.ClearHistory();
+    logger.Log(Util::LogLevel::Debug, "ignored debug entry");
+    logger.Log(Util::LogLevel::Info, "first info entry");
+    logger.Log(Util::LogLevel::Warn, "warning entry");
+    logger.Log(Util::LogLevel::Error, "error entry");
+    logger.Log(Util::LogLevel::Info, "latest info entry");
+
+    const auto history = logger.GetRecentEntries();
+    passed &= Expect(history.size() == 3,
+        "logger history must remain bounded");
+    passed &= Expect(history.size() == 3 &&
+            history[0].message == "warning entry" &&
+            history[1].message == "error entry" &&
+            history[2].message == "latest info entry",
+        "logger history must retain chronological newest entries");
+
+    const auto recentWarnings = logger.GetRecentEntries(2, Util::LogLevel::Warn);
+    passed &= Expect(recentWarnings.size() == 2 &&
+            recentWarnings[0].message == "warning entry" &&
+            recentWarnings[1].message == "error entry",
+        "filtered recent history must return the newest matching entries chronologically");
+
+    logger.SetHistoryCapacity(1);
+    const auto trimmed = logger.GetRecentEntries();
+    passed &= Expect(trimmed.size() == 1 &&
+            trimmed.front().message == "latest info entry",
+        "reducing history capacity must discard the oldest entries");
+    logger.ClearHistory();
+    passed &= Expect(logger.GetRecentEntries().empty(),
+        "clearing logger history must remove every retained entry");
+    logger.Flush();
 
     return passed ? 0 : 1;
 }

@@ -152,6 +152,12 @@ protected:
     void RegisterUIContext(UI::Context* context);
     void UnregisterUIContext(UI::Context* context);
 
+    /** Physical controls reserved by registered UI contexts for this frame. */
+    const InputConsumptionMask& GetUIInputConsumption() const
+    {
+        return m_uiInputConsumption;
+    }
+
     /**
      * @brief Whether the window currently has a non-zero renderable client area.
      */
@@ -164,6 +170,7 @@ private:
     std::unique_ptr<IGraphicsDevice> m_graphicsDevice;
     std::unique_ptr<ResourceRegistry> m_resourceRegistry;
     InputActionSystem m_inputActions;
+    InputConsumptionMask m_uiInputConsumption;
     std::vector<UI::Context*> m_uiContexts;
     Camera* m_activeCamera;
     Renderer::RenderSystem* m_renderSystem;

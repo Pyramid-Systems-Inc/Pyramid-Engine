@@ -52,11 +52,60 @@ namespace Pyramid::Text
         u32 lineCount = 0;
     };
 
+    enum class HorizontalAlignment : u8
+    {
+        Left = 0,
+        Center,
+        Right
+    };
+
+    enum class WrapMode : u8
+    {
+        None = 0,
+        Character,
+        Word
+    };
+
+    struct LayoutOptions
+    {
+        f32 scale = 1.0f;
+        f32 maximumWidth = 0.0f;
+        f32 lineSpacing = 0.0f;
+        u32 tabWidth = 4;
+        HorizontalAlignment alignment = HorizontalAlignment::Left;
+        WrapMode wrap = WrapMode::None;
+
+        [[nodiscard]] bool IsValid() const;
+    };
+
+    struct LineMetrics
+    {
+        u32 firstGlyph = 0;
+        u32 glyphCount = 0;
+        f32 width = 0.0f;
+    };
+
+    struct LayoutResult
+    {
+        TextMetrics metrics;
+        std::vector<GlyphQuad> glyphs;
+        std::vector<LineMetrics> lines;
+        u32 invalidUtf8Sequences = 0;
+    };
+
     /**
      * Built-in deterministic debug font. It is intentionally small and ASCII-only;
-     * production Unicode shaping and font import belong to later text milestones.
+     * unsupported Unicode code points resolve to the replacement glyph. UTF-8
+     * decoding, wrapping and alignment are nevertheless handled by the owned text
+     * layout layer so game/editor font backends can reuse the same layout contract.
      */
     [[nodiscard]] FontAtlas CreateDebugFontAtlas();
+
+    [[nodiscard]] LayoutResult Layout(
+        const FontAtlas& font,
+        std::string_view utf8Text,
+        const Math::Vec2& origin,
+        const LayoutOptions& options = {});
 
     [[nodiscard]] TextMetrics Measure(
         const FontAtlas& font,

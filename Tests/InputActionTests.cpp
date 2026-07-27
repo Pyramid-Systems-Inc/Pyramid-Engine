@@ -226,6 +226,8 @@ int main()
     initialConsumption.ConsumeKey(Key::Enter);
     initialConsumption.ConsumeMouseButton(MouseButton::Left);
     initialConsumption.ConsumeMouseWheel();
+    Require(initialConsumption.HasAnyMouseConsumption(),
+        "mouse consumption summary ignored reserved controls");
     maskedActions.Update(maskedInput, initialConsumption);
     Require(!maskedActions.IsActionDown("masked", "Key"),
         "pre-consumed key reached action contexts");

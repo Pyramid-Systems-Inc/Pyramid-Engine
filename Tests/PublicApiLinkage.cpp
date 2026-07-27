@@ -27,6 +27,7 @@
 #include <Pyramid/Graphics/UI/UIRenderer.hpp>
 #include <Pyramid/Text/Text.hpp>
 #include <Pyramid/UI/UI.hpp>
+#include <Pyramid/Util/Log.hpp>
 
 #include <memory>
 #include <string>
@@ -39,6 +40,7 @@ namespace
     public:
         using Pyramid::Game::GetInput;
         using Pyramid::Game::GetInputActions;
+        using Pyramid::Game::GetUIInputConsumption;
         using Pyramid::Game::GetResourceRegistry;
         using Pyramid::Game::SetRenderSystem;
         using Pyramid::Game::RegisterUIContext;
@@ -67,18 +69,39 @@ namespace
         &Pyramid::InputConsumptionMask::Merge;
     volatile decltype(&Pyramid::InputConsumptionMask::ConsumeAllMouse) g_consumeAllMouse =
         &Pyramid::InputConsumptionMask::ConsumeAllMouse;
+    volatile decltype(&Pyramid::InputConsumptionMask::HasAnyMouseConsumption)
+        g_hasAnyMouseConsumption =
+            &Pyramid::InputConsumptionMask::HasAnyMouseConsumption;
     volatile decltype(&Pyramid::Text::CreateDebugFontAtlas) g_createDebugFontAtlas =
         &Pyramid::Text::CreateDebugFontAtlas;
     volatile decltype(&Pyramid::Text::Measure) g_measureText =
         &Pyramid::Text::Measure;
     volatile decltype(&Pyramid::Text::BuildGlyphQuads) g_buildGlyphQuads =
         &Pyramid::Text::BuildGlyphQuads;
+    volatile decltype(&Pyramid::Text::Layout) g_layoutText =
+        &Pyramid::Text::Layout;
     volatile decltype(&Pyramid::UI::Context::PrepareInput) g_prepareUIInput =
         &Pyramid::UI::Context::PrepareInput;
     volatile decltype(&Pyramid::UI::Context::BeginFrame) g_beginUIFrame =
         &Pyramid::UI::Context::BeginFrame;
     volatile decltype(&Pyramid::UI::Context::EndFrame) g_endUIFrame =
         &Pyramid::UI::Context::EndFrame;
+    volatile decltype(&Pyramid::UI::Context::LabelColored) g_labelColored =
+        &Pyramid::UI::Context::LabelColored;
+    volatile decltype(&Pyramid::UI::Context::WrappedLabel) g_wrappedLabel =
+        &Pyramid::UI::Context::WrappedLabel;
+    volatile decltype(&Pyramid::UI::Context::CollapsingHeader) g_collapsingHeader =
+        &Pyramid::UI::Context::CollapsingHeader;
+    volatile decltype(&Pyramid::UI::Context::BeginScrollArea) g_beginScrollArea =
+        &Pyramid::UI::Context::BeginScrollArea;
+    volatile decltype(&Pyramid::UI::Context::EndScrollArea) g_endScrollArea =
+        &Pyramid::UI::Context::EndScrollArea;
+    volatile decltype(&Pyramid::Util::Logger::GetRecentEntries) g_getRecentLogEntries =
+        &Pyramid::Util::Logger::GetRecentEntries;
+    volatile decltype(&Pyramid::Util::Logger::ClearHistory) g_clearLogHistory =
+        &Pyramid::Util::Logger::ClearHistory;
+    volatile decltype(&Pyramid::Util::Logger::SetHistoryCapacity) g_setLogHistoryCapacity =
+        &Pyramid::Util::Logger::SetHistoryCapacity;
     volatile decltype(&Pyramid::UIRenderer::Initialize) g_initializeUIRenderer =
         &Pyramid::UIRenderer::Initialize;
     volatile decltype(&Pyramid::UIRenderer::Render) g_renderUI =
@@ -408,6 +431,13 @@ namespace
         static_cast<GetGameInputActions>(&GameLinkageProbe::GetInputActions);
     volatile decltype(&GameLinkageProbe::GetResourceRegistry) g_getGameResourceRegistry =
         &GameLinkageProbe::GetResourceRegistry;
+    volatile decltype(&GameLinkageProbe::GetUIInputConsumption)
+        g_getGameUIInputConsumption =
+            &GameLinkageProbe::GetUIInputConsumption;
+    volatile decltype(&GameLinkageProbe::RegisterUIContext) g_registerGameUIContext =
+        &GameLinkageProbe::RegisterUIContext;
+    volatile decltype(&GameLinkageProbe::UnregisterUIContext) g_unregisterGameUIContext =
+        &GameLinkageProbe::UnregisterUIContext;
     volatile decltype(&Pyramid::Renderer::CommandBuffer::SetMaterial) g_setMaterial =
         &Pyramid::Renderer::CommandBuffer::SetMaterial;
     volatile decltype(&Pyramid::Renderer::CommandBuffer::SetUniformMat4) g_setCommandUniformMat4 =
@@ -451,7 +481,28 @@ namespace
 
 int main()
 {
-    return g_createTextureFromSpec &&
+    return g_updateInputActionsWithConsumption &&
+                   g_mergeInputConsumption &&
+                   g_consumeAllMouse &&
+                   g_hasAnyMouseConsumption &&
+                   g_createDebugFontAtlas &&
+                   g_measureText &&
+                   g_buildGlyphQuads &&
+                   g_layoutText &&
+                   g_prepareUIInput &&
+                   g_beginUIFrame &&
+                   g_endUIFrame &&
+                   g_labelColored &&
+                   g_wrappedLabel &&
+                   g_collapsingHeader &&
+                   g_beginScrollArea &&
+                   g_endScrollArea &&
+                   g_getRecentLogEntries &&
+                   g_clearLogHistory &&
+                   g_setLogHistoryCapacity &&
+                   g_initializeUIRenderer &&
+                   g_renderUI &&
+                   g_createTextureFromSpec &&
                    g_createTextureFromFile &&
                    g_createTextureBySize &&
                    g_createRenderTarget &&
@@ -597,6 +648,9 @@ int main()
                    g_getGameInput &&
                    g_getGameInputActions &&
                    g_getGameResourceRegistry &&
+                   g_getGameUIInputConsumption &&
+                   g_registerGameUIContext &&
+                   g_unregisterGameUIContext &&
                    g_setMaterial &&
                    g_setCommandUniformMat4 &&
                    g_drawMesh &&

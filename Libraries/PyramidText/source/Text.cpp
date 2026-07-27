@@ -5,6 +5,7 @@
 #include <cctype>
 #include <cstddef>
 #include <cstdint>
+#include <cmath>
 #include <string_view>
 
 namespace Pyramid::Text
@@ -189,30 +190,347 @@ namespace Pyramid::Text
         return atlas;
     }
 
-    TextMetrics Measure(const FontAtlas& font, std::string_view text, f32 scale)
+    namespace
     {
-        TextMetrics metrics;
-        if (!font.IsValid() || scale <= 0.0f)
+        struct DecodedText
         {
-            return metrics;
+            std::vector<char32_t> codepoints;
+            u32 invalidSequences = 0;
+        };
+
+        bool IsContinuation(u8 byte)
+        {
+            return (byte & 0xC0U) == 0x80U;
         }
 
-        f32 lineWidth = 0.0f;
-        metrics.lineCount = 1;
-        for (unsigned char byte : text)
+        DecodedText DecodeUtf8(std::string_view text, u32 tabWidth)
         {
-            if (byte == '\n')
+            DecodedText decoded;
+            decoded.codepoints.reserve(text.size());
+            const u32 safeTabWidth = (std::max)(1U, tabWidth);
+
+            std::size_t index = 0;
+            while (index < text.size())
             {
-                metrics.width = (std::max)(metrics.width, lineWidth);
-                lineWidth = 0.0f;
-                ++metrics.lineCount;
-                continue;
+                const u8 lead = static_cast<u8>(text[index]);
+                if (lead == static_cast<u8>('\r'))
+                {
+                    ++index;
+                    continue;
+                }
+                if (lead == static_cast<u8>('\t'))
+                {
+                    decoded.codepoints.insert(decoded.codepoints.end(), safeTabWidth, U' ');
+                    ++index;
+                    continue;
+                }
+                if (lead < 0x80U)
+                {
+                    decoded.codepoints.push_back(static_cast<char32_t>(lead));
+                    ++index;
+                    continue;
+                }
+
+                u32 length = 0;
+                char32_t codepoint = 0;
+                char32_t minimum = 0;
+                if ((lead & 0xE0U) == 0xC0U)
+                {
+                    length = 2;
+                    codepoint = static_cast<char32_t>(lead & 0x1FU);
+                    minimum = 0x80;
+                }
+                else if ((lead & 0xF0U) == 0xE0U)
+                {
+                    length = 3;
+                    codepoint = static_cast<char32_t>(lead & 0x0FU);
+                    minimum = 0x800;
+                }
+                else if ((lead & 0xF8U) == 0xF0U)
+                {
+                    length = 4;
+                    codepoint = static_cast<char32_t>(lead & 0x07U);
+                    minimum = 0x10000;
+                }
+
+                bool valid = length != 0 && index + length <= text.size();
+                if (valid)
+                {
+                    for (u32 offset = 1; offset < length; ++offset)
+                    {
+                        const u8 continuation = static_cast<u8>(text[index + offset]);
+                        if (!IsContinuation(continuation))
+                        {
+                            valid = false;
+                            break;
+                        }
+                        codepoint = static_cast<char32_t>(
+                            (static_cast<u32>(codepoint) << 6U) |
+                            static_cast<u32>(continuation & 0x3FU));
+                    }
+                }
+                if (valid)
+                {
+                    valid = codepoint >= minimum && codepoint <= 0x10FFFF &&
+                        !(codepoint >= 0xD800 && codepoint <= 0xDFFF);
+                }
+
+                if (!valid)
+                {
+                    decoded.codepoints.push_back(U'?');
+                    ++decoded.invalidSequences;
+                    ++index;
+                    while (index < text.size() && IsContinuation(static_cast<u8>(text[index])))
+                    {
+                        ++index;
+                    }
+                    continue;
+                }
+
+                decoded.codepoints.push_back(codepoint);
+                index += length;
             }
-            lineWidth += font.GetGlyph(static_cast<char32_t>(byte)).advance * scale;
+            return decoded;
         }
-        metrics.width = (std::max)(metrics.width, lineWidth);
-        metrics.height = static_cast<f32>(metrics.lineCount) * font.lineHeight * scale;
-        return metrics;
+
+        f32 AdvanceFor(const FontAtlas& font, char32_t codepoint, f32 scale)
+        {
+            return font.GetGlyph(codepoint).advance * scale;
+        }
+
+        struct PendingLine
+        {
+            std::vector<char32_t> codepoints;
+            f32 width = 0.0f;
+        };
+
+        void TrimTrailingSpaces(PendingLine& line, const FontAtlas& font, f32 scale)
+        {
+            while (!line.codepoints.empty() && line.codepoints.back() == U' ')
+            {
+                line.width -= AdvanceFor(font, U' ', scale);
+                line.codepoints.pop_back();
+            }
+            line.width = (std::max)(0.0f, line.width);
+        }
+
+        void AppendCharacterWrapped(
+            std::vector<PendingLine>& lines,
+            PendingLine& line,
+            char32_t codepoint,
+            const FontAtlas& font,
+            const LayoutOptions& options)
+        {
+            const f32 advance = AdvanceFor(font, codepoint, options.scale);
+            if (options.maximumWidth > 0.0f && !line.codepoints.empty() &&
+                line.width + advance > options.maximumWidth)
+            {
+                TrimTrailingSpaces(line, font, options.scale);
+                lines.push_back(std::move(line));
+                line = {};
+            }
+            line.codepoints.push_back(codepoint);
+            line.width += advance;
+        }
+
+        std::vector<PendingLine> BuildLines(
+            const FontAtlas& font,
+            const std::vector<char32_t>& codepoints,
+            const LayoutOptions& options)
+        {
+            std::vector<PendingLine> lines;
+            PendingLine line;
+
+            auto finishLine = [&]()
+            {
+                TrimTrailingSpaces(line, font, options.scale);
+                lines.push_back(std::move(line));
+                line = {};
+            };
+
+            std::size_t index = 0;
+            while (index < codepoints.size())
+            {
+                const char32_t codepoint = codepoints[index];
+                if (codepoint == U'\n')
+                {
+                    finishLine();
+                    ++index;
+                    continue;
+                }
+
+                if (options.wrap != WrapMode::Word || options.maximumWidth <= 0.0f)
+                {
+                    if (options.wrap == WrapMode::Character)
+                    {
+                        AppendCharacterWrapped(lines, line, codepoint, font, options);
+                    }
+                    else
+                    {
+                        line.codepoints.push_back(codepoint);
+                        line.width += AdvanceFor(font, codepoint, options.scale);
+                    }
+                    ++index;
+                    continue;
+                }
+
+                if (codepoint == U' ')
+                {
+                    if (!line.codepoints.empty())
+                    {
+                        const f32 spaceAdvance = AdvanceFor(font, U' ', options.scale);
+                        if (line.width + spaceAdvance <= options.maximumWidth)
+                        {
+                            line.codepoints.push_back(U' ');
+                            line.width += spaceAdvance;
+                        }
+                    }
+                    ++index;
+                    continue;
+                }
+
+                std::size_t wordEnd = index;
+                f32 wordWidth = 0.0f;
+                while (wordEnd < codepoints.size() && codepoints[wordEnd] != U' ' &&
+                    codepoints[wordEnd] != U'\n')
+                {
+                    wordWidth += AdvanceFor(font, codepoints[wordEnd], options.scale);
+                    ++wordEnd;
+                }
+
+                if (!line.codepoints.empty() && line.width + wordWidth > options.maximumWidth)
+                {
+                    finishLine();
+                }
+
+                if (wordWidth <= options.maximumWidth || options.maximumWidth <= 0.0f)
+                {
+                    for (; index < wordEnd; ++index)
+                    {
+                        line.codepoints.push_back(codepoints[index]);
+                        line.width += AdvanceFor(font, codepoints[index], options.scale);
+                    }
+                }
+                else
+                {
+                    for (; index < wordEnd; ++index)
+                    {
+                        AppendCharacterWrapped(
+                            lines, line, codepoints[index], font, options);
+                    }
+                }
+            }
+
+            finishLine();
+            if (lines.empty())
+            {
+                lines.push_back({});
+            }
+            return lines;
+        }
+    } // namespace
+
+    bool LayoutOptions::IsValid() const
+    {
+        return std::isfinite(scale) && scale > 0.0f &&
+            std::isfinite(maximumWidth) && maximumWidth >= 0.0f &&
+            std::isfinite(lineSpacing) && lineSpacing >= 0.0f &&
+            tabWidth > 0 &&
+            (alignment == HorizontalAlignment::Left ||
+             alignment == HorizontalAlignment::Center ||
+             alignment == HorizontalAlignment::Right) &&
+            (wrap == WrapMode::None || wrap == WrapMode::Character ||
+             wrap == WrapMode::Word);
+    }
+
+    LayoutResult Layout(
+        const FontAtlas& font,
+        std::string_view utf8Text,
+        const Math::Vec2& origin,
+        const LayoutOptions& options)
+    {
+        LayoutResult result;
+        if (!font.IsValid() || !options.IsValid() || !std::isfinite(origin.x) ||
+            !std::isfinite(origin.y))
+        {
+            return result;
+        }
+
+        const DecodedText decoded = DecodeUtf8(utf8Text, options.tabWidth);
+        result.invalidUtf8Sequences = decoded.invalidSequences;
+        const std::vector<PendingLine> pendingLines =
+            BuildLines(font, decoded.codepoints, options);
+        result.lines.reserve(pendingLines.size());
+
+        const f32 lineHeight = font.lineHeight * options.scale;
+        const f32 alignmentWidth = options.maximumWidth > 0.0f
+            ? options.maximumWidth
+            : [&]()
+              {
+                  f32 widest = 0.0f;
+                  for (const PendingLine& line : pendingLines)
+                  {
+                      widest = (std::max)(widest, line.width);
+                  }
+                  return widest;
+              }();
+
+        f32 y = origin.y;
+        for (const PendingLine& line : pendingLines)
+        {
+            LineMetrics lineMetrics;
+            lineMetrics.firstGlyph = static_cast<u32>(result.glyphs.size());
+            lineMetrics.width = line.width;
+
+            f32 x = origin.x;
+            if (options.alignment == HorizontalAlignment::Center)
+            {
+                x += (alignmentWidth - line.width) * 0.5f;
+            }
+            else if (options.alignment == HorizontalAlignment::Right)
+            {
+                x += alignmentWidth - line.width;
+            }
+
+            for (char32_t codepoint : line.codepoints)
+            {
+                const Glyph& glyph = font.GetGlyph(codepoint);
+                if (glyph.width > 0.0f && glyph.height > 0.0f)
+                {
+                    GlyphQuad quad;
+                    quad.minimum = Math::Vec2(
+                        x + glyph.bearingX * options.scale,
+                        y + glyph.bearingY * options.scale);
+                    quad.maximum = quad.minimum + Math::Vec2(
+                        glyph.width * options.scale,
+                        glyph.height * options.scale);
+                    quad.uvMinimum = Math::Vec2(glyph.u0, glyph.v0);
+                    quad.uvMaximum = Math::Vec2(glyph.u1, glyph.v1);
+                    quad.codepoint = codepoint;
+                    result.glyphs.push_back(quad);
+                    ++lineMetrics.glyphCount;
+                }
+                x += glyph.advance * options.scale;
+            }
+
+            result.metrics.width = (std::max)(result.metrics.width, line.width);
+            result.lines.push_back(lineMetrics);
+            y += lineHeight + options.lineSpacing;
+        }
+
+        result.metrics.lineCount = static_cast<u32>(pendingLines.size());
+        result.metrics.height = result.metrics.lineCount == 0
+            ? 0.0f
+            : lineHeight * static_cast<f32>(result.metrics.lineCount) +
+                options.lineSpacing * static_cast<f32>(result.metrics.lineCount - 1U);
+        return result;
+    }
+
+    TextMetrics Measure(const FontAtlas& font, std::string_view text, f32 scale)
+    {
+        LayoutOptions options;
+        options.scale = scale;
+        return Layout(font, text, Math::Vec2::Zero, options).metrics;
     }
 
     void BuildGlyphQuads(
@@ -222,37 +540,9 @@ namespace Pyramid::Text
         f32 scale,
         std::vector<GlyphQuad>& output)
     {
-        if (!font.IsValid() || scale <= 0.0f)
-        {
-            return;
-        }
-
-        f32 x = origin.x;
-        f32 y = origin.y;
-        for (unsigned char byte : text)
-        {
-            if (byte == '\n')
-            {
-                x = origin.x;
-                y += font.lineHeight * scale;
-                continue;
-            }
-
-            const Glyph& glyph = font.GetGlyph(static_cast<char32_t>(byte));
-            if (glyph.width > 0.0f && glyph.height > 0.0f)
-            {
-                GlyphQuad quad;
-                quad.minimum = Math::Vec2(
-                    x + glyph.bearingX * scale,
-                    y + glyph.bearingY * scale);
-                quad.maximum = quad.minimum +
-                    Math::Vec2(glyph.width * scale, glyph.height * scale);
-                quad.uvMinimum = Math::Vec2(glyph.u0, glyph.v0);
-                quad.uvMaximum = Math::Vec2(glyph.u1, glyph.v1);
-                quad.codepoint = glyph.codepoint;
-                output.push_back(quad);
-            }
-            x += glyph.advance * scale;
-        }
+        LayoutOptions options;
+        options.scale = scale;
+        LayoutResult result = Layout(font, text, origin, options);
+        output.insert(output.end(), result.glyphs.begin(), result.glyphs.end());
     }
 } // namespace Pyramid::Text

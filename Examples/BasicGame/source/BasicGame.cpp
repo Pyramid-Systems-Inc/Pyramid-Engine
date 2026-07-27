@@ -50,6 +50,28 @@ namespace
         return std::to_string(value);
     }
 
+    Pyramid::Color LogColor(Pyramid::Util::LogLevel level)
+    {
+        switch (level)
+        {
+            case Pyramid::Util::LogLevel::Warn:
+                return Pyramid::Color(0.95f, 0.78f, 0.30f, 1.0f);
+            case Pyramid::Util::LogLevel::Error:
+            case Pyramid::Util::LogLevel::Critical:
+                return Pyramid::Color(1.0f, 0.38f, 0.38f, 1.0f);
+            case Pyramid::Util::LogLevel::Debug:
+                return Pyramid::Color(0.55f, 0.75f, 0.95f, 1.0f);
+            default:
+                return Pyramid::Color(0.82f, 0.86f, 0.92f, 1.0f);
+        }
+    }
+
+    std::string FormatLogEntry(const Pyramid::Util::LogEntry& entry)
+    {
+        return std::string("[") + Pyramid::Util::LogLevelToString(entry.level) +
+            "] " + entry.message;
+    }
+
     constexpr const char* kForwardVertexShader = R"(
 #version 330 core
 
@@ -148,6 +170,12 @@ void BasicGame::onCreate()
     }
     SetRenderSystem(m_renderSystem.get());
 
+    auto debugTheme = m_debugUI.GetTheme();
+    debugTheme.textScale = 1.5f;
+    debugTheme.defaultRowHeight = 28.0f;
+    debugTheme.spacing = 7.0f;
+    m_debugUI.SetTheme(debugTheme);
+
     m_uiRenderer = std::make_unique<Pyramid::UIRenderer>();
     if (!m_uiRenderer->Initialize(*device, *resources, m_debugUI.GetDebugFont()))
     {
@@ -167,8 +195,9 @@ void BasicGame::onCreate()
         0.1f,
         200.0f);
 
-    m_camera->SetPosition(Pyramid::Math::Vec3(0.0f, 7.0710678f, 7.0710678f));
-    m_camera->LookAt(Pyramid::Math::Vec3::Zero);
+    const Pyramid::Math::Vec3 cameraFocus(0.0f, -0.25f, 0.0f);
+    m_camera->SetPosition(Pyramid::Math::Vec3(7.5f, 6.75f, 9.5f));
+    m_camera->LookAt(cameraFocus);
 
     Pyramid::RTSCameraActions cameraActions;
     cameraActions.move = {std::string(kInputContext), std::string(kMoveAction)};
@@ -187,7 +216,7 @@ void BasicGame::onCreate()
     cameraSettings.maximumDistance = 30.0f;
     cameraSettings.distanceMovementScale = 0.04f;
     m_cameraController = std::make_unique<Pyramid::RTSCameraController>(
-        Pyramid::Math::Vec3::Zero,
+        cameraFocus,
         std::move(cameraActions),
         cameraSettings);
     m_cameraController->CaptureHome(*m_camera);
@@ -322,6 +351,7 @@ void BasicGame::onUpdate(float deltaTime)
         m_interactionController->Update(
             GetInput(),
             GetInputActions(),
+            GetUIInputConsumption(),
             *m_camera,
             *m_sceneManager,
             *m_cameraController,
@@ -385,51 +415,86 @@ void BasicGame::BuildDebugUI(float deltaTime)
         return;
     }
 
+    const float availableHeight = (std::max)(220.0f, m_uiFrame.height - 24.0f);
     Pyramid::UI::PanelOptions diagnostics;
     diagnostics.position = Pyramid::Math::Vec2(12.0f, 12.0f);
     diagnostics.size = Pyramid::Math::Vec2(
         350.0f,
-        (std::min)(470.0f, (std::max)(200.0f, m_uiFrame.height - 24.0f)));
+        (std::min)(620.0f, availableHeight));
     if (m_debugUI.BeginPanel("PYRAMID DEBUG  [F1]", diagnostics))
     {
-        const float fps = m_smoothedFrameTime > 0.000001f
-            ? 1.0f / m_smoothedFrameTime
-            : 0.0f;
-        m_debugUI.LabelValue("FPS", FormatFloat(fps, 1));
-        m_debugUI.LabelValue("FRAME MS", FormatFloat(m_smoothedFrameTime * 1000.0f, 2));
-        m_debugUI.ProgressBar(
-            "16.67 MS BUDGET",
-            m_smoothedFrameTime / (1.0f / 60.0f));
-
-        m_debugUI.Separator();
-        if (m_renderSystem)
+        if (m_debugUI.CollapsingHeader("PERFORMANCE", m_performanceSectionOpen))
         {
-            const auto& renderStats = m_renderSystem->GetStats();
-            m_debugUI.LabelValue("DRAW CALLS", FormatCount(renderStats.drawCalls));
-            m_debugUI.LabelValue("TRIANGLES", FormatCount(renderStats.triangles));
-            m_debugUI.LabelValue("RENDER MS", FormatFloat(renderStats.frameTime, 2));
+            PYRAMID_LOG_DEBUG("Performance debug section toggled");
+        }
+        if (m_performanceSectionOpen)
+        {
+            const float fps = m_smoothedFrameTime > 0.000001f
+                ? 1.0f / m_smoothedFrameTime
+                : 0.0f;
+            m_debugUI.LabelValue("FPS", FormatFloat(fps, 1));
+            m_debugUI.LabelValue("FRAME MS", FormatFloat(m_smoothedFrameTime * 1000.0f, 2));
+            m_debugUI.ProgressBar(
+                "16.67 MS BUDGET",
+                m_smoothedFrameTime / (1.0f / 60.0f));
+            if (m_renderSystem)
+            {
+                const auto& renderStats = m_renderSystem->GetStats();
+                m_debugUI.LabelValue("DRAW CALLS", FormatCount(renderStats.drawCalls));
+                m_debugUI.LabelValue("TRIANGLES", FormatCount(renderStats.triangles));
+                m_debugUI.LabelValue("RENDER MS", FormatFloat(renderStats.frameTime, 2));
+            }
         }
 
-        if (auto* resources = GetResourceRegistry())
+        if (m_debugUI.CollapsingHeader("RESOURCES", m_resourcesSectionOpen))
         {
-            const auto stats = resources->GetStats();
-            m_debugUI.Separator();
-            m_debugUI.Label("RESOURCES");
-            m_debugUI.LabelValue("MESHES", FormatCount(stats.meshes.residentMeshes));
-            m_debugUI.LabelValue("TEXTURES", FormatCount(stats.textures.residentTextures));
-            m_debugUI.LabelValue("SHADERS", FormatCount(stats.shaders.residentPrograms));
-            m_debugUI.LabelValue("MATERIALS", FormatCount(stats.materials.residentMaterials));
+            PYRAMID_LOG_DEBUG("Resources debug section toggled");
+        }
+        if (m_resourcesSectionOpen)
+        {
+            if (auto* resources = GetResourceRegistry())
+            {
+                const auto stats = resources->GetStats();
+                m_debugUI.LabelValue("MESHES", FormatCount(stats.meshes.residentMeshes));
+                m_debugUI.LabelValue("TEXTURES", FormatCount(stats.textures.residentTextures));
+                m_debugUI.LabelValue("SHADERS", FormatCount(stats.shaders.residentPrograms));
+                m_debugUI.LabelValue("MATERIALS", FormatCount(stats.materials.residentMaterials));
+            }
         }
 
-        m_debugUI.Separator();
-        const auto mouse = GetInput().GetMousePosition();
-        m_debugUI.LabelValue(
-            "MOUSE",
-            FormatFloat(mouse.x, 0) + ", " + FormatFloat(mouse.y, 0));
-        m_debugUI.LabelValue("WHEEL", FormatFloat(GetInput().GetMouseWheelDelta(), 1));
-        m_debugUI.LabelValue(
-            "UI CAPTURE",
-            m_debugUI.WantsPointerInput() ? "POINTER" : "NONE");
+        if (m_debugUI.CollapsingHeader("INPUT", m_inputSectionOpen))
+        {
+            PYRAMID_LOG_DEBUG("Input debug section toggled");
+        }
+        if (m_inputSectionOpen)
+        {
+            const auto mouse = GetInput().GetMousePosition();
+            m_debugUI.LabelValue(
+                "MOUSE",
+                FormatFloat(mouse.x, 0) + ", " + FormatFloat(mouse.y, 0));
+            m_debugUI.LabelValue("WHEEL", FormatFloat(GetInput().GetMouseWheelDelta(), 1));
+            m_debugUI.LabelValue(
+                "UI CAPTURE",
+                GetUIInputConsumption().HasAnyMouseConsumption() ? "POINTER" : "NONE");
+        }
+
+        if (m_debugUI.CollapsingHeader("UI FRAME", m_uiSectionOpen))
+        {
+            PYRAMID_LOG_DEBUG("UI frame debug section toggled");
+        }
+        if (m_uiSectionOpen)
+        {
+            const auto uiStats = m_debugUI.GetStats();
+            m_debugUI.LabelValue("ELEMENTS", FormatCount(uiStats.retainedElements));
+            m_debugUI.LabelValue("VERTICES", FormatCount(uiStats.vertices));
+            m_debugUI.LabelValue("BATCHES", FormatCount(uiStats.batches));
+            if (m_uiRenderer)
+            {
+                const auto& rendererStats = m_uiRenderer->GetStats();
+                m_debugUI.LabelValue("UI DRAWS", FormatCount(rendererStats.drawCalls));
+                m_debugUI.LabelValue("UI SKIPPED", FormatCount(rendererStats.batchesSkipped));
+            }
+        }
         m_debugUI.EndPanel();
     }
 
@@ -437,7 +502,7 @@ void BasicGame::BuildDebugUI(float deltaTime)
     controls.position = Pyramid::Math::Vec2(374.0f, 12.0f);
     controls.size = Pyramid::Math::Vec2(
         300.0f,
-        (std::min)(260.0f, (std::max)(180.0f, m_uiFrame.height - 24.0f)));
+        (std::min)(300.0f, availableHeight));
     if (m_debugUI.BeginPanel("RUNTIME CONTROLS", controls))
     {
         (void)m_debugUI.Checkbox("PAUSE ANIMATION", m_animationPaused);
@@ -459,12 +524,54 @@ void BasicGame::BuildDebugUI(float deltaTime)
                 m_cameraController->Reset(*m_camera);
             }
         }
+        m_debugUI.WrappedLabel(
+            "UI captures the pointer before RTS edge scrolling, selection and commands.");
+        m_debugUI.EndPanel();
+    }
 
-        const auto uiStats = m_debugUI.GetStats();
-        m_debugUI.Separator();
-        m_debugUI.LabelValue("ELEMENTS", FormatCount(uiStats.retainedElements));
-        m_debugUI.LabelValue("VERTICES", FormatCount(uiStats.vertices));
-        m_debugUI.LabelValue("BATCHES", FormatCount(uiStats.batches));
+    const float logX = 686.0f;
+    const float logWidth = (std::max)(280.0f, m_uiFrame.width - logX - 12.0f);
+    Pyramid::UI::PanelOptions logPanel;
+    logPanel.position = Pyramid::Math::Vec2(logX, 12.0f);
+    logPanel.size = Pyramid::Math::Vec2(
+        logWidth,
+        (std::min)(420.0f, availableHeight));
+    if (m_debugUI.BeginPanel("RUNTIME LOG", logPanel))
+    {
+        if (m_debugUI.BeginHorizontal("LOG ACTIONS", 24.0f))
+        {
+            Pyramid::UI::ItemOptions clearOptions;
+            clearOptions.width = 110.0f;
+            if (m_debugUI.Button("CLEAR LOG", clearOptions))
+            {
+                Pyramid::Util::Logger::GetInstance().ClearHistory();
+            }
+            m_debugUI.EndHorizontal();
+        }
+
+        Pyramid::UI::ScrollAreaOptions scrolling;
+        scrolling.height = (std::max)(100.0f, logPanel.size.y - 84.0f);
+        scrolling.wheelStep = 24.0f;
+        scrolling.stickToBottom = true;
+        if (m_debugUI.BeginScrollArea("LOG ENTRIES", scrolling))
+        {
+            const auto entries = Pyramid::Util::Logger::GetInstance().GetRecentEntries(
+                100,
+                Pyramid::Util::LogLevel::Info);
+            Pyramid::u64 index = 0;
+            for (const auto& entry : entries)
+            {
+                m_debugUI.PushId(index++);
+                const Pyramid::Color color = LogColor(entry.level);
+                m_debugUI.WrappedLabel(FormatLogEntry(entry), {}, &color);
+                m_debugUI.PopId();
+            }
+            if (entries.empty())
+            {
+                m_debugUI.Label("NO LOG ENTRIES");
+            }
+            m_debugUI.EndScrollArea();
+        }
         m_debugUI.EndPanel();
     }
     (void)m_debugUI.EndFrame();
@@ -577,9 +684,9 @@ bool BasicGame::SetupScene()
 
     Pyramid::Entity floorEntity = m_scene->CreateEntity("Floor");
     floorEntity.SetLocalTransform(
-        Pyramid::Math::Vec3(0.0f, -1.2f, 0.0f),
+        Pyramid::Math::Vec3(0.0f, -0.86f, 0.0f),
         Pyramid::Math::Quat::Identity,
-        Pyramid::Math::Vec3(6.0f, 0.15f, 6.0f));
+        Pyramid::Math::Vec3(5.0f, 0.10f, 5.0f));
     Pyramid::MeshRendererComponent floorRenderer;
     floorRenderer.mesh = floorMeshHandle;
     floorRenderer.material = floorMaterialHandle;

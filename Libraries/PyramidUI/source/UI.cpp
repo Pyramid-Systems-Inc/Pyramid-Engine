@@ -88,7 +88,8 @@ namespace Pyramid::UI
         const Rect& clip)
     {
         if (!rect.IsValid() || !clip.IsValid() || texture == 0 ||
-            !IsFiniteRect(rect) || !IsFiniteRect(uv) || !IsFiniteRect(clip))
+            !IsFiniteRect(rect) || !IsFiniteRect(uv) || !IsFiniteRect(clip) ||
+            !rect.Intersect(clip).IsValid())
         {
             return;
         }
@@ -413,6 +414,68 @@ namespace Pyramid::UI
             clip);
     }
 
+    void Context::LabelColored(
+        std::string_view text,
+        const Color& color,
+        const ItemOptions& options)
+    {
+        const f32 rowHeight = options.height > 0.0f
+            ? options.height
+            : m_font.lineHeight * m_theme.textScale + 2.0f;
+        const Rect rect = Allocate(options, rowHeight);
+        if (!rect.IsValid())
+        {
+            return;
+        }
+        const WidgetId id = MakeId(text);
+        const Rect clip = m_layoutStack.back().clip;
+        RecordElement(id, ElementKind::Label, rect, clip, options.enabled, false, false);
+        DrawText(
+            text,
+            Math::Vec2(rect.x, rect.y + 1.0f),
+            options.enabled ? color : m_theme.disabled,
+            clip);
+    }
+
+    void Context::WrappedLabel(
+        std::string_view text,
+        const ItemOptions& options,
+        const Color* color)
+    {
+        if (m_layoutStack.empty())
+        {
+            return;
+        }
+        const f32 width = options.width > 0.0f
+            ? (std::min)(options.width, m_layoutStack.back().content.width)
+            : m_layoutStack.back().content.width;
+        const Text::LayoutResult measured =
+            BuildWrappedText(text, Math::Vec2::Zero, width);
+        const f32 height = options.height > 0.0f
+            ? options.height
+            : (std::max)(m_font.lineHeight * m_theme.textScale, measured.metrics.height) + 2.0f;
+        ItemOptions allocation = options;
+        allocation.width = width;
+        allocation.height = height;
+        const Rect rect = Allocate(allocation, height);
+        if (!rect.IsValid())
+        {
+            return;
+        }
+
+        const WidgetId id = MakeId(text);
+        const Rect clip = m_layoutStack.back().clip;
+        RecordElement(id, ElementKind::Label, rect, clip, options.enabled, false, false);
+        const Text::LayoutResult layout = BuildWrappedText(
+            text,
+            Math::Vec2(rect.x, rect.y + 1.0f),
+            rect.width);
+        DrawTextLayout(
+            layout,
+            options.enabled ? (color ? *color : m_theme.text) : m_theme.disabled,
+            clip);
+    }
+
     void Context::LabelValue(
         std::string_view label,
         std::string_view value,
@@ -457,6 +520,199 @@ namespace Pyramid::UI
         ItemOptions options;
         options.height = height > 0.0f ? height : m_theme.spacing;
         (void)Allocate(options, options.height);
+    }
+
+    bool Context::CollapsingHeader(
+        std::string_view label,
+        bool& open,
+        const ItemOptions& options)
+    {
+        const Rect rect = Allocate(options, m_theme.defaultRowHeight);
+        if (!rect.IsValid())
+        {
+            return false;
+        }
+        const WidgetId id = MakeId(label);
+        const Rect clip = m_layoutStack.back().clip;
+        const bool hovered = options.enabled && IsHovered(rect);
+        const bool toggled = options.enabled && m_input &&
+            ((hovered && m_input->WasMouseButtonPressed(MouseButton::Left)) ||
+             IsKeyboardActivate(id));
+        if (toggled)
+        {
+            open = !open;
+            m_activeId = id;
+            m_focusedId = id;
+        }
+
+        RecordElement(
+            id,
+            ElementKind::CollapsingHeader,
+            rect,
+            clip,
+            options.enabled,
+            true,
+            true);
+        DrawSolid(rect, hovered ? m_theme.hovered : m_theme.background, clip);
+        DrawBorder(rect, m_focusedId == id ? m_theme.accent : m_theme.border, clip);
+        DrawText(
+            open ? "v" : ">",
+            Math::Vec2(rect.x + 5.0f, rect.y + 6.0f),
+            options.enabled ? m_theme.accent : m_theme.disabled,
+            clip);
+        DrawText(
+            label,
+            Math::Vec2(rect.x + 18.0f, rect.y + 6.0f),
+            options.enabled ? m_theme.text : m_theme.disabled,
+            clip);
+        return toggled;
+    }
+
+    bool Context::BeginScrollArea(
+        std::string_view idText,
+        const ScrollAreaOptions& options)
+    {
+        if (!m_frameActive || m_layoutStack.empty() || !std::isfinite(options.height) ||
+            options.height <= 0.0f || !std::isfinite(options.wheelStep) ||
+            options.wheelStep < 0.0f)
+        {
+            return false;
+        }
+
+        ItemOptions item;
+        item.height = options.height;
+        item.enabled = options.enabled;
+        const Rect viewport = Allocate(item, options.height);
+        if (!viewport.IsValid())
+        {
+            return false;
+        }
+
+        const WidgetId id = MakeId(idText);
+        const Rect parentClip = m_layoutStack.back().clip;
+        const Rect clip = viewport.Intersect(parentClip);
+        if (!clip.IsValid())
+        {
+            return false;
+        }
+        RecordElement(
+            id,
+            ElementKind::ScrollArea,
+            viewport,
+            clip,
+            options.enabled,
+            false,
+            true);
+
+        ElementState& element = m_elements[id];
+        const f32 maximumOffset =
+            (std::max)(0.0f, element.contentExtent - viewport.height);
+        element.scrollOffset = (std::max)(0.0f, (std::min)(element.scrollOffset, maximumOffset));
+        if (options.stickToBottom && element.followsEnd)
+        {
+            element.scrollOffset = maximumOffset;
+        }
+        if (options.enabled && IsHovered(clip) && m_input)
+        {
+            const f32 wheel = m_input->GetMouseWheelDelta();
+            if (wheel != 0.0f)
+            {
+                element.scrollOffset = (std::max)(
+                    0.0f,
+                    (std::min)(
+                        maximumOffset,
+                        element.scrollOffset - wheel * options.wheelStep));
+                element.followsEnd =
+                    element.scrollOffset >= (std::max)(0.0f, maximumOffset - 1.0f);
+            }
+        }
+
+        DrawSolid(viewport, m_theme.background, parentClip);
+        DrawBorder(viewport, m_theme.border, parentClip);
+
+        LayoutState layout;
+        layout.owner = id;
+        layout.flow = FlowDirection::Vertical;
+        layout.viewport = viewport;
+        layout.content = {
+            viewport.x + 4.0f,
+            viewport.y + 4.0f,
+            (std::max)(0.0f, viewport.width - (options.showScrollbar ? 14.0f : 8.0f)),
+            viewport.height - 8.0f};
+        layout.clip = {
+            clip.x + 1.0f,
+            clip.y + 1.0f,
+            (std::max)(0.0f, clip.width - 2.0f),
+            (std::max)(0.0f, clip.height - 2.0f)};
+        layout.cursor = Math::Vec2(layout.content.x, layout.content.y - element.scrollOffset);
+        layout.scrollOwner = id;
+        layout.scrollOffset = element.scrollOffset;
+        layout.wheelStep = options.wheelStep;
+        layout.showScrollbar = options.showScrollbar;
+        layout.stickToBottom = options.stickToBottom;
+        layout.scrollArea = true;
+        m_layoutStack.push_back(layout);
+        m_idStack.push_back(id);
+        return true;
+    }
+
+    void Context::EndScrollArea()
+    {
+        if (m_layoutStack.size() <= 1 || !m_layoutStack.back().scrollArea)
+        {
+            return;
+        }
+
+        const LayoutState layout = m_layoutStack.back();
+        m_layoutStack.pop_back();
+        if (m_idStack.size() > 1)
+        {
+            m_idStack.pop_back();
+        }
+
+        auto found = m_elements.find(layout.scrollOwner);
+        if (found == m_elements.end())
+        {
+            return;
+        }
+        ElementState& element = found->second;
+        const f32 rawExtent =
+            layout.cursor.y + layout.scrollOffset - layout.content.y - m_theme.spacing;
+        element.contentExtent = (std::max)(0.0f, rawExtent + 8.0f);
+        const f32 maximumOffset =
+            (std::max)(0.0f, element.contentExtent - layout.viewport.height);
+        if (layout.stickToBottom && element.followsEnd)
+        {
+            element.scrollOffset = maximumOffset;
+        }
+        else
+        {
+            element.scrollOffset = (std::max)(
+                0.0f,
+                (std::min)(element.scrollOffset, maximumOffset));
+        }
+
+        if (layout.showScrollbar && element.contentExtent > layout.viewport.height)
+        {
+            const Rect clip = layout.viewport.Intersect(m_layoutStack.back().clip);
+            const Rect track{
+                layout.viewport.x + layout.viewport.width - 8.0f,
+                layout.viewport.y + 3.0f,
+                4.0f,
+                layout.viewport.height - 6.0f};
+            const f32 thumbHeight = (std::max)(
+                12.0f,
+                track.height * layout.viewport.height / element.contentExtent);
+            const f32 travel = (std::max)(0.0f, track.height - thumbHeight);
+            const f32 fraction = maximumOffset > 0.0f
+                ? element.scrollOffset / maximumOffset
+                : 0.0f;
+            DrawSolid(track, m_theme.border, clip);
+            DrawSolid(
+                {track.x, track.y + travel * Clamp01(fraction), track.width, thumbHeight},
+                m_theme.accent,
+                clip);
+        }
     }
 
     bool Context::Button(std::string_view label, const ItemOptions& options)
@@ -705,7 +961,7 @@ namespace Pyramid::UI
             rect.height = (std::min)(height, layout.rowHeight);
             layout.cursor.x += rect.width + m_theme.spacing;
         }
-        return rect.Intersect(layout.clip);
+        return rect;
     }
 
     bool Context::IsHovered(const Rect& rect) const
@@ -714,7 +970,10 @@ namespace Pyramid::UI
         {
             return false;
         }
-        return rect.Contains(Math::Vec2(
+        const Rect hitRect = m_layoutStack.empty()
+            ? rect
+            : rect.Intersect(m_layoutStack.back().clip);
+        return hitRect.Contains(Math::Vec2(
             m_input->GetMousePosition().x,
             m_input->GetMousePosition().y));
     }
@@ -734,7 +993,8 @@ namespace Pyramid::UI
         bool interactive,
         bool blocksPointer)
     {
-        if (id == 0 || !rect.IsValid())
+        const Rect visibleRect = rect.Intersect(clip);
+        if (id == 0 || !rect.IsValid() || !visibleRect.IsValid())
         {
             return;
         }
@@ -742,7 +1002,7 @@ namespace Pyramid::UI
         element.id = id;
         element.parent = CurrentParent();
         element.kind = kind;
-        element.rect = rect;
+        element.rect = visibleRect;
         element.clip = clip;
         element.visible = true;
         element.enabled = enabled;
@@ -819,6 +1079,39 @@ namespace Pyramid::UI
     {
         const Text::TextMetrics metrics = Text::Measure(m_font, text, m_theme.textScale);
         DrawText(text, Math::Vec2(right - metrics.width, y), color, clip);
+    }
+
+    Text::LayoutResult Context::BuildWrappedText(
+        std::string_view text,
+        const Math::Vec2& position,
+        f32 maximumWidth) const
+    {
+        Text::LayoutOptions options;
+        options.scale = m_theme.textScale;
+        options.maximumWidth = (std::max)(0.0f, maximumWidth);
+        options.wrap = Text::WrapMode::Word;
+        options.lineSpacing = 1.0f;
+        return Text::Layout(m_font, text, position, options);
+    }
+
+    void Context::DrawTextLayout(
+        const Text::LayoutResult& layout,
+        const Color& color,
+        const Rect& clip)
+    {
+        for (const Text::GlyphQuad& quad : layout.glyphs)
+        {
+            m_drawList.AddQuad(
+                {quad.minimum.x, quad.minimum.y,
+                 quad.maximum.x - quad.minimum.x,
+                 quad.maximum.y - quad.minimum.y},
+                {quad.uvMinimum.x, quad.uvMinimum.y,
+                 quad.uvMaximum.x - quad.uvMinimum.x,
+                 quad.uvMaximum.y - quad.uvMinimum.y},
+                color,
+                DebugFontTextureId,
+                clip);
+        }
     }
 
     void Context::AdvanceKeyboardFocus()

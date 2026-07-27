@@ -198,7 +198,14 @@ namespace Pyramid::Tests
             RecordDraw(false, vertexCount, instanceCount, firstVertex, topology);
         }
 
-        void SetViewport(u32, u32, u32, u32) override {}
+        void SetViewport(u32 x, u32 y, u32 width, u32 height) override
+        {
+            viewportX = x;
+            viewportY = y;
+            viewportWidth = width;
+            viewportHeight = height;
+            ++viewportChanges;
+        }
 
         std::shared_ptr<IVertexBuffer> CreateVertexBuffer() override
         {
@@ -277,7 +284,7 @@ namespace Pyramid::Tests
         void SetWireframeMode(bool enable) override { wireframeEnabled = enable; }
         void SetPolygonMode(u32 mode) override { polygonMode = mode; }
         void BindFramebuffer(IFramebuffer*) override {}
-        void BindFramebufferHandle(u32) override {}
+        void BindFramebufferHandle(u32 handle) override { boundFramebufferHandle = handle; }
         void BindShader(IShader* shader) override
         {
             boundShader = shader;
@@ -308,6 +315,12 @@ namespace Pyramid::Tests
 
         u32 failVertexBufferCreationAt = 0;
 
+        u32 viewportX = 0;
+        u32 viewportY = 0;
+        u32 viewportWidth = 0;
+        u32 viewportHeight = 0;
+        u32 viewportChanges = 0;
+        u32 boundFramebufferHandle = 0;
         u32 drawCalls = 0;
         bool lastDrawIndexed = false;
         u32 lastDrawCount = 0;

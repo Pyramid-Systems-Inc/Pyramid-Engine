@@ -83,6 +83,10 @@ namespace Pyramid
         {
             std::lock_guard<std::mutex> lock(m_mutex);
             m_config = config;
+            while (m_history.size() > m_config.historyCapacity)
+            {
+                m_history.pop_front();
+            }
 
             // Open log file if file logging is enabled
             if (m_config.enableFile)
@@ -126,12 +130,24 @@ namespace Pyramid
 
             std::lock_guard<std::mutex> lock(m_mutex);
 
-            // Check levels after acquiring lock to avoid race conditions
-            bool shouldWriteConsole = m_config.enableConsole && level >= m_config.consoleLevel;
-            bool shouldWriteFile = m_config.enableFile && level >= m_config.fileLevel && m_logFile.is_open();
+            if (m_config.enableHistory && m_config.historyCapacity > 0 &&
+                level >= m_config.historyLevel)
+            {
+                m_history.push_back(entry);
+                while (m_history.size() > m_config.historyCapacity)
+                {
+                    m_history.pop_front();
+                }
+            }
+
+            // Check levels after acquiring lock to avoid race conditions.
+            const bool shouldWriteConsole =
+                m_config.enableConsole && level >= m_config.consoleLevel;
+            const bool shouldWriteFile =
+                m_config.enableFile && level >= m_config.fileLevel && m_logFile.is_open();
 
             if (!shouldWriteConsole && !shouldWriteFile)
-                return; // Early exit if nothing to do
+                return;
 
             // Write to console if enabled and level is sufficient
             if (shouldWriteConsole)
@@ -160,12 +176,24 @@ namespace Pyramid
 
             std::lock_guard<std::mutex> lock(m_mutex);
 
-            // Check levels after acquiring lock to avoid race conditions
-            bool shouldWriteConsole = m_config.enableConsole && level >= m_config.consoleLevel;
-            bool shouldWriteFile = m_config.enableFile && level >= m_config.fileLevel && m_logFile.is_open();
+            if (m_config.enableHistory && m_config.historyCapacity > 0 &&
+                level >= m_config.historyLevel)
+            {
+                m_history.push_back(entry);
+                while (m_history.size() > m_config.historyCapacity)
+                {
+                    m_history.pop_front();
+                }
+            }
+
+            // Check levels after acquiring lock to avoid race conditions.
+            const bool shouldWriteConsole =
+                m_config.enableConsole && level >= m_config.consoleLevel;
+            const bool shouldWriteFile =
+                m_config.enableFile && level >= m_config.fileLevel && m_logFile.is_open();
 
             if (!shouldWriteConsole && !shouldWriteFile)
-                return; // Early exit if nothing to do
+                return;
 
             // Write to console if enabled and level is sufficient
             if (shouldWriteConsole)
@@ -177,6 +205,49 @@ namespace Pyramid
             if (shouldWriteFile)
             {
                 WriteToFile(entry);
+            }
+        }
+
+
+        std::vector<LogEntry> Logger::GetRecentEntries(
+            size_t maximumEntries,
+            LogLevel minimumLevel) const
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            std::vector<LogEntry> entries;
+            entries.reserve(maximumEntries == 0
+                ? m_history.size()
+                : (std::min)(maximumEntries, m_history.size()));
+
+            for (auto iterator = m_history.rbegin(); iterator != m_history.rend(); ++iterator)
+            {
+                if (iterator->level < minimumLevel)
+                {
+                    continue;
+                }
+                entries.push_back(*iterator);
+                if (maximumEntries != 0 && entries.size() >= maximumEntries)
+                {
+                    break;
+                }
+            }
+            std::reverse(entries.begin(), entries.end());
+            return entries;
+        }
+
+        void Logger::ClearHistory()
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_history.clear();
+        }
+
+        void Logger::SetHistoryCapacity(size_t capacity)
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_config.historyCapacity = capacity;
+            while (m_history.size() > capacity)
+            {
+                m_history.pop_front();
             }
         }
 

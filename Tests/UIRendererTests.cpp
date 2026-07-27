@@ -200,6 +200,12 @@ int main()
     {
         return Fail("render-state baseline was not restored");
     }
+    if (device.viewportX != 0 || device.viewportY != 0 ||
+        device.viewportWidth != 200 || device.viewportHeight != 160 ||
+        device.viewportChanges == 0 || device.boundFramebufferHandle != 0)
+    {
+        return Fail("UI renderer did not establish the physical surface viewport");
+    }
     if (device.scissorX != 20 || device.scissorY != 8 ||
         device.scissorWidth != 140 || device.scissorHeight != 100)
     {

@@ -21,6 +21,9 @@ Demonstrates:
 - the reusable `RTSCameraController`: WASD pans, Q/E or middle-drag orbits, the wheel zooms, Shift boosts movement, and `R` restores the captured home pose;
 - `Pyramid::RTSReference` game-side interaction: moving the pointer to a window edge scrolls, left click selects the demo cube through a selectable predicate, and right click emits a ground-plane command for the selected entity;
 - `Escape` quits, `Space` toggles cube animation, and `F1` toggles the runtime debug overlay;
+- collapsible diagnostics, wrapped help text, runtime controls, and a scrollable severity-colored in-memory log console;
+- explicit final-surface viewport restoration after fixed-resolution shadow/off-screen passes;
+- UI pointer capture that blocks both named actions and raw RTS edge scrolling/selection/commands;
 - automatic default-viewport updates and active-camera projection resizing;
 - platform-neutral resize-event logging through `Game::onWindowResize()`;
 - logging configuration.
@@ -38,7 +41,7 @@ Run:
 ./build/gcc-debug/bin/BasicGame.exe
 ```
 
-Selection and command requests are logged. The reference helper lives under `Examples/RTSReference`; it is deliberately not exported by the installed `Pyramid::Engine` package.
+Selection and command requests are logged and appear in the runtime log panel. The reference helper lives under `Examples/RTSReference`; it is deliberately not exported by the installed `Pyramid::Engine` package.
 
 ## BasicRenderingExample
 
@@ -74,7 +77,8 @@ A successful timed process run proves that startup did not immediately fail. Aft
 
 - both windows open;
 - shader compilation reports no errors;
-- geometry is visible;
+- geometry is visible and initially framed from above rather than clipped by a stale shadow-map viewport;
+- the F1 overlay shows text/controls across the full panel and its log area scrolls without off-screen widgets receiving clicks;
 - resize, maximize, minimize, and restore messages appear in the log;
 - the imported pyramid keeps the correct proportions after resizing;
 - minimizing suspends rendering until a renderable client area is restored;

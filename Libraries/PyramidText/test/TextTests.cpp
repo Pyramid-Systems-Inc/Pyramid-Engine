@@ -44,6 +44,62 @@ int main()
         "lowercase atlas lookup mismatch");
     Require(font.GetGlyph(0x400).codepoint == U'?', "fallback glyph mismatch");
 
+    Pyramid::Text::LayoutOptions wrappedOptions;
+    wrappedOptions.maximumWidth = 24.0f;
+    wrappedOptions.wrap = Pyramid::Text::WrapMode::Word;
+    wrappedOptions.lineSpacing = 2.0f;
+    const auto wrapped = Pyramid::Text::Layout(
+        font,
+        "ONE TWO THREE",
+        Pyramid::Math::Vec2(4.0f, 8.0f),
+        wrappedOptions);
+    Require(wrapped.metrics.lineCount >= 3, "word wrapping did not create multiple lines");
+    Require(wrapped.metrics.width <= 24.001f, "wrapped line exceeded the requested width");
+    Require(wrapped.lines.size() == wrapped.metrics.lineCount,
+        "line metrics count mismatch");
+
+    Pyramid::Text::LayoutOptions centeredOptions;
+    centeredOptions.maximumWidth = 60.0f;
+    centeredOptions.alignment = Pyramid::Text::HorizontalAlignment::Center;
+    const auto centered = Pyramid::Text::Layout(
+        font,
+        "AB",
+        Pyramid::Math::Vec2(10.0f, 5.0f),
+        centeredOptions);
+    Require(centered.glyphs.size() == 2, "centered layout glyph count mismatch");
+    Require(centered.glyphs.front().minimum.x > 10.0f,
+        "center alignment did not offset the glyph run");
+
+    const std::string validUtf8 = std::string("A") + "\xC3\xA9" + "B";
+    const auto validUnicode = Pyramid::Text::Layout(
+        font,
+        validUtf8,
+        Pyramid::Math::Vec2::Zero);
+    Require(validUnicode.invalidUtf8Sequences == 0,
+        "valid UTF-8 was reported as malformed");
+    Require(validUnicode.glyphs.size() == 3,
+        "unsupported Unicode must still emit a replacement glyph");
+
+    const std::string malformedUtf8("A\xC0\xAF" "B", 4);
+    const auto malformed = Pyramid::Text::Layout(
+        font,
+        malformedUtf8,
+        Pyramid::Math::Vec2::Zero);
+    Require(malformed.invalidUtf8Sequences == 1,
+        "malformed UTF-8 sequence count mismatch");
+    Require(malformed.glyphs.size() == 3,
+        "malformed UTF-8 did not emit one replacement glyph");
+
+    Pyramid::Text::LayoutOptions tabOptions;
+    tabOptions.tabWidth = 3;
+    const auto tabbed = Pyramid::Text::Layout(
+        font,
+        "A\tB",
+        Pyramid::Math::Vec2::Zero,
+        tabOptions);
+    Require(tabbed.metrics.width > Pyramid::Text::Measure(font, "AB", 1.0f).width,
+        "tab expansion did not affect text width");
+
     std::cout << "Text tests passed\n";
     return EXIT_SUCCESS;
 }

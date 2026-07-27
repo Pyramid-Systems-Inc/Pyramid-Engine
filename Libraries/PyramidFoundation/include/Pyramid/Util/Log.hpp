@@ -10,6 +10,8 @@
 #include <thread>
 #include <unordered_map>
 #include <cassert>
+#include <deque>
+#include <vector>
 
 // Platform-specific includes for source location
 #ifdef _MSC_VER
@@ -88,6 +90,9 @@ namespace Pyramid
             bool enableTimestamp = true;
             bool enableThreadId = true;
             bool enableSourceLocation = true;
+            bool enableHistory = true;
+            LogLevel historyLevel = LogLevel::Trace;
+            size_t historyCapacity = 512;
             std::string timestampFormat = "%Y-%m-%d %H:%M:%S";
         };
 
@@ -116,6 +121,13 @@ namespace Pyramid
 
             // Flush all outputs
             void Flush();
+
+            // Thread-safe bounded in-memory history for runtime diagnostics UI.
+            [[nodiscard]] std::vector<LogEntry> GetRecentEntries(
+                size_t maximumEntries = 0,
+                LogLevel minimumLevel = LogLevel::Trace) const;
+            void ClearHistory();
+            void SetHistoryCapacity(size_t capacity);
 
             // Set log levels at runtime
             void SetConsoleLevel(LogLevel level);
@@ -153,6 +165,7 @@ namespace Pyramid
             // File handling
             std::ofstream m_logFile;
             size_t m_currentFileSize = 0;
+            std::deque<LogEntry> m_history;
         };
 
         // Helper class for stream-style logging
@@ -179,10 +192,8 @@ namespace Pyramid
         template <typename... Args>
         void Logger::LogFormatted(LogLevel level, const SourceLocation &location, Args &&...args)
         {
-            if (level < m_config.consoleLevel && level < m_config.fileLevel)
-                return; // Early exit for performance
-
-            // Build message without holding the lock to avoid deadlock
+            // Build message without holding the lock. Log() applies output and
+            // bounded-history filtering under the logger mutex.
             std::ostringstream localBuffer;
             ((localBuffer << args), ...);
 

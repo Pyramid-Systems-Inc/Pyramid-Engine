@@ -1,4 +1,5 @@
 #include <Pyramid/Platform/Input.hpp>
+#include <Pyramid/Text/Text.hpp>
 #include <Pyramid/UI/UI.hpp>
 
 #include <cstdlib>
@@ -24,11 +25,28 @@ int main()
     {
         return EXIT_FAILURE;
     }
-    ui.Label("PYRAMID UI PACKAGE");
-    ui.ProgressBar("READY", 1.0f);
+    bool detailsOpen = true;
+    (void)ui.CollapsingHeader("DETAILS", detailsOpen);
+    if (detailsOpen)
+    {
+        ui.WrappedLabel("PYRAMID UI PACKAGE WITH OWNED UTF-8 LAYOUT");
+        Pyramid::UI::ScrollAreaOptions scroll;
+        scroll.height = 42.0f;
+        if (!ui.BeginScrollArea("STATUS", scroll))
+        {
+            return EXIT_FAILURE;
+        }
+        ui.ProgressBar("READY", 1.0f);
+        ui.EndScrollArea();
+    }
     ui.EndPanel();
     const auto& drawList = ui.EndFrame();
-    if (drawList.Empty())
+    const auto textLayout = Pyramid::Text::Layout(
+        ui.GetDebugFont(),
+        "Pyramid UTF-8: \xE2\x9C\x93",
+        Pyramid::Math::Vec2::Zero);
+    if (drawList.Empty() || textLayout.glyphs.empty() ||
+        textLayout.invalidUtf8Sequences != 0)
     {
         return EXIT_FAILURE;
     }

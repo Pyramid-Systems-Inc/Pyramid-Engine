@@ -119,6 +119,15 @@ namespace Pyramid::UI
         bool enabled = true;
     };
 
+    struct ScrollAreaOptions
+    {
+        f32 height = 140.0f;
+        f32 wheelStep = 28.0f;
+        bool showScrollbar = true;
+        bool stickToBottom = false;
+        bool enabled = true;
+    };
+
     struct ContextStats
     {
         u32 retainedElements = 0;
@@ -161,12 +170,28 @@ namespace Pyramid::UI
         void PopId();
 
         void Label(std::string_view text, const ItemOptions& options = {});
+        void LabelColored(
+            std::string_view text,
+            const Color& color,
+            const ItemOptions& options = {});
+        void WrappedLabel(
+            std::string_view text,
+            const ItemOptions& options = {},
+            const Color* color = nullptr);
         void LabelValue(
             std::string_view label,
             std::string_view value,
             const ItemOptions& options = {});
         void Separator();
         void Spacer(f32 height = 0.0f);
+        [[nodiscard]] bool CollapsingHeader(
+            std::string_view label,
+            bool& open,
+            const ItemOptions& options = {});
+        [[nodiscard]] bool BeginScrollArea(
+            std::string_view id,
+            const ScrollAreaOptions& options = {});
+        void EndScrollArea();
         [[nodiscard]] bool Button(std::string_view label, const ItemOptions& options = {});
         [[nodiscard]] bool Checkbox(
             std::string_view label,
@@ -205,7 +230,9 @@ namespace Pyramid::UI
             Checkbox,
             Slider,
             Progress,
-            Image
+            Image,
+            CollapsingHeader,
+            ScrollArea
         };
 
         struct ElementState
@@ -219,6 +246,9 @@ namespace Pyramid::UI
             bool enabled = true;
             bool interactive = false;
             bool blocksPointer = false;
+            f32 scrollOffset = 0.0f;
+            f32 contentExtent = 0.0f;
+            bool followsEnd = true;
             u64 visitedFrame = 0;
         };
 
@@ -230,6 +260,13 @@ namespace Pyramid::UI
             Rect clip;
             Math::Vec2 cursor = Math::Vec2::Zero;
             f32 rowHeight = 0.0f;
+            Rect viewport;
+            WidgetId scrollOwner = 0;
+            f32 scrollOffset = 0.0f;
+            f32 wheelStep = 0.0f;
+            bool showScrollbar = false;
+            bool stickToBottom = false;
+            bool scrollArea = false;
         };
 
         [[nodiscard]] WidgetId MakeId(std::string_view label) const;
@@ -256,6 +293,14 @@ namespace Pyramid::UI
             std::string_view text,
             f32 right,
             f32 y,
+            const Color& color,
+            const Rect& clip);
+        [[nodiscard]] Text::LayoutResult BuildWrappedText(
+            std::string_view text,
+            const Math::Vec2& position,
+            f32 maximumWidth) const;
+        void DrawTextLayout(
+            const Text::LayoutResult& layout,
             const Color& color,
             const Rect& clip);
         void AdvanceKeyboardFocus();

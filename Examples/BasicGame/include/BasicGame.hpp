@@ -61,4 +61,8 @@ private:
     float m_smoothedFrameTime = 1.0f / 60.0f;
     bool m_debugUIVisible = true;
     bool m_animationPaused = false;
+    bool m_performanceSectionOpen = true;
+    bool m_resourcesSectionOpen = true;
+    bool m_inputSectionOpen = true;
+    bool m_uiSectionOpen = true;
 };

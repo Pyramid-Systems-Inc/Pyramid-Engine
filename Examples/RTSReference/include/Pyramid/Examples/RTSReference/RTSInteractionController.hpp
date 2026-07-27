@@ -114,6 +114,19 @@ namespace Pyramid
                 RTSCameraController& cameraController,
                 f32 deltaTime);
 
+            /**
+             * UI-aware update. Physical pointer behavior such as edge scrolling is
+             * suppressed when an earlier UI/editor layer reserved mouse input.
+             */
+            void Update(
+                const InputState& input,
+                const InputActionSystem& actions,
+                const InputConsumptionMask& consumption,
+                Camera& camera,
+                SceneManagement::SceneManager& sceneManager,
+                RTSCameraController& cameraController,
+                f32 deltaTime);
+
             [[nodiscard]] InputActionVector2 GetEdgeScrollAxis(const InputState& input) const;
 
             [[nodiscard]] EntityId GetSelectedEntityId() const { return m_selectedEntity; }

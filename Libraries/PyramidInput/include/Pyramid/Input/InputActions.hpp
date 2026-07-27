@@ -41,6 +41,7 @@ namespace Pyramid
         {
             return m_mouseHorizontalWheel;
         }
+        [[nodiscard]] bool HasAnyMouseConsumption() const;
         [[nodiscard]] bool HasAnyConsumption() const;
 
     private:

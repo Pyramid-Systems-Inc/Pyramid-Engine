@@ -153,28 +153,43 @@ Include the renderer-independent APIs with:
 ```cpp
 #include <Pyramid/Text/Text.hpp>
 #include <Pyramid/UI/UI.hpp>
+#include <Pyramid/Util/Log.hpp>
 ```
 
-`Text::CreateDebugFontAtlas()` returns a deterministic embedded ASCII atlas. `Text::Measure()` reports multiline extents and `Text::BuildGlyphQuads()` emits renderer-neutral glyph geometry.
+`Text::CreateDebugFontAtlas()` returns a deterministic embedded ASCII atlas. `Text::Layout()` strictly decodes UTF-8, substitutes unsupported code points through the atlas fallback glyph, reports malformed-sequence counts, expands tabs, wraps by word or character, aligns lines, and emits renderer-neutral glyph geometry plus line metrics. `Text::Measure()` and `Text::BuildGlyphQuads()` remain compact convenience APIs.
 
 A `UI::Context` owns retained widget state and accepts immediate calls between `BeginFrame()` and `EndFrame()`:
 
 ```cpp
 Pyramid::UI::Context ui;
 Pyramid::UI::FrameInfo frame{width, height, dpiScale, deltaTime};
+auto& logger = Pyramid::Util::Logger::GetInstance();
 
 ui.BeginFrame(frame, input);
 if (ui.BeginPanel("DEBUG"))
 {
-    ui.LabelValue("FPS", "144");
+    (void)ui.CollapsingHeader("PERFORMANCE", performanceOpen);
+    if (performanceOpen)
+        ui.LabelValue("FPS", "144");
     ui.Checkbox("PAUSED", paused);
     ui.SliderFloat("CAMERA SPEED", speed, 1.0f, 20.0f);
+    ui.WrappedLabel("Pointer capture blocks camera and world interaction.");
+
+    Pyramid::UI::ScrollAreaOptions scroll;
+    scroll.height = 120.0f;
+    scroll.stickToBottom = true;
+    if (ui.BeginScrollArea("LOG", scroll))
+    {
+        for (const auto& entry : logger.GetRecentEntries(100))
+            ui.WrappedLabel(entry.message);
+        ui.EndScrollArea();
+    }
     ui.EndPanel();
 }
 const Pyramid::UI::DrawList& drawList = ui.EndFrame();
 ```
 
-Stable widget identity derives from the parent scope and label; use `PushId()`/`PopId()` when repeated labels need independent state. `PrepareInput()` hit-tests the previous retained frame and returns an `InputConsumptionMask` before action evaluation. Current widgets are panels, labels/value rows, separators, spacers, buttons, checkboxes, float sliders, progress bars, and images.
+Stable widget identity derives from the parent scope and label; use `PushId()`/`PopId()` when repeated labels need independent state. `PrepareInput()` hit-tests the previous retained frame and returns an `InputConsumptionMask` before action evaluation. Current widgets are panels, labels/value rows, colored and wrapped labels, separators, spacers, persistent collapsing headers, clipped vertical scroll areas, buttons, checkboxes, float sliders, progress bars, and images.
 
 The engine graphics adapter is:
 
@@ -186,7 +201,9 @@ renderer.Initialize(device, resources, ui.GetDebugFont());
 renderer.Render(ui.GetDrawList(), frame);
 ```
 
-`UIRenderer` consumes `UI::DrawList`, supports the embedded font plus registered `ITexture2D` IDs, applies top-left DPI-scaled scissor clipping, and restores the engine baseline render state. It should run after world rendering and before presentation.
+`UIRenderer` consumes `UI::DrawList`, supports the embedded font plus registered `ITexture2D` IDs, binds framebuffer zero, establishes the DPI-scaled physical surface viewport, applies top-left scissor clipping, and restores the engine baseline render state. It should run after world rendering and before presentation. `RenderSystem` independently restores the main framebuffer and viewport after every render pass so shadow-map or off-screen dimensions cannot leak into later passes.
+
+`Util::Logger` maintains an optional bounded in-memory history for diagnostics. `GetRecentEntries(maximum, minimumLevel)` returns the newest matching entries in chronological order, `SetHistoryCapacity()` trims deterministically, and `ClearHistory()` removes only the in-memory history; console/file sinks remain unchanged.
 
 ## Graphics device and resources
 

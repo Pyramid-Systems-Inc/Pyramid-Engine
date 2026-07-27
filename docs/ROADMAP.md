@@ -30,7 +30,7 @@ The current `0.6.0-pre-alpha` baseline includes:
 - platform-neutral resize events delivered from Win32 `WM_SIZE` through `Game::onWindowResize()`;
 - real Win32 keyboard/mouse polling with per-frame transitions, pointer/wheel deltas, explicit pointer-sample validity, mouse capture, and focus-safe release;
 - game-side RTS edge scrolling, selectable-filtered ray picking, stable selection, and ground-plane command requests without engine-level RTS concepts;
-- automatic default-viewport updates, active-camera projection synchronization, and minimized-window render suspension;
+- automatic default-viewport updates, per-pass main-surface restoration, final UI surface ownership, active-camera projection synchronization, and minimized-window render suspension;
 - transactional framebuffer recreation, unified render-target ownership, and render-system resize propagation;
 - an authoritative stable-ID entity/component scene with cycle-safe hierarchy operations, recursive world-transform invalidation, mesh-renderer/light components, and generated renderer proxies;
 - normalized camera-frustum extraction, bounds-aware scene visibility, octree frustum queries, incremental moving-object synchronization, and exact bounds-aware point/sphere/box/ray queries.
@@ -55,7 +55,7 @@ The current `0.6.0-pre-alpha` baseline includes:
 - Complete deferred shadow-map-array binding.
 - Verify multisampled targets and resolve behavior across supported drivers; attachment ownership and resize preservation are now centralized.
 - [x] Add OpenGL debug-callback handling.
-- [ ] Add render-state transition tests.
+- [ ] Add comprehensive render-state transition tests; UI viewport/scissor/state restoration now has focused coverage.
 
 ### Texture and image correctness
 
@@ -110,6 +110,7 @@ Target outcome: a trustworthy rendering SDK rather than a larger feature list.
 - Scene serialization with versioning and validation, built on resource manifests.
 - Asset packaging and path abstraction independent of the source checkout.
 - [x] Runtime debug UI and frame/resource/input inspection foundation.
+- [x] Add owned UTF-8 decoding, wrapping/alignment, collapsing sections, clipped scrolling, bounded log history, and a runtime diagnostics console.
 
 ## P3 — first playable RTS runtime
 
@@ -131,7 +132,8 @@ A full editor follows the validated runtime model. Baa integration starts as gam
 ### UI and editor continuation
 
 - Runtime font import and owned font asset format.
-- Unicode decoding, bidirectional layout, Arabic shaping, fallback fonts, and text editing/IME integration.
+- [x] Strict UTF-8 decoding, malformed-sequence diagnostics, tab expansion, word/character wrapping, and horizontal alignment for the embedded debug atlas.
+- Bidirectional layout, Arabic shaping, fallback font chains, and text editing/IME integration.
 - Retained screen routing, style classes, animation, controller navigation, and game HUD composition.
 - Editor widgets including tree views, property grids, splitters, menus, dialogs, docking, and scene/resource inspectors.
 

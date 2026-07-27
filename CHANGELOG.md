@@ -4,6 +4,16 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### UI diagnostics, text layout, and render-surface restoration
+
+- Fixed the visible `BasicGame` corruption caused by off-screen passes leaving a shadow-map-sized viewport active: `RenderSystem` now restores the default framebuffer and main viewport after every pass, and `UIRenderer` establishes the final DPI-scaled surface viewport explicitly.
+- Added strict owned UTF-8 decoding, fallback-glyph accounting, tab expansion, character/word wrapping, horizontal alignment, line spacing, and reusable line/glyph metrics to `Pyramid::Text`.
+- Added colored and wrapped labels, persistent collapsing headers, clipped vertical scroll areas, optional scrollbars, wheel control, and stick-to-bottom behavior to `Pyramid::UI`.
+- Added bounded thread-safe logger history with severity filtering, capacity control, and clearing for runtime diagnostics without a second logging system.
+- Extended UI consumption into the raw RTS interaction path so pointer capture blocks edge scrolling, world selection, and command projection as well as named input actions.
+- Reworked the `BasicGame` overlay into collapsible diagnostics, runtime controls, and a scrollable severity-colored log console; corrected the initial camera/floor framing.
+- Expanded package, public-API, text, UI, input, RTS interaction, and renderer tests while preserving 46 registered CTest targets.
+
 ### Owned UI foundation and runtime debug overlay
 
 - Added independently installable `PyramidText` and `PyramidUI` targets exported as `Pyramid::Text` and `Pyramid::UI`; both remain platform and renderer independent.

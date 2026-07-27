@@ -152,6 +152,23 @@ int main()
     Require(NearlyEqual(cameraController.GetFocusPoint(), Math::Vec3::Zero),
         "camera reset should restore the interaction test focus");
 
+    input.BeginFrame();
+    ReleaseMouse(input);
+    input.ProcessMouseMove(0.0f, 400.0f);
+    InputConsumptionMask uiConsumption;
+    uiConsumption.ConsumeAllMouse();
+    actions.Update(input, uiConsumption);
+    interaction.Update(
+        input,
+        actions,
+        uiConsumption,
+        camera,
+        sceneManager,
+        cameraController,
+        1.0f);
+    Require(NearlyEqual(cameraController.GetFocusPoint(), Math::Vec3::Zero),
+        "UI-consumed pointer input leaked into RTS edge scrolling");
+
     interaction.SetSelectablePredicate(
         [unitId = unit.GetId()](const Entity& entity)
         {

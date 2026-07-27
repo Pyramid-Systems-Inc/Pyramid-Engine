@@ -255,6 +255,19 @@ void main()
             vertices.data(),
             static_cast<u32>(vertices.size() * sizeof(UI::Vertex)));
 
+        const u32 surfaceWidth = CeilPixel(frame.width, frame.dpiScale);
+        const u32 surfaceHeight = CeilPixel(frame.height, frame.dpiScale);
+        if (surfaceWidth == 0 || surfaceHeight == 0)
+        {
+            PYRAMID_LOG_ERROR("UI renderer rejected a zero-sized physical surface");
+            return false;
+        }
+
+        // UI is a final surface-space pass. Establish its physical viewport
+        // explicitly because earlier passes may have rendered shadow maps or
+        // other off-screen targets with different extents.
+        m_device->BindFramebufferHandle(0);
+        m_device->SetViewport(0, 0, surfaceWidth, surfaceHeight);
         m_device->EnableBlend(true);
         m_device->SetBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         m_device->EnableDepthTest(false);

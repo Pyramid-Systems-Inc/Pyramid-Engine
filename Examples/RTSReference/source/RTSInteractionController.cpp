@@ -75,12 +75,35 @@ namespace Pyramid::Examples::RTSReference
         RTSCameraController& cameraController,
         f32 deltaTime)
     {
+        const InputConsumptionMask noConsumption;
+        Update(
+            input,
+            actions,
+            noConsumption,
+            camera,
+            sceneManager,
+            cameraController,
+            deltaTime);
+    }
+
+    void RTSInteractionController::Update(
+        const InputState& input,
+        const InputActionSystem& actions,
+        const InputConsumptionMask& consumption,
+        Camera& camera,
+        SceneManagement::SceneManager& sceneManager,
+        RTSCameraController& cameraController,
+        f32 deltaTime)
+    {
         if (!m_enabled || !input.HasFocus() || !IsFinite(deltaTime) || deltaTime < 0.0f)
         {
             return;
         }
 
-        ApplyEdgeScroll(input, cameraController, deltaTime);
+        if (!consumption.HasAnyMouseConsumption())
+        {
+            ApplyEdgeScroll(input, cameraController, deltaTime);
+        }
         cameraController.Update(camera, actions, deltaTime);
 
         const Entity selected = GetSelectedEntity(sceneManager);
@@ -91,14 +114,15 @@ namespace Pyramid::Examples::RTSReference
 
         f32 screenX = 0.0f;
         f32 screenY = 0.0f;
-        const bool hasPointer = TryGetNormalizedPointer(input, screenX, screenY);
+        const bool hasPointer = !consumption.HasAnyMouseConsumption() &&
+            TryGetNormalizedPointer(input, screenX, screenY);
 
         if (WasPressed(actions, m_actions.select))
         {
             const EntityId picked = hasPointer
                 ? PickEntity(camera, sceneManager, screenX, screenY)
                 : EntityId{};
-            if (picked || m_settings.clearSelectionOnMiss)
+            if (hasPointer && (picked || m_settings.clearSelectionOnMiss))
             {
                 m_selectedEntity = picked;
             }

@@ -301,18 +301,18 @@ namespace Pyramid
             // Give retained UI contexts first refusal over physical controls so
             // clicks, wheel input and focused keyboard navigation do not leak into
             // lower-priority gameplay action contexts.
-            InputConsumptionMask uiConsumption;
+            m_uiInputConsumption.Clear();
             for (UI::Context* context : m_uiContexts)
             {
                 if (context)
                 {
-                    uiConsumption.Merge(context->PrepareInput(GetInput()));
+                    m_uiInputConsumption.Merge(context->PrepareInput(GetInput()));
                 }
             }
 
             // Evaluate engine-generic action contexts from the completed native
             // input snapshot before game logic reads named actions.
-            m_inputActions.Update(GetInput(), uiConsumption);
+            m_inputActions.Update(GetInput(), m_uiInputConsumption);
 
             // Update game logic
             onUpdate(deltaTime);

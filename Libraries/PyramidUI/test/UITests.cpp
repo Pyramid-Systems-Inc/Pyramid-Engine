@@ -111,6 +111,49 @@ int main()
     Require(list.GetBatches().size() == 1, "compatible quads were not batched");
     Require(list.GetBatches()[0].indexCount == 12, "batched index count mismatch");
 
+    Pyramid::UI::Context advanced;
+    Pyramid::InputState advancedInput;
+    advancedInput.SetFocused(true);
+    advancedInput.ProcessMouseMove(24.0f, 58.0f);
+    bool sectionOpen = true;
+    Require(advanced.BeginFrame(frame, advancedInput), "advanced frame rejected");
+    Require(advanced.BeginPanel("ADVANCED", panel), "advanced panel failed");
+    (void)advanced.CollapsingHeader("SECTION", sectionOpen);
+    Pyramid::UI::ScrollAreaOptions scrollOptions;
+    scrollOptions.height = 64.0f;
+    scrollOptions.stickToBottom = true;
+    Require(advanced.BeginScrollArea("LOG", scrollOptions), "scroll area creation failed");
+    advanced.WrappedLabel(
+        "This retained log line is deliberately long enough to wrap across several rows.");
+    for (Pyramid::u64 index = 0; index < 8; ++index)
+    {
+        advanced.PushId(index);
+        advanced.Label("SCROLLED ENTRY");
+        advanced.PopId();
+    }
+    const bool clippedButtonClicked = advanced.Button("OFFSCREEN BUTTON");
+    advanced.EndScrollArea();
+    advanced.EndPanel();
+    const auto& advancedDraw = advanced.EndFrame();
+    Require(!advancedDraw.Empty(), "advanced widgets emitted no geometry");
+    Require(!clippedButtonClicked,
+        "widget outside a scroll clip accepted pointer interaction");
+
+    advancedInput.BeginFrame();
+    advancedInput.ProcessMouseMove(24.0f, 58.0f);
+    advancedInput.ProcessMouseButton(Pyramid::MouseButton::Left, true);
+    Require(advanced.BeginFrame(frame, advancedInput), "collapse frame rejected");
+    Require(advanced.BeginPanel("ADVANCED", panel), "collapse panel failed");
+    const bool collapsed = advanced.CollapsingHeader("SECTION", sectionOpen);
+    advanced.EndPanel();
+    (void)advanced.EndFrame();
+    Require(collapsed && !sectionOpen,
+        "collapsing header did not persistently toggle its caller-owned state");
+
+    const auto advancedCapture = advanced.PrepareInput(advancedInput);
+    Require(advancedCapture.HasAnyMouseConsumption(),
+        "advanced UI did not reserve pointer input");
+
     std::cout << "UI tests passed\n";
     return EXIT_SUCCESS;
 }

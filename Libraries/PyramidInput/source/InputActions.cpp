@@ -307,14 +307,19 @@ namespace Pyramid
         return index < m_mouseButtons.size() && m_mouseButtons[index];
     }
 
+    bool InputConsumptionMask::HasAnyMouseConsumption() const
+    {
+        return std::any_of(
+                   m_mouseButtons.begin(),
+                   m_mouseButtons.end(),
+                   [](bool value) { return value; }) ||
+            m_mouseDeltaX || m_mouseDeltaY || m_mouseWheel || m_mouseHorizontalWheel;
+    }
+
     bool InputConsumptionMask::HasAnyConsumption() const
     {
         return std::any_of(m_keys.begin(), m_keys.end(), [](bool value) { return value; }) ||
-            std::any_of(
-                m_mouseButtons.begin(),
-                m_mouseButtons.end(),
-                [](bool value) { return value; }) ||
-            m_mouseDeltaX || m_mouseDeltaY || m_mouseWheel || m_mouseHorizontalWheel;
+            HasAnyMouseConsumption();
     }
 
     InputBinding InputBinding::KeyBinding(Key boundKey, f32 boundScale, InputAxisComponent axis)
