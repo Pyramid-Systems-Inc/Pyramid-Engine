@@ -2,7 +2,7 @@
 
 ## Scope
 
-Pyramid Engine is a monolithic C++17 library with a Win32/WGL platform implementation and an OpenGL backend. CMake exports the installed library as `Pyramid::Engine`.
+Pyramid is a C++17 engine ecosystem with a Win32/WGL `Pyramid::Engine` target and independently testable owned libraries. The first extracted library is `Pyramid::Image`, which has no platform or engine dependency. They are exported as separate relocatable packages so image tools do not inherit the engine's OpenGL/platform dependency chain.
 
 ## Layers
 
@@ -16,7 +16,8 @@ Pyramid Engine is a monolithic C++17 library with a Win32/WGL platform implement
 | Scene | `Pyramid` | Stable-ID entities, hierarchical transforms, optional components, renderer proxies, and environment |
 | Spatial management | `Pyramid::SceneManagement` | Scene manager, octree, AABB, and query helpers |
 | Math | `Pyramid::Math` | Vectors, matrices, quaternions, geometry, and SIMD helpers |
-| Utilities | `Pyramid::Util` | Logging, image loading, bit reading, DEFLATE, zlib, and libjpeg integration |
+| Engine utilities | `Pyramid::Util` | Logging and engine diagnostics |
+| PyramidImage | `Pyramid::Util` | Standalone image dispatch, TGA/BMP subsets, PNG, DEFLATE/zlib, and owned JPEG decoding |
 | RTS reference | `Pyramid::Examples::RTSReference` | Game-side edge scrolling, selectable filtering, ray picking, and command requests; not installed with `Pyramid::Engine` |
 
 Direct Win32 keyboard/mouse polling, engine-generic action mapping, reusable free-fly/orbit/strategy camera controllers, and a separate game-side RTS interaction reference are present. Audio, physics, editor, scripting, and the asset pipeline are not currently present.
@@ -106,7 +107,7 @@ Size-based, render-target, and solid-color convenience factories remain availabl
 - TGA: narrow uncompressed RGB/RGBA subset;
 - BMP: narrow uncompressed 24/32-bit subset;
 - PNG: custom non-interlaced path with DEFLATE/zlib handling;
-- JPEG: baseline and progressive decoding through libjpeg-turbo, normalized to tightly packed RGB output.
+- JPEG: owned 8-bit Huffman baseline/progressive decoding, grayscale and YCbCr normalization to tightly packed RGB, common 4:4:4/4:2:2/4:2:0 sampling, restart markers, bounded allocation, and explicit rejection of arithmetic, lossless, hierarchical, 12-bit, and four-component variants.
 
 `ImageData::Data` is manually owned and must be released through `Image::Free`.
 
@@ -117,24 +118,23 @@ The logger supports severity filtering, console/file output, rotation, structure
 ## Build and package model
 
 - `PyramidEngine` is the engine target; `Pyramid::Engine` is its build-tree alias and installed name.
-- GLAD is a public dependency because OpenGL implementation headers expose GLAD types.
-- JPEG is a public link dependency for static-package consumers; the installed package resolves it through CMake `FindJPEG`.
+- `PyramidImage` is an engine-independent target exported as `Pyramid::Image`; `Pyramid::Engine` links it publicly so existing image headers remain available transitively.
+- GLAD is the sole approved bundled third-party runtime library and remains public because OpenGL implementation headers expose GLAD types.
+- The installed package has no JPEG or codec package dependency.
 - Public headers are installed separately rather than exported through `INTERFACE_SOURCES`, keeping the package relocatable.
-- CMake package configuration and version files support `find_package(PyramidEngine CONFIG REQUIRED)`.
-- Windows CI validates an external consumer after installation.
+- CMake package configuration and version files support independent `find_package(PyramidEngine CONFIG REQUIRED)` and `find_package(PyramidImage CONFIG REQUIRED)` consumers. The engine package resolves `PyramidImage` as an owned package dependency.
+- Windows CI validates separate engine and image consumers after installation.
 
 ## Dependency direction
 
 ```text
 Application
     ↓
-Core Game lifecycle
+Pyramid::Engine ─────────→ Pyramid::Image
+    ↓                           ↓
+Core / Platform / Graphics     Owned codecs and image parsing
     ↓
-Platform Window + Graphics Device
-    ↓
-Renderer / Scene / Camera / Resources
-    ↓
-Math + Utilities + GLAD + Win32/OpenGL
+Math + GLAD + Win32/OpenGL
 ```
 
-Avoid introducing platform handles into generic interfaces or renderer-specific ownership into scene data without an explicit lifetime model.
+Avoid introducing platform handles into generic interfaces or renderer-specific ownership into scene data without an explicit lifetime model. GLAD is the only approved bundled third-party runtime library. New codec, importer, audio, physics, serialization, or tooling functionality must be implemented as a Pyramid/Ruqoom-owned library with an independent API and focused tests unless an explicit architectural decision changes this policy.

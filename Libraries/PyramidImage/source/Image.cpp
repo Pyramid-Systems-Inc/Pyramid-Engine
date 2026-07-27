@@ -2,7 +2,6 @@
 #include "Pyramid/Util/Image.hpp"
 #include "Pyramid/Util/PNGLoader.hpp"
 #include "Pyramid/Util/JPEGLoader.hpp"
-#include "Pyramid/Util/Log.hpp"
 #include <fstream>
 #include <vector>
 #include <algorithm>
@@ -101,7 +100,6 @@ namespace Pyramid
             else
             {
                 ImageData result;
-                PYRAMID_LOG_ERROR("Unsupported image format: ", extension, ". Supported formats: TGA, BMP, PNG, JPEG. File: ", filepath);
                 return result;
             }
         }
@@ -113,7 +111,6 @@ namespace Pyramid
 
             if (!file.is_open())
             {
-                PYRAMID_LOG_ERROR("Failed to open TGA file: ", filepath);
                 return result;
             }
 
@@ -122,21 +119,18 @@ namespace Pyramid
 
             if (!file)
             {
-                PYRAMID_LOG_ERROR("Failed to read TGA header from: ", filepath);
                 return result;
             }
 
             // We only support uncompressed true-color images (type 2)
             if (header.imageType != 2)
             {
-                PYRAMID_LOG_ERROR("Unsupported TGA image type: ", (int)header.imageType, ". Only type 2 is supported. File: ", filepath);
                 return result;
             }
 
             // We only support 24 (RGB) and 32 (RGBA) bits per pixel
             if (header.bpp != 24 && header.bpp != 32)
             {
-                PYRAMID_LOG_ERROR("Unsupported TGA bpp: ", (int)header.bpp, ". Only 24 or 32 is supported. File: ", filepath);
                 return result;
             }
 
@@ -156,7 +150,6 @@ namespace Pyramid
 
             if (!file)
             {
-                PYRAMID_LOG_ERROR("Failed to read TGA image data from: ", filepath);
                 delete[] result.Data;
                 result.Data = nullptr;
                 return result;
@@ -186,7 +179,6 @@ namespace Pyramid
                 delete[] tempRow;
             }
 
-            PYRAMID_LOG_INFO("Successfully loaded TGA image: ", filepath, " (", result.Width, "x", result.Height, ")");
             return result;
         }
 
@@ -197,7 +189,6 @@ namespace Pyramid
 
             if (!file.is_open())
             {
-                PYRAMID_LOG_ERROR("Failed to open BMP file: ", filepath);
                 return result;
             }
 
@@ -207,14 +198,12 @@ namespace Pyramid
 
             if (!file)
             {
-                PYRAMID_LOG_ERROR("Failed to read BMP file header from: ", filepath);
                 return result;
             }
 
             // Check BMP signature
             if (fileHeader.signature != 0x4D42) // "BM" in little-endian
             {
-                PYRAMID_LOG_ERROR("Invalid BMP signature in file: ", filepath);
                 return result;
             }
 
@@ -224,28 +213,24 @@ namespace Pyramid
 
             if (!file)
             {
-                PYRAMID_LOG_ERROR("Failed to read BMP info header from: ", filepath);
                 return result;
             }
 
             // Validate header size (we only support BITMAPINFOHEADER)
             if (infoHeader.headerSize != 40)
             {
-                PYRAMID_LOG_ERROR("Unsupported BMP header size: ", infoHeader.headerSize, ". Only BITMAPINFOHEADER (40 bytes) is supported. File: ", filepath);
                 return result;
             }
 
             // We only support uncompressed BMPs
             if (infoHeader.compression != 0)
             {
-                PYRAMID_LOG_ERROR("Unsupported BMP compression: ", infoHeader.compression, ". Only uncompressed BMPs are supported. File: ", filepath);
                 return result;
             }
 
             // We only support 24 (RGB) and 32 (RGBA) bits per pixel
             if (infoHeader.bitsPerPixel != 24 && infoHeader.bitsPerPixel != 32)
             {
-                PYRAMID_LOG_ERROR("Unsupported BMP bits per pixel: ", infoHeader.bitsPerPixel, ". Only 24 or 32 is supported. File: ", filepath);
                 return result;
             }
 
@@ -277,7 +262,6 @@ namespace Pyramid
 
                 if (!file)
                 {
-                    PYRAMID_LOG_ERROR("Failed to read BMP pixel data from: ", filepath);
                     delete[] result.Data;
                     result.Data = nullptr;
                     return result;
@@ -313,7 +297,6 @@ namespace Pyramid
                 delete[] tempRow;
             }
 
-            PYRAMID_LOG_INFO("Successfully loaded BMP image: ", filepath, " (", result.Width, "x", result.Height, ")");
             return result;
         }
 

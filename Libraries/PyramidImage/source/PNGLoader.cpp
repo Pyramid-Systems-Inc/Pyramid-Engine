@@ -1,7 +1,6 @@
 #include "Pyramid/Util/PNGLoader.hpp"
 #include "Pyramid/Util/Image.hpp"
 #include "Pyramid/Util/ZLib.hpp"
-#include "Pyramid/Util/Log.hpp"
 #include <fstream>
 #include <algorithm>
 #include <cstring>
@@ -188,7 +187,6 @@ namespace Pyramid
             result.Data = new unsigned char[dataSize];
             std::copy(processedData.begin(), processedData.end(), result.Data);
 
-            PYRAMID_LOG_INFO("Successfully loaded PNG image: ", result.Width, "x", result.Height, " (", result.Channels, " channels)");
             return result;
         }
 
@@ -582,7 +580,6 @@ namespace Pyramid
         void PNGLoader::SetError(const std::string &error)
         {
             s_LastError = error;
-            PYRAMID_LOG_ERROR("PNGLoader: ", error);
         }
 
     } // namespace Util

@@ -1,7 +1,6 @@
 #include "Pyramid/Util/Inflate.hpp"
 #include "Pyramid/Util/BitReader.hpp"
 #include "Pyramid/Util/HuffmanDecoder.hpp"
-#include "Pyramid/Util/Log.hpp"
 #include <stdexcept>
 #include <algorithm>
 
@@ -426,7 +425,6 @@ namespace Pyramid
         void Inflate::SetError(const std::string &error)
         {
             m_LastError = error;
-            PYRAMID_LOG_ERROR("Inflate: ", error);
         }
 
     } // namespace Util

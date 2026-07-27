@@ -35,6 +35,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 add_subdirectory(vendor/glad)
+add_subdirectory(Libraries/PyramidImage)
 add_subdirectory(Engine)
 
 if(PYRAMID_BUILD_EXAMPLES OR PYRAMID_BUILD_TESTS)
@@ -62,6 +63,16 @@ install(
         Engine/Utils/include/
         vendor/glad/include/
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+    COMPONENT PyramidEngine
+    FILES_MATCHING
+        PATTERN "*.h"
+        PATTERN "*.hpp"
+)
+
+install(
+    DIRECTORY Libraries/PyramidImage/include/
+    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+    COMPONENT PyramidImage
     FILES_MATCHING
         PATTERN "*.h"
         PATTERN "*.hpp"
@@ -70,9 +81,17 @@ install(
 install(
     TARGETS PyramidEngine glad
     EXPORT PyramidEngineTargets
-    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT PyramidEngine
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT PyramidEngine
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT PyramidEngine
+)
+
+install(
+    TARGETS PyramidImage
+    EXPORT PyramidImageTargets
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT PyramidImage
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT PyramidImage
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT PyramidImage
 )
 
 install(
@@ -80,6 +99,15 @@ install(
     FILE PyramidEngineTargets.cmake
     NAMESPACE Pyramid::
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/PyramidEngine"
+    COMPONENT PyramidEngine
+)
+
+install(
+    EXPORT PyramidImageTargets
+    FILE PyramidImageTargets.cmake
+    NAMESPACE Pyramid::
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/PyramidImage"
+    COMPONENT PyramidImage
 )
 
 
@@ -97,11 +125,32 @@ write_basic_package_version_file(
     COMPATIBILITY SameMajorVersion
 )
 
+configure_package_config_file(
+    "${PROJECT_SOURCE_DIR}/CMake/PyramidImageConfig.cmake.in"
+    "${PROJECT_BINARY_DIR}/PyramidImageConfig.cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/PyramidImage"
+)
+
+write_basic_package_version_file(
+    "${PROJECT_BINARY_DIR}/PyramidImageConfigVersion.cmake"
+    VERSION "${PROJECT_VERSION}"
+    COMPATIBILITY SameMajorVersion
+)
+
 install(
     FILES
         "${PROJECT_BINARY_DIR}/PyramidEngineConfig.cmake"
         "${PROJECT_BINARY_DIR}/PyramidEngineConfigVersion.cmake"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/PyramidEngine"
+    COMPONENT PyramidEngine
+)
+
+install(
+    FILES
+        "${PROJECT_BINARY_DIR}/PyramidImageConfig.cmake"
+        "${PROJECT_BINARY_DIR}/PyramidImageConfigVersion.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/PyramidImage"
+    COMPONENT PyramidImage
 )
 
 message(STATUS "Pyramid Engine version: ${PYRAMID_VERSION_STRING}")

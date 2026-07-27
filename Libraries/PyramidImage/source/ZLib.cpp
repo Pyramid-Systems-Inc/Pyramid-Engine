@@ -1,6 +1,5 @@
 #include "Pyramid/Util/ZLib.hpp"
 #include "Pyramid/Util/Inflate.hpp"
-#include "Pyramid/Util/Log.hpp"
 
 namespace Pyramid
 {
@@ -116,7 +115,6 @@ namespace Pyramid
         void ZLib::SetError(const std::string& error)
         {
             s_LastError = error;
-            PYRAMID_LOG_ERROR("ZLib: ", error);
         }
 
     } // namespace Util

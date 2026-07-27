@@ -1,5 +1,4 @@
 #include "Pyramid/Util/BitReader.hpp"
-#include "Pyramid/Util/Log.hpp"
 #include <stdexcept>
 #include <algorithm>
 

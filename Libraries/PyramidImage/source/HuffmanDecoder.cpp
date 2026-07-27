@@ -1,6 +1,5 @@
 #include "Pyramid/Util/HuffmanDecoder.hpp"
 #include "Pyramid/Util/BitReader.hpp"
-#include "Pyramid/Util/Log.hpp"
 #include <algorithm>
 #include <vector>
 #include <stdexcept>
@@ -120,7 +119,6 @@ namespace Pyramid
             {
                 if (codeLengths[i] > 15)
                 {
-                    PYRAMID_LOG_ERROR("HuffmanDecoder: Invalid code length ", (int)codeLengths[i], " for symbol ", i);
                     return false;
                 }
                 if (codeLengths[i] > 0)

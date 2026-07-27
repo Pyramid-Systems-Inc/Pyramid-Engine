@@ -10,8 +10,7 @@ Pyramid Engine currently supports native 64-bit Windows builds with an open-sour
 - optional Clang targeting the same MinGW-w64/UCRT runtime;
 - Ninja;
 - CMake 3.23 or newer;
-- OpenGL 3.3 core or newer;
-- libjpeg-turbo, installed by the bootstrap script.
+- OpenGL 3.3 core or newer.
 
 Visual Studio, MSVC, and the Visual Studio Build Tools are not required.
 
@@ -31,7 +30,7 @@ To install both GCC and Clang:
 ./scripts/bootstrap-msys2.ps1 -Compiler both
 ```
 
-The script installs the UCRT64 MinGW-w64 toolchain, CMake, Ninja, and libjpeg-turbo. It does not install Visual Studio.
+The script installs the UCRT64 MinGW-w64 toolchain, CMake, and Ninja. It does not install Visual Studio or any codec middleware.
 
 After setup, use either:
 
@@ -126,13 +125,13 @@ ctest --test-dir build/manual --output-on-failure
 
 ## Tests
 
-CTest registers 30 executables: five image/utility tests plus 25 API, platform, graphics, resource, spatial, and scene tests. List the exact graph with:
+CTest registers 35 executables: seven standalone image tests plus API, platform, input, graphics, resource, spatial, scene, and reference-game tests. List the exact graph with:
 
 ```powershell
 ctest --test-dir build/gcc-debug-tests -N
 ```
 
-The platform input contract is covered by `Platform.InputState`; generic actions, contexts, consumption, chords, and rebinding are covered by `Input.ActionMapping`; resize delivery is covered by `Platform.WindowResizeEvents`.
+The standalone image suite covers PNG/DEFLATE plus baseline, progressive, grayscale, subsampled, restart-marker, malformed, and truncated JPEG inputs. The platform input contract is covered by `Platform.InputState`; generic actions, contexts, consumption, chords, and rebinding are covered by `Input.ActionMapping`; resize delivery is covered by `Platform.WindowResizeEvents`.
 
 Key scene tests are:
 
@@ -172,20 +171,27 @@ cmake --install build/gcc-release-tests --prefix install
 
 The installation contains:
 
-- public Pyramid headers;
+- engine and image-library public headers;
 - GLAD headers;
-- `PyramidEngine` and `glad` libraries;
-- `PyramidEngineConfig.cmake` and version metadata;
-- exported targets under the `Pyramid::` namespace.
+- `PyramidEngine`, `PyramidImage`, and `glad` libraries;
+- independent `PyramidEngineConfig.cmake` and `PyramidImageConfig.cmake` package metadata;
+- exported `Pyramid::Engine`, `Pyramid::Image`, and `Pyramid::glad` targets.
 
-Consumer:
+Engine consumer:
 
 ```cmake
 find_package(PyramidEngine CONFIG REQUIRED)
 target_link_libraries(MyTarget PRIVATE Pyramid::Engine)
 ```
 
-`Tests/Consumer` is the reference external consumer and is built by CI after installation.
+Standalone image consumer:
+
+```cmake
+find_package(PyramidImage CONFIG REQUIRED)
+target_link_libraries(MyImageTool PRIVATE Pyramid::Image)
+```
+
+`Tests/Consumer` and `Tests/ImageConsumer` are the reference external consumers and are built independently by CI after installation. `PyramidImage` can also be installed alone with `--component PyramidImage`.
 
 ## CI
 
@@ -196,7 +202,7 @@ target_link_libraries(MyTarget PRIVATE Pyramid::Engine)
 - Clang Debug;
 - Clang Release.
 
-Each combination configures, builds, runs CTest, installs the package, builds an external `find_package` consumer, and runs that consumer. No Visual Studio installation is used by the workflow.
+Each combination configures, builds, runs CTest, installs both packages, builds independent engine and image `find_package` consumers, and runs both consumers. No Visual Studio installation is used by the workflow.
 
 ## Troubleshooting
 

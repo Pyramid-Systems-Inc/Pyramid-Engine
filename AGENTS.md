@@ -2,12 +2,12 @@
 
 ## Scope
 
-- `Engine/` builds the C++17 `PyramidEngine` library.
+- `Engine/` builds the C++17 `PyramidEngine` library; `Libraries/PyramidImage` builds the independently testable `PyramidImage` library.
 - Active modules are Core, Graphics, Input, Math, Platform, and Utils.
 - `Examples/BasicGame` and `Examples/BasicRendering` are the graphical references; `Examples/RTSReference` is reusable game-side support and is not part of the installed engine API.
 - `Tests/PublicApiLinkage.cpp` protects selected public symbols. Focused tests cover platform input state, generic action mapping, reusable camera controllers, game-side RTS interaction, resize behavior, camera/frustum logic, framebuffers, texture loading, spatial updates/queries/configuration/compaction, render bounds, resources/caches, registry handles/manifests, the authoritative entity scene, and scene serialization. `Tests/EntitySceneTests.cpp` protects stable entity IDs, cycle-safe hierarchy transforms, inherited visibility, component attachment, generated renderer/light proxies, and recursive destruction. `Tests/SceneSerializationTests.cpp` protects deterministic version-2 entity/component round trips, exact manifest references, hierarchy validation, and missing/stale resource diagnostics.
 - `Tests/Consumer` validates the installed CMake package.
-- `vendor/glad` is a bundled public dependency. libjpeg-turbo is an external open-source dependency resolved through CMake `FindJPEG`.
+- `vendor/glad` is the sole approved bundled third-party runtime library. Required non-platform functionality belongs in independently maintained Pyramid/Ruqoom libraries; new runtime middleware and package-manager dependencies are prohibited by default.
 - The supported Windows toolchain is MSYS2 UCRT64 with MinGW-w64 GCC; Clang is also validated. Visual Studio is not required.
 - Real Win32 keyboard/mouse polling, engine-generic action mapping, reusable free-fly/orbit/strategy camera controllers, and a game-side RTS edge-scroll/selection/command reference are implemented. Audio, physics, editor, scripting, DirectX, Vulkan, Linux, and macOS are not yet supported. The first product target is a Windows RTS vertical slice; Linux follows it, a full editor is planned, and Baa is the long-term scripting and rewrite target.
 
@@ -45,7 +45,7 @@ Do not describe placeholder algorithms as complete. Frustum culling is implement
 
 ## Tests
 
-Tests must fail visibly, use valid fixtures, avoid false-success skips, clean temporary files, and print actionable context. Renderer changes require visual inspection because process smoke testing is not pixel validation.
+Tests must fail visibly, use valid fixtures, avoid false-success skips, clean temporary files, and print actionable context. Parser and codec work requires malformed/truncated fixtures, allocation limits, and representative standards-valid corpus cases. Renderer changes require visual inspection because process smoke testing is not pixel validation.
 
 ## Documentation
 

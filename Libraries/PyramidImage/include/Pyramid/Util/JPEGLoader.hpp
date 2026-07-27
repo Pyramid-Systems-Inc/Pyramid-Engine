@@ -9,10 +9,11 @@ namespace Pyramid::Util
     struct ImageData;
 
     /**
-     * Decode JPEG images through the platform libjpeg implementation.
+     * Decode JPEG images through PyramidImage's engine-owned decoder.
      *
      * The loader always returns tightly packed 8-bit RGB pixels. Both baseline
-     * and progressive JPEG streams supported by libjpeg are accepted. Memory
+     * and progressive Huffman JPEG streams are accepted. Arithmetic-coded, lossless,
+     * 12-bit, hierarchical, and four-component JPEG variants fail explicitly. Memory
      * returned in ImageData is owned by Pyramid and must be released with
      * Image::Free().
      */

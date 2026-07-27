@@ -17,8 +17,8 @@ The project is intended for engine development and experimentation. It is not ye
 | Renderer | Forward, shadow, and deferred passes; several advanced paths remain partial |
 | Scene | Stable-ID entities, hierarchical transforms, optional mesh-renderer/light components, scene serialization, and octree queries |
 | Math | Vectors, matrices, quaternions, geometry helpers, and SIMD-oriented utilities |
-| Images | TGA/BMP subsets, custom non-interlaced PNG, and libjpeg-turbo JPEG decoding |
-| Tests | 33 CTest targets: 5 image/utility tests plus API linkage and focused graphics/platform/input/reference-game coverage |
+| Images | Standalone `Pyramid::Image` library with TGA/BMP subsets, custom non-interlaced PNG, and owned baseline/progressive JPEG decoding |
+| Tests | 35 CTest targets: 7 standalone image tests plus API linkage and focused graphics/platform/input/reference-game coverage |
 | CI | GCC and Clang, Debug and Release, package install, and external-consumer validation |
 
 ## Implemented
@@ -35,8 +35,8 @@ The project is intended for engine development and experimentation. It is not ye
 - Bounds-aware point, sphere, box, ray, nearest-object, and K-nearest scene queries with octree/linear parity.
 - An authoritative entity/component scene: every entity has a stable ID, name, visibility, and hierarchical transform; mesh-renderer and light components are optional. Renderer/light proxies are derived from entities for rendering, culling, and spatial queries.
 - OpenGL driver debug callbacks and centralized error diagnostics in Debug builds.
-- Logging, assertions, image loading, compression utilities, and math primitives.
-- Installable CMake package exported as `Pyramid::Engine`.
+- Logging, assertions, compression utilities, and math primitives; image decoding is provided by the separately testable `Pyramid::Image` library.
+- Installable CMake packages exporting `Pyramid::Engine` and the engine-independent `Pyramid::Image`.
 
 ## Important limitations
 
@@ -46,7 +46,6 @@ The project is intended for engine development and experimentation. It is not ye
 - `SceneSerializer` version 2 persists stable entities, hierarchy, transforms, mesh-renderer components, light components, and the primary light. Cameras, environment settings, gameplay components, and editor metadata are not serialized yet; the legacy `SceneManager` JSON/XML/Binary methods remain unsupported.
 - Occlusion culling remains a placeholder and is disabled by default.
 - `ITexture2D::CreateDepthTarget` fails explicitly; use the framebuffer API for depth attachments.
-- JPEG decoding requires the open-source libjpeg-turbo package installed by the MSYS2 bootstrap script.
 - Audio and physics modules are not part of the current source tree. Text input, raw relative mouse mode, collision-aware cameras, camera blending, and persisted user bindings are not implemented yet. The reference edge-scrolling/selection/command layer is example support rather than an installed engine API.
 
 See [Roadmap and known issues](docs/ROADMAP.md) before building new systems on top of the engine.
@@ -185,7 +184,7 @@ cmake --build --preset build-gcc-release-tests
 cmake --install build/gcc-release-tests --prefix install
 ```
 
-External CMake project:
+External engine project:
 
 ```cmake
 find_package(PyramidEngine CONFIG REQUIRED)
@@ -193,7 +192,15 @@ add_executable(MyGame main.cpp)
 target_link_libraries(MyGame PRIVATE Pyramid::Engine)
 ```
 
-The CI workflow validates this package-consumer path with both GCC and Clang.
+Standalone image tooling can consume the codec library without the engine or OpenGL package:
+
+```cmake
+find_package(PyramidImage CONFIG REQUIRED)
+add_executable(MyImageTool main.cpp)
+target_link_libraries(MyImageTool PRIVATE Pyramid::Image)
+```
+
+The CI workflow validates both package-consumer paths with GCC and Clang.
 
 ## Documentation
 
@@ -209,12 +216,14 @@ The CI workflow validates this package-consumer path with both GCC and Clang.
 ## Repository layout
 
 ```text
+Libraries/
+  PyramidImage/  Owned image parsing, PNG/DEFLATE, and JPEG decoding
 Engine/
-  Core/       Application lifecycle and common types
-  Graphics/   OpenGL resources, renderer, camera, scenes, and octree
-  Math/       Math and SIMD-oriented utilities
-  Platform/   Win32/WGL implementation
-  Utils/      Logging, compression, and image loading
+  Core/          Application lifecycle and common types
+  Graphics/      OpenGL resources, renderer, camera, scenes, and octree
+  Math/          Math and SIMD-oriented utilities
+  Platform/      Win32/WGL implementation
+  Utils/         Logging
 Examples/     BasicGame, BasicRenderingExample, and game-side RTS reference support
 Tests/        Public API linkage and external package consumer
 CMake/        Package configuration template

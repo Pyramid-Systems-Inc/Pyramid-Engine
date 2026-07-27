@@ -462,7 +462,7 @@ if (image.Data)
 }
 ```
 
-PNG uses the engine's custom non-interlaced decoder. JPEG uses libjpeg-turbo and is tested with baseline RGB and progressive grayscale fixtures; output is normalized to tightly packed 8-bit RGB. `ImageData::Data` remains manually owned and must be released with `Image::Free()`.
+`Pyramid::Image` is the standalone CMake target that implements these headers; `Pyramid::Engine` links it publicly for compatibility. PNG uses Pyramid's custom non-interlaced decoder. JPEG uses Pyramid's owned 8-bit Huffman decoder for baseline and progressive streams, grayscale/YCbCr RGB normalization, common chroma subsampling, and restart markers. Arithmetic-coded, lossless, hierarchical, 12-bit, and four-component JPEG variants fail explicitly. `ImageData::Data` remains manually owned and must be released with `Image::Free()`.
 
 ## Logging
 

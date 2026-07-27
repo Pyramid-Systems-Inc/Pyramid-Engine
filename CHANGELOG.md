@@ -4,6 +4,15 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### Owned image library and dependency removal
+
+- Extracted image dispatch, TGA/BMP subsets, PNG, DEFLATE/zlib, and JPEG decoding into the engine-independent `PyramidImage` target exported as `Pyramid::Image`.
+- Replaced libjpeg-turbo with a Pyramid-owned bounded 8-bit Huffman JPEG decoder for baseline and progressive streams, grayscale/YCbCr RGB normalization, common 4:4:4/4:2:2/4:2:0 sampling, odd dimensions, and restart markers.
+- Added explicit rejection for arithmetic-coded, lossless, hierarchical, 12-bit, and four-component JPEG variants plus malformed/truncated and numeric/allocation validation.
+- Removed JPEG package discovery from CMake exports and removed libjpeg-turbo from MSYS2 bootstrap and all Windows CI matrices.
+- Added standalone installed-package consumer validation for `Pyramid::Image` and expanded the image corpus; CTest now registers 35 tests.
+- Locked GLAD as the sole approved bundled third-party runtime library; future functionality belongs in independently maintained Pyramid/Ruqoom libraries by default.
+
 ### RTS reference interaction layer
 
 - Added `Pyramid::RTSReference`, a game-side support target that combines configurable named select/command actions with the generic strategy camera and scene-query APIs without adding RTS concepts to `Pyramid::Engine`.

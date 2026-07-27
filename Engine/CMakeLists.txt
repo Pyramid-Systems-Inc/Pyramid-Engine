@@ -23,17 +23,17 @@ target_include_directories(PyramidEngine
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Engine/Input/include>
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Engine/Math/include>
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Engine/Utils/include>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Libraries/PyramidImage/include>
         $<INSTALL_INTERFACE:include>
     PRIVATE
         "${PROJECT_SOURCE_DIR}/vendor"
 )
 
-find_package(JPEG REQUIRED)
 
 target_link_libraries(PyramidEngine
     PUBLIC
         glad
-        JPEG::JPEG
+        Pyramid::Image
 )
 
 if(WIN32)

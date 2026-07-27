@@ -27,7 +27,6 @@ jobs:
               mingw-w64-ucrt-x86_64-toolchain
               mingw-w64-ucrt-x86_64-cmake
               mingw-w64-ucrt-x86_64-ninja
-              mingw-w64-ucrt-x86_64-libjpeg-turbo
           - name: gcc-release
             configuration: Release
             configure_preset: gcc-release-tests
@@ -39,7 +38,6 @@ jobs:
               mingw-w64-ucrt-x86_64-toolchain
               mingw-w64-ucrt-x86_64-cmake
               mingw-w64-ucrt-x86_64-ninja
-              mingw-w64-ucrt-x86_64-libjpeg-turbo
           - name: clang-debug
             configuration: Debug
             configure_preset: clang-debug-tests
@@ -53,7 +51,6 @@ jobs:
               mingw-w64-ucrt-x86_64-lld
               mingw-w64-ucrt-x86_64-cmake
               mingw-w64-ucrt-x86_64-ninja
-              mingw-w64-ucrt-x86_64-libjpeg-turbo
           - name: clang-release
             configuration: Release
             configure_preset: clang-release-tests
@@ -67,7 +64,6 @@ jobs:
               mingw-w64-ucrt-x86_64-lld
               mingw-w64-ucrt-x86_64-cmake
               mingw-w64-ucrt-x86_64-ninja
-              mingw-w64-ucrt-x86_64-libjpeg-turbo
 
     steps:
       - name: Checkout
@@ -98,7 +94,7 @@ jobs:
           cmake --install build/${{ matrix.configure_preset }}
           --prefix build/install/${{ matrix.name }}
 
-      - name: Configure external consumer
+      - name: Configure external engine consumer
         shell: msys2 {0}
         run: >-
           cmake -S Tests/Consumer
@@ -109,13 +105,32 @@ jobs:
           -DCMAKE_CXX_COMPILER=${{ matrix.compiler_cxx }}
           -DCMAKE_PREFIX_PATH="$PWD/build/install/${{ matrix.name }}"
 
-      - name: Build external consumer
+      - name: Build external engine consumer
         shell: msys2 {0}
         run: cmake --build build/consumer/${{ matrix.name }} --parallel
 
-      - name: Run external consumer
+      - name: Run external engine consumer
         shell: msys2 {0}
         run: ./build/consumer/${{ matrix.name }}/PyramidConsumer.exe
+
+      - name: Configure standalone image consumer
+        shell: msys2 {0}
+        run: >-
+          cmake -S Tests/ImageConsumer
+          -B build/image-consumer/${{ matrix.name }}
+          -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ matrix.configuration }}
+          -DCMAKE_C_COMPILER=${{ matrix.compiler_c }}
+          -DCMAKE_CXX_COMPILER=${{ matrix.compiler_cxx }}
+          -DCMAKE_PREFIX_PATH="$PWD/build/install/${{ matrix.name }}"
+
+      - name: Build standalone image consumer
+        shell: msys2 {0}
+        run: cmake --build build/image-consumer/${{ matrix.name }} --parallel
+
+      - name: Run standalone image consumer
+        shell: msys2 {0}
+        run: ./build/image-consumer/${{ matrix.name }}/PyramidImageConsumer.exe
 
       - name: Upload binaries
         if: always()
