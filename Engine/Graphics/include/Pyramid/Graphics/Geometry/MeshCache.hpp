@@ -71,6 +71,15 @@ namespace Pyramid
         u32 GetGeneration(MeshAssetId assetId) const;
 
         /**
+         * @brief Remove one non-canonical stable alias without evicting geometry.
+         *
+         * Content-derived canonical identifiers cannot be removed independently.
+         * This operation advances the removed alias generation so existing handles
+         * become stale while other aliases and external owners remain valid.
+         */
+        bool RemoveAlias(MeshAssetId assetId);
+
+        /**
          * @brief Evict the resolved mesh and all identifiers that alias it.
          * @return true when a resident resource was removed.
          */

@@ -151,6 +151,25 @@ jobs:
         shell: msys2 {0}
         run: ./build/image-consumer/${{ matrix.name }}/PyramidImageConsumer.exe
 
+      - name: Configure standalone model consumer
+        shell: msys2 {0}
+        run: >-
+          cmake -S Tests/ModelConsumer
+          -B build/model-consumer/${{ matrix.name }}
+          -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ matrix.configuration }}
+          -DCMAKE_C_COMPILER=${{ matrix.compiler_c }}
+          -DCMAKE_CXX_COMPILER=${{ matrix.compiler_cxx }}
+          -DCMAKE_PREFIX_PATH="$PWD/build/install/${{ matrix.name }}"
+
+      - name: Build standalone model consumer
+        shell: msys2 {0}
+        run: cmake --build build/model-consumer/${{ matrix.name }} --parallel
+
+      - name: Run standalone model consumer
+        shell: msys2 {0}
+        run: ./build/model-consumer/${{ matrix.name }}/PyramidModelConsumer.exe
+
       - name: Upload binaries
         if: always()
         uses: actions/upload-artifact@v4

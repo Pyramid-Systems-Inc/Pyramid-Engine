@@ -3,14 +3,18 @@
 #include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
 #include <Pyramid/Input/InputActions.hpp>
 #include <Pyramid/Graphics/CameraController.hpp>
+#include <Pyramid/Graphics/Model/ModelResourceImporter.hpp>
+#include <Pyramid/Model/ObjImporter.hpp>
 
 #include <array>
 #include <Pyramid/Graphics/GraphicsDevice.hpp>
 #include <Pyramid/Graphics/Buffer/BufferLayout.hpp>
 #include <Pyramid/Util/Log.hpp>
 #include <cmath>
+#include <filesystem>
 #include <string_view>
 #include <utility>
+#include <windows.h>
 
 namespace
 {
@@ -227,100 +231,78 @@ void BasicRendering::InitializeShaders()
 
 void BasicRendering::CreateGeometry()
 {
-    auto device = GetGraphicsDevice();
-    if (!device)
-        return;
-
-    // Define vertex structure
-    struct Vertex
-    {
-        float Position[3];
-        float Normal[3];
-        float TexCoord[2];
-        float Color[3];
-    };
-
-    // Create a colorful cube
-    float size = 1.0f;
-    Vertex vertices[] = {
-        // Front face (Z+) - Red
-        {{-size, -size, size}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-        {{size, -size, size}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-        {{size, size, size}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
-        {{-size, size, size}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
-
-        // Back face (Z-) - Green
-        {{-size, -size, -size}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-        {{size, -size, -size}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-        {{size, size, -size}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
-        {{-size, size, -size}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
-
-        // Left face (X-) - Blue
-        {{-size, -size, -size}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-        {{-size, -size, size}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-        {{-size, size, size}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
-        {{-size, size, -size}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
-
-        // Right face (X+) - Yellow
-        {{size, -size, -size}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f, 0.0f}},
-        {{size, -size, size}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 1.0f, 0.0f}},
-        {{size, size, size}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 1.0f, 0.0f}},
-        {{size, size, -size}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {1.0f, 1.0f, 0.0f}},
-
-        // Top face (Y+) - Magenta
-        {{-size, size, -size}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 1.0f}},
-        {{-size, size, size}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 1.0f}},
-        {{size, size, size}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 1.0f}},
-        {{size, size, -size}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 1.0f}},
-
-        // Bottom face (Y-) - Cyan
-        {{-size, -size, -size}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f, 1.0f}},
-        {{-size, -size, size}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 1.0f, 1.0f}},
-        {{size, -size, size}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 1.0f, 1.0f}},
-        {{size, -size, -size}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}}};
-
-    // Cube indices
-    Pyramid::u32 indices[] = {
-        // Front face
-        0, 1, 2, 2, 3, 0,
-        // Back face
-        4, 5, 6, 6, 7, 4,
-        // Left face
-        8, 9, 10, 10, 11, 8,
-        // Right face
-        12, 13, 14, 14, 15, 12,
-        // Top face
-        16, 17, 18, 18, 19, 16,
-        // Bottom face
-        20, 21, 22, 22, 23, 20};
-
-    Pyramid::MeshSpecification specification;
-    specification.vertexData = vertices;
-    specification.vertexDataSize = sizeof(vertices);
-    specification.vertexCount = 24;
-    specification.layout = {
-        {Pyramid::ShaderDataType::Float3, "a_Position"},
-        {Pyramid::ShaderDataType::Float3, "a_Normal"},
-        {Pyramid::ShaderDataType::Float2, "a_TexCoord"},
-        {Pyramid::ShaderDataType::Float3, "a_Color"}};
-    specification.indexData = indices;
-    specification.indexCount = 36;
-    specification.topology = Pyramid::PrimitiveTopology::Triangles;
-    specification.name = "BasicRenderingCube";
-    specification.assetId = Pyramid::MeshAssetId::FromString(
-        "examples/basic-rendering/cube");
-
     auto* resources = GetResourceRegistry();
-    m_mesh = resources
-        ? resources->Meshes().GetOrCreate(specification)
-        : nullptr;
-    if (!m_mesh)
+    if (!resources)
     {
-        PYRAMID_LOG_ERROR("Failed to create cube mesh");
+        PYRAMID_LOG_ERROR("Cannot import the reference model without a resource registry");
         return;
     }
 
-    PYRAMID_LOG_INFO("Geometry created successfully");
+    std::array<wchar_t, 32768> executablePath{};
+    const DWORD pathLength = GetModuleFileNameW(
+        nullptr,
+        executablePath.data(),
+        static_cast<DWORD>(executablePath.size()));
+    if (pathLength == 0 || pathLength >= executablePath.size())
+    {
+        PYRAMID_LOG_ERROR("Could not resolve the BasicRendering executable directory");
+        return;
+    }
+
+    const std::filesystem::path modelPath =
+        std::filesystem::path(executablePath.data()).parent_path() /
+        "Assets" / "Models" / "pyramid.obj";
+    const auto importedModel = Pyramid::Model::ObjImporter::ImportFile(
+        modelPath.generic_string());
+    for (const auto& diagnostic : importedModel.diagnostics)
+    {
+        if (diagnostic.IsError())
+        {
+            PYRAMID_LOG_ERROR(
+                diagnostic.source, ":", diagnostic.line, ": ", diagnostic.message);
+        }
+        else
+        {
+            PYRAMID_LOG_WARN(
+                diagnostic.source, ":", diagnostic.line, ": ", diagnostic.message);
+        }
+    }
+    if (!importedModel.IsValid())
+    {
+        PYRAMID_LOG_ERROR("Failed to import the BasicRendering Pyramid OBJ model");
+        return;
+    }
+
+    Pyramid::ModelMeshImportOptions importOptions;
+    importOptions.assetPrefix = "examples/basic-rendering/pyramid";
+    const auto upload = Pyramid::ModelResourceImporter::UploadMeshes(
+        *resources,
+        importedModel,
+        importOptions);
+    if (!upload.IsSuccess() || upload.meshes.empty())
+    {
+        for (const auto& diagnostic : upload.diagnostics)
+        {
+            if (diagnostic.IsError())
+            {
+                PYRAMID_LOG_ERROR(diagnostic.message);
+            }
+        }
+        PYRAMID_LOG_ERROR("Failed to publish the imported Pyramid mesh");
+        return;
+    }
+
+    m_mesh = resources->Resolve(upload.meshes.front().mesh);
+    if (!m_mesh)
+    {
+        PYRAMID_LOG_ERROR("Imported Pyramid mesh handle could not be resolved");
+        return;
+    }
+
+    PYRAMID_LOG_INFO(
+        "Imported OBJ model with ", importedModel.primitives.size(),
+        " primitive(s), ", m_mesh->GetVertexCount(), " vertices, and ",
+        m_mesh->GetIndexCount(), " indices");
 }
 
 void BasicRendering::SetupCamera()

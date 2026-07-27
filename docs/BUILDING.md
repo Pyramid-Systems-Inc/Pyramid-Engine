@@ -173,9 +173,9 @@ The installation contains:
 
 - public headers for the engine and all owned libraries;
 - GLAD headers;
-- `PyramidEngine`, `PyramidFoundation`, `PyramidMath`, `PyramidInput`, `PyramidImage`, and `glad` libraries;
+- `PyramidEngine`, `PyramidFoundation`, `PyramidMath`, `PyramidInput`, `PyramidImage`, `PyramidModel`, and `glad` libraries;
 - independent package metadata for each owned target;
-- exported `Pyramid::Engine`, `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, and `Pyramid::glad` targets.
+- exported `Pyramid::Engine`, `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, `Pyramid::Model`, and `Pyramid::glad` targets.
 
 Engine consumer:
 
@@ -200,7 +200,14 @@ find_package(PyramidImage CONFIG REQUIRED)
 target_link_libraries(MyImageTool PRIVATE Pyramid::Image)
 ```
 
-`Tests/Consumer`, `Tests/LibrariesConsumer`, and `Tests/ImageConsumer` are the reference external consumers and are built independently by CI after installation. Every owned library can also be installed by its matching component name.
+Standalone model consumer:
+
+```cmake
+find_package(PyramidModel CONFIG REQUIRED)
+target_link_libraries(MyModelTool PRIVATE Pyramid::Model)
+```
+
+`Tests/Consumer`, `Tests/LibrariesConsumer`, `Tests/ImageConsumer`, and `Tests/ModelConsumer` are the reference external consumers and are built independently by CI after installation. Every owned library can also be installed by its matching component name.
 
 ## CI
 
@@ -211,7 +218,7 @@ target_link_libraries(MyImageTool PRIVATE Pyramid::Image)
 - Clang Debug;
 - Clang Release.
 
-Each combination configures, builds, runs CTest, installs all packages, builds independent engine, foundation/math/input, and image `find_package` consumers, and runs all consumers. No Visual Studio installation is used by the workflow.
+Each combination configures, builds, runs CTest, installs all packages, builds independent engine, foundation/math/input, image, and model `find_package` consumers, and runs all consumers. No Visual Studio installation is used by the workflow.
 
 ## Troubleshooting
 

@@ -39,6 +39,7 @@ add_subdirectory(Libraries/PyramidFoundation)
 add_subdirectory(Libraries/PyramidMath)
 add_subdirectory(Libraries/PyramidImage)
 add_subdirectory(Libraries/PyramidInput)
+add_subdirectory(Libraries/PyramidModel)
 add_subdirectory(Engine)
 
 if(PYRAMID_BUILD_EXAMPLES OR PYRAMID_BUILD_TESTS)
@@ -69,7 +70,7 @@ install(
         PATTERN "*.hpp"
 )
 
-foreach(library IN ITEMS PyramidFoundation PyramidMath PyramidImage PyramidInput)
+foreach(library IN ITEMS PyramidFoundation PyramidMath PyramidImage PyramidInput PyramidModel)
     install(
         DIRECTORY "${PROJECT_SOURCE_DIR}/Libraries/${library}/include/"
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
@@ -88,7 +89,7 @@ install(
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT PyramidEngine
 )
 
-foreach(library IN ITEMS PyramidFoundation PyramidMath PyramidImage PyramidInput)
+foreach(library IN ITEMS PyramidFoundation PyramidMath PyramidImage PyramidInput PyramidModel)
     install(
         TARGETS ${library}
         EXPORT ${library}Targets
@@ -106,7 +107,7 @@ install(
     COMPONENT PyramidEngine
 )
 
-foreach(library IN ITEMS PyramidFoundation PyramidMath PyramidImage PyramidInput)
+foreach(library IN ITEMS PyramidFoundation PyramidMath PyramidImage PyramidInput PyramidModel)
     install(
         EXPORT ${library}Targets
         FILE ${library}Targets.cmake
@@ -118,7 +119,7 @@ endforeach()
 
 include(CMakePackageConfigHelpers)
 
-foreach(package IN ITEMS PyramidEngine PyramidFoundation PyramidMath PyramidImage PyramidInput)
+foreach(package IN ITEMS PyramidEngine PyramidFoundation PyramidMath PyramidImage PyramidInput PyramidModel)
     configure_package_config_file(
         "${PROJECT_SOURCE_DIR}/CMake/${package}Config.cmake.in"
         "${PROJECT_BINARY_DIR}/${package}Config.cmake"

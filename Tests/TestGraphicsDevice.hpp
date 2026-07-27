@@ -203,6 +203,11 @@ namespace Pyramid::Tests
         std::shared_ptr<IVertexBuffer> CreateVertexBuffer() override
         {
             ++vertexBufferCreations;
+            if (failVertexBufferCreationAt != 0 &&
+                vertexBufferCreations == failVertexBufferCreationAt)
+            {
+                return nullptr;
+            }
             return std::make_shared<TestVertexBuffer>();
         }
 
@@ -295,6 +300,8 @@ namespace Pyramid::Tests
             lastTopology = PrimitiveTopology::Triangles;
             boundVertexArray = nullptr;
         }
+
+        u32 failVertexBufferCreationAt = 0;
 
         u32 drawCalls = 0;
         bool lastDrawIndexed = false;

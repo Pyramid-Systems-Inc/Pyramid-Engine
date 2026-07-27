@@ -227,6 +227,35 @@ renderObject->mesh = mesh;
 
 `MeshCache` is bound to one graphics device and owns one strong reference per unique content fingerprint. Requests through different stable IDs share the same resident mesh when their geometry is identical. Reusing a resident explicit ID for different geometry fails rather than silently returning the wrong resource. `Find()` resolves either a stable alias or the content ID. `Evict()` removes the mesh and all aliases from the cache while existing external `shared_ptr` owners remain valid; `CollectUnused()` removes resources owned only by the cache, and `Clear()` removes all cache ownership. `GetStats()` reports residency, bytes, hits, misses, conflicts, failures, creations, and evictions. Destroy the cache before its graphics device/context and call it from the graphics thread. Direct `Mesh::Create()` remains available for intentionally uncached one-off geometry.
 
+Model assets can be parsed without an engine or graphics dependency:
+
+```cpp
+#include <Pyramid/Model/ObjImporter.hpp>
+
+auto imported = Pyramid::Model::ObjImporter::ImportFile("Assets/Models/tower.obj");
+if (!imported.IsValid())
+    return;
+```
+
+`ImportedModel` contains CPU-side materials, primitives, indexed vertices, bounds, and structured diagnostics. `ObjImportOptions` controls V-coordinate flipping, missing-normal generation, declared-library strictness, and byte/count/diagnostic limits. The parser accepts positive and negative OBJ indices, polygons, object/group/material splits, source or generated normals, quoted paths, and common MTL properties. Unsupported or malformed data is reported explicitly.
+
+Publish imported primitives through the existing registry/cache:
+
+```cpp
+Pyramid::ModelMeshImportOptions options;
+options.assetPrefix = "models/tower";
+
+auto uploaded = Pyramid::ModelResourceImporter::UploadMeshes(
+    *GetResourceRegistry(),
+    imported,
+    options);
+
+if (uploaded.IsSuccess())
+    auto mesh = GetResourceRegistry()->Resolve(uploaded.meshes.front().mesh);
+```
+
+The upload is transactional across the model: all primitives and stable-ID conflicts are validated first, and a graphics allocation failure removes aliases and geometry introduced by that operation while preserving pre-existing cache entries. `ImportedMeshResource::materialIndex` preserves the parsed material slot, but automatic texture/material creation is not implemented yet. `MeshCache::RemoveAlias()` exists for this transactional publication boundary and cannot remove canonical content IDs.
+
 ### Textures
 
 ```cpp

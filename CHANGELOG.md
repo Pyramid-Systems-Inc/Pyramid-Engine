@@ -4,6 +4,16 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### Owned model import foundation
+
+- Added the independently installable `PyramidModel` target exported as `Pyramid::Model`; it depends only on `Pyramid::Foundation` and `Pyramid::Math`.
+- Added bounded dependency-free OBJ/MTL file and memory import with positive/negative indices, polygon triangulation, object/group/material primitive boundaries, vertex deduplication, vertex colors, source or generated normals, hard/smooth edges, bounds, quoted paths, normalized material/texture dependencies, common MTL properties, and structured diagnostics.
+- Added explicit malformed-index, missing-library, duplicate-material, non-finite-data, empty-geometry, count, byte, and diagnostic failure behavior.
+- Added transactional `ModelResourceImporter` publication through `MeshCache`, stable imported-mesh IDs, exact-content reuse, alias-conflict rejection, material-slot preservation, and rollback that leaves pre-existing resources intact.
+- Added non-canonical `MeshCache::RemoveAlias()` with generation invalidation for transaction-safe publication.
+- Replaced the hard-coded `BasicRendering` cube geometry with a bundled imported Pyramid OBJ/MTL asset copied beside the executable.
+- Added a standalone installed `Pyramid::Model` consumer and Windows CI validation; CTest now registers 41 targets.
+
 ### Owned foundation, math, and input libraries
 
 - Extracted public primitive types, colors, assertions, and logging into the independently installable `PyramidFoundation` target exported as `Pyramid::Foundation`.

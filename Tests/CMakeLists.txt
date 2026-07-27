@@ -143,3 +143,8 @@ add_executable(SceneSerializationTests SceneSerializationTests.cpp)
 target_link_libraries(SceneSerializationTests PRIVATE Pyramid::Engine)
 set_target_properties(SceneSerializationTests PROPERTIES FOLDER "Tests/Graphics")
 add_test(NAME Graphics.SceneSerialization COMMAND $<TARGET_FILE:SceneSerializationTests>)
+
+add_executable(ModelResourceImporterTests ModelResourceImporterTests.cpp)
+target_link_libraries(ModelResourceImporterTests PRIVATE Pyramid::Engine)
+set_target_properties(ModelResourceImporterTests PROPERTIES FOLDER "Tests/Graphics")
+add_test(NAME Graphics.ModelResourceImport COMMAND $<TARGET_FILE:ModelResourceImporterTests>)

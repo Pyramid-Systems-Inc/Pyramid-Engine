@@ -49,8 +49,9 @@ This is the lower-level reference rendering path. It demonstrates:
 - one game-owned `ResourceRegistry` instead of four manually ordered cache owners;
 - typed resource handles suitable for scene-facing references without long-lived mesh/material ownership;
 - inline GLSL 3.30 shaders compiled through a stable shader-cache asset ID;
-- an engine-owned cube mesh with position, normal, texture-coordinate, and color attributes;
-- caller-defined stable mesh and shader asset identifiers resolved through their graphics-device-bound caches;
+- a Pyramid-owned OBJ/MTL parser loading the bundled pyramid reference asset beside the executable;
+- generated hard-edge normals, polygon triangulation, vertex colors, material-slot metadata, and transactional publication through the mesh cache;
+- caller-defined stable imported-mesh and shader asset identifiers resolved through their graphics-device-bound caches;
 - scene and material uniform buffers;
 - perspective camera setup registered through `Game::SetActiveCamera()`;
 - topology-aware indexed rendering and basic lighting;
@@ -74,7 +75,7 @@ A successful timed process run proves that startup did not immediately fail. Aft
 - shader compilation reports no errors;
 - geometry is visible;
 - resize, maximize, minimize, and restore messages appear in the log;
-- the cube keeps the correct proportions after resizing;
+- the imported pyramid keeps the correct proportions after resizing;
 - minimizing suspends rendering until a renderable client area is restored;
 - resizing does not crash;
 - named keyboard and mouse actions respond without repeated one-frame presses;

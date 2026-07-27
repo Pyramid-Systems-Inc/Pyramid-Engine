@@ -17,8 +17,8 @@ The current `0.6.0-pre-alpha` baseline includes:
 - strict required window operations with Win32 implementations;
 - relocatable install/export package and external-consumer test;
 - Windows Debug/Release CI for build, CTest, install, and package consumption;
-- 37 registered tests, including standalone foundation and math validation, platform input, action mapping, reusable camera controllers, game-side RTS interaction, engine-owned mesh resources, immutable geometry bounds, real PNG/JPEG decoding, transactional texture loading, OpenGL diagnostics, window events, camera resize/frustum behavior, framebuffer resize, scene-hierarchy transforms, incremental octree synchronization, bounds-accurate spatial queries, bounds-aware nearest-neighbor queries, transactional octree configuration, and automatic octree compaction/health metrics, stable shader identifiers, compile-once shader reuse, and transactional shader replacement;
-- extracted primitive types/logging, math, and physical/action input into independently installable `Pyramid::Foundation`, `Pyramid::Math`, and `Pyramid::Input` packages;
+- 41 registered tests, including standalone foundation, math, input, image, and model validation, platform input, action mapping, reusable camera controllers, game-side RTS interaction, engine-owned mesh resources, transactional OBJ-to-mesh publication, immutable geometry bounds, real PNG/JPEG decoding, transactional texture loading, OpenGL diagnostics, window events, camera resize/frustum behavior, framebuffer resize, scene-hierarchy transforms, spatial queries, resource caches, and scene serialization;
+- extracted primitive types/logging, math, physical/action input, image codecs, and CPU model importing into independently installable `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, and `Pyramid::Model` packages;
 - completed the previously stubbed `Mat4` determinant and inverse operations with pivoted elimination;
 - corrected standards-invalid PNG, zlib, and JPEG test fixtures;
 - public texture convenience definitions and explicit depth-target failure;
@@ -74,7 +74,7 @@ The current `0.6.0-pre-alpha` baseline includes:
 - Replace placeholder occlusion culling with a supported technique or remove the setting.
 - [x] Introduce an engine-owned mesh resource with validated vertex/index ownership, layout, topology, draw count, and immutable local bounds.
 - [x] Add stable mesh identifiers and a graphics-device-bound resource cache that shares exact geometry across aliases; manual `RenderObject` bounds overrides and the unit-cube fallback remain supported.
-- Integrate cached mesh specifications with the future asset importer.
+- [x] Integrate dependency-free OBJ primitives transactionally with the mesh cache while preserving material-slot metadata.
 - [x] Add focused octree synchronization tests for moving, inserted, removed, and unchanged objects.
 - [x] Add focused octree tests for point, ray, exact box/sphere intersections, root-overflow objects, and linear/octree parity.
 - [x] Use full object bounds and branch pruning for nearest-object and K-nearest queries.
@@ -104,7 +104,8 @@ Target outcome: a trustworthy rendering SDK rather than a larger feature list.
 - [x] Versioned resource manifests with deterministic typed-handle serialization, transactional validation, and missing/stale diagnostics.
 - [x] Add an engine-owned immutable material resource for shader/texture references, typed uniforms, and fixed render state.
 - [x] Add exact-content material caching with stable aliases, transactional replacement, eviction, and residency statistics.
-- Mesh/material asset import built on the engine-owned `Mesh` and `Material` resources and their caches.
+- [x] Add owned bounded OBJ/MTL parsing and transactional imported-primitive publication through the mesh cache.
+- Convert imported MTL metadata and image paths into immutable texture/material resources through a configurable shader/material profile.
 - Shader preprocessing, dependency tracking, and reload.
 - Scene serialization with versioning and validation, built on resource manifests.
 - Asset packaging and path abstraction independent of the source checkout.
@@ -118,7 +119,7 @@ Target outcome: one interactive Ruqoom RTS vertical slice that validates the eng
 2. [x] engine-generic configurable action mapping with prioritized contexts, control consumption, chords, runtime rebinding, and an RTS camera reference profile;
 3. [x] reusable, action-driven free-fly, target-orbit, and optional strategy camera controllers with validated settings and home-pose reset;
 4. [x] RTS reference-game input features built above the generic engine: edge scrolling, selection, and command input;
-5. engine-owned model/scene import pipeline feeding existing mesh/material/resource types;
+5. [x] owned OBJ/MTL model import feeding existing mesh resources, with material-resource and scene-hierarchy instantiation still pending;
 6. RTS components such as selectable, team/owner, movement target, health, and basic unit state;
 7. terrain/large-map rendering and scalable visibility/spatial updates;
 8. debug statistics and inspection UI as the first editor foundation;

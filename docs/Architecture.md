@@ -2,7 +2,7 @@
 
 ## Scope
 
-Pyramid is a C++17 engine ecosystem with a Win32/WGL `Pyramid::Engine` target and independently testable owned libraries. The first extracted library is `Pyramid::Image`, which has no platform or engine dependency. They are exported as separate relocatable packages so image tools do not inherit the engine's OpenGL/platform dependency chain.
+Pyramid is a C++17 engine ecosystem with a Win32/WGL `Pyramid::Engine` target and independently testable owned libraries. `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, and `Pyramid::Model` are exported as separate relocatable packages, so tools that only parse images or models do not inherit OpenGL, GLAD, or platform dependencies.
 
 ## Layers
 
@@ -18,8 +18,8 @@ Pyramid is a C++17 engine ecosystem with a Win32/WGL `Pyramid::Engine` target an
 | PyramidFoundation | `Pyramid`, `Pyramid::Util` | Primitive aliases, colors, assertions, and logging |
 | PyramidMath | `Pyramid::Math` | Vectors, matrices, quaternions, geometry, and SIMD helpers |
 | PyramidInput | `Pyramid` | Physical input snapshots and generic named action mapping |
-| Engine utilities | `Pyramid::Util` | Logging and engine diagnostics |
 | PyramidImage | `Pyramid::Util` | Standalone image dispatch, TGA/BMP subsets, PNG, DEFLATE/zlib, and owned JPEG decoding |
+| PyramidModel | `Pyramid::Model` | Renderer-independent imported-model data and bounded OBJ/MTL parsing |
 | RTS reference | `Pyramid::Examples::RTSReference` | Game-side edge scrolling, selectable filtering, ray picking, and command requests; not installed with `Pyramid::Engine` |
 
 Direct Win32 keyboard/mouse polling, engine-generic action mapping, reusable free-fly/orbit/strategy camera controllers, and a separate game-side RTS interaction reference are present. Audio, physics, editor, scripting, and the asset pipeline are not currently present.
@@ -91,6 +91,12 @@ Local transforms are authoritative. World transforms are cached with parent-befo
 
 Legacy `SceneManager::LoadScene` and `SaveScene` JSON/XML/Binary methods remain unsupported; use `SceneSerializer`. Cameras, environment settings, gameplay components, and editor metadata are future scene-format extensions. Occlusion culling remains unimplemented and disabled by default.
 
+## Model import
+
+`Pyramid::Model` owns renderer-independent imported-model data and the dependency-free OBJ/MTL parser. It depends only on foundation and math. OBJ parsing supports positive and negative indices, quoted material-library paths, polygon fan triangulation, vertex-color extensions, object/group/material primitive boundaries, deduplication, source normals, generated area-weighted smoothing normals, hard edges when smoothing is disabled, bounds, and configurable allocation/diagnostic limits. MTL parsing records ambient/diffuse/specular colors, opacity, shininess, illumination model, and normalized diffuse-texture paths. Missing declared libraries and malformed references fail explicitly by default.
+
+The engine-facing `ModelResourceImporter` is a narrow bridge from `ImportedModel` primitives to immutable `Mesh` resources. It validates every primitive and stable ID before publication, uses the existing `MeshCache`, preserves material-slot indices for the caller, reuses exact resident content, rejects alias conflicts, and rolls back aliases/new geometry introduced by an upload that fails partway. It does not create shaders, textures, materials, entities, or scene hierarchies yet.
+
 ## Textures and framebuffers
 
 The direct specification and file constructors create mutable `OpenGLTexture2D` instances. Shared sampled assets should use immutable `TextureResource` objects through a graphics-device-bound `TextureCache`. Content identity includes decoded pixels, dimensions, base format, mip policy, sampler state, and explicit linear/sRGB intent. Stable aliases map to strong resident resources; exact content is uploaded once across aliases, conflicts are rejected, and file reload publishes a replacement only after decode and GPU creation succeed. Existing external owners remain valid after reload or eviction.
@@ -120,12 +126,12 @@ Size-based, render-target, and solid-color convenience factories remain availabl
 ## Build and package model
 
 - `PyramidEngine` is the engine target; `Pyramid::Engine` is its build-tree alias and installed name.
-- `PyramidFoundation`, `PyramidMath`, `PyramidInput`, and `PyramidImage` are engine-independent targets exported as `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, and `Pyramid::Image`. `Pyramid::Engine` links them publicly so existing headers remain transitively available.
+- `PyramidFoundation`, `PyramidMath`, `PyramidInput`, `PyramidImage`, and `PyramidModel` are engine-independent targets exported as `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, and `Pyramid::Model`. `Pyramid::Engine` links them publicly so existing headers remain transitively available.
 - GLAD is the sole approved bundled third-party runtime library and remains public because OpenGL implementation headers expose GLAD types.
 - The installed package has no JPEG or codec package dependency.
 - Public headers are installed separately rather than exported through `INTERFACE_SOURCES`, keeping the package relocatable.
-- CMake package configuration and version files support independent engine, foundation, math, input, and image consumers. The engine package resolves every owned library as an explicit package dependency.
-- Windows CI validates separate engine, foundation/math/input, and image consumers after installation.
+- CMake package configuration and version files support independent engine, foundation, math, input, image, and model consumers. The engine package resolves every owned library as an explicit package dependency.
+- Windows CI validates separate engine, foundation/math/input, image, and model consumers after installation.
 
 ## Dependency direction
 
@@ -136,6 +142,7 @@ Pyramid::Engine ─────→ Pyramid::Foundation
     │                  Pyramid::Math
     │                  Pyramid::Input
     │                  Pyramid::Image
+    │                  Pyramid::Model
     ↓
 Core / Graphics / Win32-WGL Platform
     ↓

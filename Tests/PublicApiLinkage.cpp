@@ -13,6 +13,8 @@
 #include <Pyramid/Graphics/Geometry/MeshBounds.hpp>
 #include <Pyramid/Graphics/Geometry/Mesh.hpp>
 #include <Pyramid/Graphics/Geometry/MeshCache.hpp>
+#include <Pyramid/Graphics/Model/ModelResourceImporter.hpp>
+#include <Pyramid/Model/ObjImporter.hpp>
 #include <Pyramid/Graphics/Shader/ShaderProgram.hpp>
 #include <Pyramid/Graphics/Shader/ShaderCache.hpp>
 #include <Pyramid/Graphics/Renderer/RenderSystem.hpp>
@@ -208,6 +210,8 @@ namespace
         &Pyramid::MeshCache::GetOrCreate;
     volatile decltype(&Pyramid::MeshCache::Find) g_findCachedMesh =
         &Pyramid::MeshCache::Find;
+    volatile decltype(&Pyramid::MeshCache::RemoveAlias) g_removeCachedMeshAlias =
+        &Pyramid::MeshCache::RemoveAlias;
     volatile decltype(&Pyramid::MeshCache::Evict) g_evictCachedMesh =
         &Pyramid::MeshCache::Evict;
     volatile decltype(&Pyramid::MeshCache::CollectUnused) g_collectUnusedMeshes =
@@ -218,6 +222,23 @@ namespace
         &Pyramid::MeshCache::GetStats;
     volatile decltype(&Pyramid::MeshCache::GetGeneration) g_getMeshGeneration =
         &Pyramid::MeshCache::GetGeneration;
+    volatile decltype(&Pyramid::Model::ObjImporter::Import) g_importObj =
+        &Pyramid::Model::ObjImporter::Import;
+    volatile decltype(&Pyramid::Model::ObjImporter::ImportFile) g_importObjFile =
+        &Pyramid::Model::ObjImporter::ImportFile;
+    using UploadModelWithCache = Pyramid::ModelMeshImportResult (*)(
+        Pyramid::MeshCache&,
+        const Pyramid::Model::ImportedModel&,
+        const Pyramid::ModelMeshImportOptions&);
+    using UploadModelWithRegistry = Pyramid::ModelMeshImportResult (*)(
+        Pyramid::ResourceRegistry&,
+        const Pyramid::Model::ImportedModel&,
+        const Pyramid::ModelMeshImportOptions&);
+    volatile UploadModelWithCache g_uploadModelWithCache =
+        static_cast<UploadModelWithCache>(&Pyramid::ModelResourceImporter::UploadMeshes);
+    volatile UploadModelWithRegistry g_uploadModelWithRegistry =
+        static_cast<UploadModelWithRegistry>(&Pyramid::ModelResourceImporter::UploadMeshes);
+
     using ShaderAssetIdFromString = Pyramid::ShaderAssetId (*)(std::string_view);
     volatile ShaderAssetIdFromString g_shaderAssetIdFromString =
         static_cast<ShaderAssetIdFromString>(&Pyramid::ShaderAssetId::FromString);
@@ -461,11 +482,16 @@ int main()
                    g_getMeshLocalBounds &&
                    g_getOrCreateCachedMesh &&
                    g_findCachedMesh &&
+                   g_removeCachedMeshAlias &&
                    g_evictCachedMesh &&
                    g_collectUnusedMeshes &&
                    g_clearMeshCache &&
                    g_getMeshCacheStats &&
                    g_getMeshGeneration &&
+                   g_importObj &&
+                   g_importObjFile &&
+                   g_uploadModelWithCache &&
+                   g_uploadModelWithRegistry &&
                    g_shaderAssetIdFromString &&
                    g_shaderAssetIdToString &&
                    g_calculateShaderContentId &&

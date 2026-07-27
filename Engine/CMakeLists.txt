@@ -29,6 +29,7 @@ target_link_libraries(PyramidEngine
         Pyramid::Math
         Pyramid::Input
         Pyramid::Image
+        Pyramid::Model
 )
 
 if(WIN32)

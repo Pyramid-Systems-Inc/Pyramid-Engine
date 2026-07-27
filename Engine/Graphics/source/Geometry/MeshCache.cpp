@@ -100,6 +100,18 @@ namespace Pyramid
         return generation == m_generations.end() ? 0 : generation->second;
     }
 
+    bool MeshCache::RemoveAlias(MeshAssetId assetId)
+    {
+        const auto alias = m_assetToContent.find(assetId);
+        if (alias == m_assetToContent.end() || alias->first == alias->second)
+        {
+            return false;
+        }
+
+        InvalidateAlias(assetId);
+        return true;
+    }
+
     bool MeshCache::Evict(MeshAssetId assetId)
     {
         const auto alias = m_assetToContent.find(assetId);

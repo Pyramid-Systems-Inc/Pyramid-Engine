@@ -20,7 +20,8 @@ The project is intended for engine development and experimentation. It is not ye
 | Math | Standalone `Pyramid::Math` vectors, matrices, quaternions, geometry helpers, and SIMD utilities |
 | Input | Standalone `Pyramid::Input` physical state and named action mapping |
 | Images | Standalone `Pyramid::Image` library with TGA/BMP subsets, custom non-interlaced PNG, and owned baseline/progressive JPEG decoding |
-| Tests | 37 CTest targets, including standalone foundation, math, input, and image coverage plus focused engine/reference-game tests |
+| Models | Standalone `Pyramid::Model` OBJ/MTL parser with bounded diagnostics, triangulation, indexing, generated normals, and normalized dependencies |
+| Tests | 41 CTest targets, including standalone foundation, math, input, image, and model coverage plus focused engine/reference-game tests |
 | CI | GCC and Clang, Debug and Release, package install, and external-consumer validation |
 
 ## Implemented
@@ -37,8 +38,10 @@ The project is intended for engine development and experimentation. It is not ye
 - Bounds-aware point, sphere, box, ray, nearest-object, and K-nearest scene queries with octree/linear parity.
 - An authoritative entity/component scene: every entity has a stable ID, name, visibility, and hierarchical transform; mesh-renderer and light components are optional. Renderer/light proxies are derived from entities for rendering, culling, and spatial queries.
 - OpenGL driver debug callbacks and centralized error diagnostics in Debug builds.
-- Foundation types/logging, math primitives, physical/action input, and image decoding are independently testable owned libraries.
-- Installable CMake packages export `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, and `Pyramid::Engine`.
+- Foundation types/logging, math primitives, physical/action input, image decoding, and CPU model importing are independently testable owned libraries.
+- Dependency-free OBJ/MTL import supports positive/negative indices, polygon triangulation, material groups, common MTL properties, generated smooth or hard-edge normals, vertex deduplication, bounds, file/memory input, and bounded malformed-input diagnostics.
+- `ModelResourceImporter` transactionally publishes imported primitives through the existing mesh cache and rolls back only resources introduced by a failed upload.
+- Installable CMake packages export `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, `Pyramid::Model`, and `Pyramid::Engine`.
 
 ## Important limitations
 
@@ -48,7 +51,7 @@ The project is intended for engine development and experimentation. It is not ye
 - `SceneSerializer` version 2 persists stable entities, hierarchy, transforms, mesh-renderer components, light components, and the primary light. Cameras, environment settings, gameplay components, and editor metadata are not serialized yet; the legacy `SceneManager` JSON/XML/Binary methods remain unsupported.
 - Occlusion culling remains a placeholder and is disabled by default.
 - `ITexture2D::CreateDepthTarget` fails explicitly; use the framebuffer API for depth attachments.
-- Audio and physics modules are not part of the current source tree. Text input, raw relative mouse mode, collision-aware cameras, camera blending, and persisted user bindings are not implemented yet. The reference edge-scrolling/selection/command layer is example support rather than an installed engine API.
+- Audio and physics modules are not part of the current source tree. Text input, raw relative mouse mode, collision-aware cameras, camera blending, and persisted user bindings are not implemented yet. The reference edge-scrolling/selection/command layer is example support rather than an installed engine API. Model import currently supports OBJ/MTL only; imported MTL data is CPU metadata, while texture/material resource creation and scene hierarchy import remain later steps.
 
 See [Roadmap and known issues](docs/ROADMAP.md) before building new systems on top of the engine.
 
@@ -204,15 +207,16 @@ add_executable(MyTool main.cpp)
 target_link_libraries(MyTool PRIVATE Pyramid::Foundation Pyramid::Math Pyramid::Input)
 ```
 
-Standalone image tooling uses the same package model:
+Standalone image and model tooling use the same package model:
 
 ```cmake
 find_package(PyramidImage CONFIG REQUIRED)
-add_executable(MyImageTool main.cpp)
-target_link_libraries(MyImageTool PRIVATE Pyramid::Image)
+find_package(PyramidModel CONFIG REQUIRED)
+add_executable(MyAssetTool main.cpp)
+target_link_libraries(MyAssetTool PRIVATE Pyramid::Image Pyramid::Model)
 ```
 
-The CI workflow validates engine, foundation/math/input, and image package-consumer paths with GCC and Clang.
+The CI workflow validates engine, foundation/math/input, image, and model package-consumer paths with GCC and Clang.
 
 ## Documentation
 
@@ -233,6 +237,7 @@ Libraries/
   PyramidMath/        Vectors, matrices, quaternions, and SIMD utilities
   PyramidInput/       Physical input state and named action mapping
   PyramidImage/       Owned image parsing, PNG/DEFLATE, and JPEG decoding
+  PyramidModel/       Dependency-free OBJ/MTL parsing and imported-model data
 Engine/
   Core/               Application lifecycle
   Graphics/           OpenGL resources, renderer, camera, scenes, and octree
