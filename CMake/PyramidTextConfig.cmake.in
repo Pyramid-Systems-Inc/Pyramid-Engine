@@ -1,0 +1,8 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(PyramidFoundation CONFIG)
+find_dependency(PyramidMath CONFIG)
+
+include("${CMAKE_CURRENT_LIST_DIR}/PyramidTextTargets.cmake")
+check_required_components(PyramidText)

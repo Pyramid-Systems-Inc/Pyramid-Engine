@@ -4,6 +4,18 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### Owned UI foundation and runtime debug overlay
+
+- Added independently installable `PyramidText` and `PyramidUI` targets exported as `Pyramid::Text` and `Pyramid::UI`; both remain platform and renderer independent.
+- Added a deterministic embedded ASCII debug atlas, glyph metrics, text measurement, multiline glyph-run generation, and a white atlas texel for solid UI geometry without runtime font files.
+- Added hybrid UI contexts whose immediate widget facade reconciles retained element state, stable scoped IDs, vertical/horizontal flow layout, clipping, focus, pointer capture, keyboard navigation, DPI metadata, and batched renderer-independent draw lists.
+- Added panels, labels, value rows, separators, spacers, buttons, checkboxes, float sliders, progress bars, and textured-image widgets with configurable themes.
+- Added `InputConsumptionMask` and pre-action UI-context registration in `Game`, preventing handled mouse, wheel, drag, and focused keyboard controls from leaking into gameplay action contexts.
+- Added graphics-device scissor operations plus `UIRenderer` for batched colored/textured quads, embedded-font rendering, conservative DPI-scaled clip rectangles, alpha blending, registered UI textures, and deterministic baseline-state restoration.
+- Added resource-specific UI-renderer initialization rollback and non-canonical `ShaderCache::RemoveAlias()`, preserving unrelated cache-only shaders and textures when GPU buffer allocation fails.
+- Added an F1 `BasicGame` overlay with live frame, render, resource, input, UI, animation, and camera controls.
+- Added standalone installed `Pyramid::UI` consumer validation and focused `Text.DebugFont`, `UI.Context`, input-consumption, and `Graphics.UIRenderer` coverage; CTest now registers 46 targets.
+
 ### Build fixes
 
 - Fixed `WindowResizeEventTests` after the input-library extraction by linking it to `Pyramid::Input`, which propagates the required input and foundation headers.

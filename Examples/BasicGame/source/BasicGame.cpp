@@ -6,17 +6,22 @@
 #include <Pyramid/Graphics/Shader/Shader.hpp>
 #include <Pyramid/Graphics/Material/Material.hpp>
 #include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
+#include <Pyramid/Graphics/UI/UIRenderer.hpp>
 #include <Pyramid/Input/InputActions.hpp>
 #include <Pyramid/Graphics/CameraController.hpp>
 #include <Pyramid/Examples/RTSReference/RTSInteractionController.hpp>
 #include <Pyramid/Math/Math.hpp>
 #include <Pyramid/Util/Log.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <vector>
 #include <string_view>
 #include <utility>
+#include <iomanip>
+#include <sstream>
+#include <string>
 
 namespace
 {
@@ -31,6 +36,19 @@ namespace
     constexpr std::string_view kBoostAction = "Boost";
     constexpr std::string_view kSelectAction = "Select";
     constexpr std::string_view kCommandAction = "Command";
+    constexpr std::string_view kToggleDebugUIAction = "ToggleDebugUI";
+
+    std::string FormatFloat(float value, int precision = 2)
+    {
+        std::ostringstream stream;
+        stream << std::fixed << std::setprecision(precision) << value;
+        return stream.str();
+    }
+
+    std::string FormatCount(Pyramid::u64 value)
+    {
+        return std::to_string(value);
+    }
 
     constexpr const char* kForwardVertexShader = R"(
 #version 330 core
@@ -83,6 +101,11 @@ BasicGame::BasicGame()
 {
 }
 
+BasicGame::~BasicGame()
+{
+    UnregisterUIContext(&m_debugUI);
+}
+
 void BasicGame::onCreate()
 {
     Game::onCreate();
@@ -124,6 +147,15 @@ void BasicGame::onCreate()
         return;
     }
     SetRenderSystem(m_renderSystem.get());
+
+    m_uiRenderer = std::make_unique<Pyramid::UIRenderer>();
+    if (!m_uiRenderer->Initialize(*device, *resources, m_debugUI.GetDebugFont()))
+    {
+        PYRAMID_LOG_CRITICAL("BasicGame aborted: UI renderer initialization failed.");
+        quit();
+        return;
+    }
+    RegisterUIContext(&m_debugUI);
 
     m_scene = std::make_shared<Pyramid::Scene>("BasicGame Scene");
     m_sceneManager = std::make_unique<Pyramid::SceneManagement::SceneManager>();
@@ -257,6 +289,12 @@ void BasicGame::onUpdate(float deltaTime)
         return;
     }
 
+    if (actions.WasActionPressed(kInputContext, kToggleDebugUIAction))
+    {
+        m_debugUIVisible = !m_debugUIVisible;
+        m_debugUI.SetEnabled(m_debugUIVisible);
+    }
+
     if (actions.WasActionPressed(kInputContext, kToggleAnimationAction))
     {
         m_animationPaused = !m_animationPaused;
@@ -312,6 +350,8 @@ void BasicGame::onUpdate(float deltaTime)
                 command->target.z, ")");
         }
     }
+
+    BuildDebugUI(deltaTime);
 }
 
 void BasicGame::onRender()
@@ -324,7 +364,110 @@ void BasicGame::onRender()
 
     m_renderSystem->BeginFrame();
     m_renderSystem->Render(*m_scene, *m_camera);
+    if (m_uiRenderer && m_debugUIVisible)
+    {
+        (void)m_uiRenderer->Render(m_debugUI.GetDrawList(), m_uiFrame);
+    }
     m_renderSystem->EndFrame();
+}
+
+void BasicGame::BuildDebugUI(float deltaTime)
+{
+    if (!m_debugUIVisible)
+    {
+        return;
+    }
+
+    m_smoothedFrameTime += (deltaTime - m_smoothedFrameTime) * 0.1f;
+    m_uiFrame.deltaTime = deltaTime;
+    if (!m_debugUI.BeginFrame(m_uiFrame, GetInput()))
+    {
+        return;
+    }
+
+    Pyramid::UI::PanelOptions diagnostics;
+    diagnostics.position = Pyramid::Math::Vec2(12.0f, 12.0f);
+    diagnostics.size = Pyramid::Math::Vec2(
+        350.0f,
+        (std::min)(470.0f, (std::max)(200.0f, m_uiFrame.height - 24.0f)));
+    if (m_debugUI.BeginPanel("PYRAMID DEBUG  [F1]", diagnostics))
+    {
+        const float fps = m_smoothedFrameTime > 0.000001f
+            ? 1.0f / m_smoothedFrameTime
+            : 0.0f;
+        m_debugUI.LabelValue("FPS", FormatFloat(fps, 1));
+        m_debugUI.LabelValue("FRAME MS", FormatFloat(m_smoothedFrameTime * 1000.0f, 2));
+        m_debugUI.ProgressBar(
+            "16.67 MS BUDGET",
+            m_smoothedFrameTime / (1.0f / 60.0f));
+
+        m_debugUI.Separator();
+        if (m_renderSystem)
+        {
+            const auto& renderStats = m_renderSystem->GetStats();
+            m_debugUI.LabelValue("DRAW CALLS", FormatCount(renderStats.drawCalls));
+            m_debugUI.LabelValue("TRIANGLES", FormatCount(renderStats.triangles));
+            m_debugUI.LabelValue("RENDER MS", FormatFloat(renderStats.frameTime, 2));
+        }
+
+        if (auto* resources = GetResourceRegistry())
+        {
+            const auto stats = resources->GetStats();
+            m_debugUI.Separator();
+            m_debugUI.Label("RESOURCES");
+            m_debugUI.LabelValue("MESHES", FormatCount(stats.meshes.residentMeshes));
+            m_debugUI.LabelValue("TEXTURES", FormatCount(stats.textures.residentTextures));
+            m_debugUI.LabelValue("SHADERS", FormatCount(stats.shaders.residentPrograms));
+            m_debugUI.LabelValue("MATERIALS", FormatCount(stats.materials.residentMaterials));
+        }
+
+        m_debugUI.Separator();
+        const auto mouse = GetInput().GetMousePosition();
+        m_debugUI.LabelValue(
+            "MOUSE",
+            FormatFloat(mouse.x, 0) + ", " + FormatFloat(mouse.y, 0));
+        m_debugUI.LabelValue("WHEEL", FormatFloat(GetInput().GetMouseWheelDelta(), 1));
+        m_debugUI.LabelValue(
+            "UI CAPTURE",
+            m_debugUI.WantsPointerInput() ? "POINTER" : "NONE");
+        m_debugUI.EndPanel();
+    }
+
+    Pyramid::UI::PanelOptions controls;
+    controls.position = Pyramid::Math::Vec2(374.0f, 12.0f);
+    controls.size = Pyramid::Math::Vec2(
+        300.0f,
+        (std::min)(260.0f, (std::max)(180.0f, m_uiFrame.height - 24.0f)));
+    if (m_debugUI.BeginPanel("RUNTIME CONTROLS", controls))
+    {
+        (void)m_debugUI.Checkbox("PAUSE ANIMATION", m_animationPaused);
+        if (m_cameraController)
+        {
+            auto settings = m_cameraController->GetSettings();
+            float movementSpeed = settings.movementSpeed;
+            if (m_debugUI.SliderFloat(
+                    "CAMERA SPEED",
+                    movementSpeed,
+                    1.0f,
+                    20.0f))
+            {
+                settings.movementSpeed = movementSpeed;
+                (void)m_cameraController->SetSettings(settings);
+            }
+            if (m_debugUI.Button("RESET CAMERA") && m_camera)
+            {
+                m_cameraController->Reset(*m_camera);
+            }
+        }
+
+        const auto uiStats = m_debugUI.GetStats();
+        m_debugUI.Separator();
+        m_debugUI.LabelValue("ELEMENTS", FormatCount(uiStats.retainedElements));
+        m_debugUI.LabelValue("VERTICES", FormatCount(uiStats.vertices));
+        m_debugUI.LabelValue("BATCHES", FormatCount(uiStats.batches));
+        m_debugUI.EndPanel();
+    }
+    (void)m_debugUI.EndFrame();
 }
 
 std::shared_ptr<Pyramid::Mesh> BasicGame::CreateColoredCube(float size)
@@ -462,6 +605,12 @@ bool BasicGame::SetupInputActions()
         kQuitAction,
         Pyramid::InputBinding::KeyBinding(Pyramid::Key::Escape)) && valid;
     valid = context->AddAction(
+        std::string(kToggleDebugUIAction),
+        Pyramid::InputActionType::Button) && valid;
+    valid = context->AddBinding(
+        kToggleDebugUIAction,
+        Pyramid::InputBinding::KeyBinding(Pyramid::Key::F1)) && valid;
+    valid = context->AddAction(
         std::string(kToggleAnimationAction),
         Pyramid::InputActionType::Button) && valid;
     valid = context->AddBinding(
@@ -542,5 +691,10 @@ void BasicGame::onWindowResize(const Pyramid::WindowResizeEvent& event)
         m_interactionController->SetViewportSize(
             static_cast<Pyramid::u32>(event.width),
             static_cast<Pyramid::u32>(event.height));
+    }
+    if (event.HasRenderableArea())
+    {
+        m_uiFrame.width = static_cast<float>(event.width);
+        m_uiFrame.height = static_cast<float>(event.height);
     }
 }

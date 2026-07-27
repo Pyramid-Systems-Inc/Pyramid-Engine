@@ -16,6 +16,7 @@ target_sources(PyramidEngine
         source/Geometry/Mesh.cpp
         source/Geometry/MeshCache.cpp
         source/Model/ModelResourceImporter.cpp
+        source/UI/UIRenderer.cpp
         source/Shader/ShaderProgram.cpp
         source/Shader/ShaderCache.cpp
         source/Material/Material.cpp
@@ -66,6 +67,7 @@ target_sources(PyramidEngine
         include/Pyramid/Graphics/Geometry/Mesh.hpp
         include/Pyramid/Graphics/Geometry/MeshCache.hpp
         include/Pyramid/Graphics/Model/ModelResourceImporter.hpp
+        include/Pyramid/Graphics/UI/UIRenderer.hpp
         include/Pyramid/Graphics/PrimitiveTopology.hpp
         include/Pyramid/Graphics/Renderer/RenderSystem.hpp
         include/Pyramid/Graphics/Renderer/ShaderPathResolver.hpp

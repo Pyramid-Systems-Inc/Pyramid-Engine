@@ -91,6 +91,13 @@ namespace Pyramid
             } data;
         };
 
+        struct CommandBufferDrawStats
+        {
+            u32 drawCalls = 0;
+            u32 vertices = 0;
+            u32 triangles = 0;
+        };
+
         /**
          * @brief Command buffer for efficient GPU command submission
          */
@@ -151,6 +158,7 @@ namespace Pyramid
             // State
             bool IsRecording() const { return m_recording; }
             size_t GetCommandCount() const { return m_commands.size(); }
+            [[nodiscard]] CommandBufferDrawStats GetDrawStats() const;
 
         private:
             std::vector<RenderCommand> m_commands;

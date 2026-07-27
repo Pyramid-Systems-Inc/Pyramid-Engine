@@ -1,0 +1,10 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(PyramidFoundation CONFIG)
+find_dependency(PyramidMath CONFIG)
+find_dependency(PyramidInput CONFIG)
+find_dependency(PyramidText CONFIG)
+
+include("${CMAKE_CURRENT_LIST_DIR}/PyramidUITargets.cmake")
+check_required_components(PyramidUI)

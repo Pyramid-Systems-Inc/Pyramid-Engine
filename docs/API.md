@@ -142,7 +142,51 @@ controller.Update(camera, GetInputActions(), deltaTime);
 
 Call `Synchronize()` after external code changes a camera pose, `CaptureHome()` to define the reset pose, and `SetEnabled(false)` when another mode owns the camera. Physical bindings remain in the game or editor layer. The optional `Examples/RTSReference` target demonstrates edge scrolling, selection, and command requests above these APIs; it is game-side source support, not installed `Pyramid::Engine` API.
 
-Contexts are evaluated from highest to lowest priority. An enabled consuming context blocks only controls that were active during that frame, allowing UI, editor, console, gameplay, and vehicle modes to coexist. Gamepad input, text input, raw relative mouse mode, camera blending/collision, and persisted binding files remain future work.
+Contexts are evaluated from highest to lowest priority. An enabled consuming context blocks only controls that were active during that frame, allowing UI, editor, console, gameplay, and vehicle modes to coexist.
+
+`InputConsumptionMask` reserves physical controls before context evaluation. Use `InputActionSystem::Update(input, mask)` when a higher layer has already handled keys, mouse buttons, pointer deltas, or wheel input. `Game::RegisterUIContext()` and `UnregisterUIContext()` merge registered UI masks automatically before the normal action update. Gamepad input, text input, raw relative mouse mode, camera blending/collision, and persisted binding files remain future work.
+
+## Text and UI
+
+Include the renderer-independent APIs with:
+
+```cpp
+#include <Pyramid/Text/Text.hpp>
+#include <Pyramid/UI/UI.hpp>
+```
+
+`Text::CreateDebugFontAtlas()` returns a deterministic embedded ASCII atlas. `Text::Measure()` reports multiline extents and `Text::BuildGlyphQuads()` emits renderer-neutral glyph geometry.
+
+A `UI::Context` owns retained widget state and accepts immediate calls between `BeginFrame()` and `EndFrame()`:
+
+```cpp
+Pyramid::UI::Context ui;
+Pyramid::UI::FrameInfo frame{width, height, dpiScale, deltaTime};
+
+ui.BeginFrame(frame, input);
+if (ui.BeginPanel("DEBUG"))
+{
+    ui.LabelValue("FPS", "144");
+    ui.Checkbox("PAUSED", paused);
+    ui.SliderFloat("CAMERA SPEED", speed, 1.0f, 20.0f);
+    ui.EndPanel();
+}
+const Pyramid::UI::DrawList& drawList = ui.EndFrame();
+```
+
+Stable widget identity derives from the parent scope and label; use `PushId()`/`PopId()` when repeated labels need independent state. `PrepareInput()` hit-tests the previous retained frame and returns an `InputConsumptionMask` before action evaluation. Current widgets are panels, labels/value rows, separators, spacers, buttons, checkboxes, float sliders, progress bars, and images.
+
+The engine graphics adapter is:
+
+```cpp
+#include <Pyramid/Graphics/UI/UIRenderer.hpp>
+
+Pyramid::UIRenderer renderer;
+renderer.Initialize(device, resources, ui.GetDebugFont());
+renderer.Render(ui.GetDrawList(), frame);
+```
+
+`UIRenderer` consumes `UI::DrawList`, supports the embedded font plus registered `ITexture2D` IDs, applies top-left DPI-scaled scissor clipping, and restores the engine baseline render state. It should run after world rendering and before presentation.
 
 ## Graphics device and resources
 
@@ -193,7 +237,7 @@ if (shaderCache.Recompile(shaderSpec.assetId, replacement))
     shader = shaderCache.Find(shaderSpec.assetId);
 ```
 
-`Recompile()` compiles or resolves the replacement before changing the stable alias. Failure leaves the previous cached program active. Existing external owners of the old program remain valid and must reacquire the stable alias when they want the replacement. Content-derived identifiers are immutable and cannot be recompiled. `Evict()`, `CollectUnused()`, `Clear()`, and `GetStats()` provide explicit lifetime and diagnostics controls. Destroy the cache before its graphics device/context and use it from the graphics thread.
+`Recompile()` compiles or resolves the replacement before changing the stable alias. Failure leaves the previous cached program active. Existing external owners of the old program remain valid and must reacquire the stable alias when they want the replacement. Content-derived identifiers are immutable and cannot be recompiled. `RemoveAlias()` removes only a caller-defined non-canonical alias and advances its generation without evicting shared compiled content. `Evict()`, `CollectUnused()`, `Clear()`, and `GetStats()` provide explicit lifetime and diagnostics controls. Destroy the cache before its graphics device/context and use it from the graphics thread.
 
 ### Geometry
 

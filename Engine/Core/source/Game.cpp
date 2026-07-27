@@ -196,6 +196,22 @@ namespace Pyramid
         }
     }
 
+    void Game::RegisterUIContext(UI::Context* context)
+    {
+        if (!context || std::find(m_uiContexts.begin(), m_uiContexts.end(), context) != m_uiContexts.end())
+        {
+            return;
+        }
+        m_uiContexts.push_back(context);
+    }
+
+    void Game::UnregisterUIContext(UI::Context* context)
+    {
+        m_uiContexts.erase(
+            std::remove(m_uiContexts.begin(), m_uiContexts.end(), context),
+            m_uiContexts.end());
+    }
+
     void Game::HandleWindowResize(const WindowResizeEvent& event)
     {
         m_renderSurfaceAvailable = event.HasRenderableArea();
@@ -282,9 +298,21 @@ namespace Pyramid
             // Clamp delta time to prevent large jumps (e.g., when debugging or system lag)
             deltaTime = (std::min)(deltaTime, maxDeltaTime);
 
+            // Give retained UI contexts first refusal over physical controls so
+            // clicks, wheel input and focused keyboard navigation do not leak into
+            // lower-priority gameplay action contexts.
+            InputConsumptionMask uiConsumption;
+            for (UI::Context* context : m_uiContexts)
+            {
+                if (context)
+                {
+                    uiConsumption.Merge(context->PrepareInput(GetInput()));
+                }
+            }
+
             // Evaluate engine-generic action contexts from the completed native
             // input snapshot before game logic reads named actions.
-            m_inputActions.Update(GetInput());
+            m_inputActions.Update(GetInput(), uiConsumption);
 
             // Update game logic
             onUpdate(deltaTime);

@@ -9,6 +9,8 @@
 #include <Pyramid/Graphics/Renderer/RenderSystem.hpp>
 #include <Pyramid/Graphics/Scene.hpp>
 #include <Pyramid/Graphics/Scene/SceneManager.hpp>
+#include <Pyramid/Graphics/UI/UIRenderer.hpp>
+#include <Pyramid/UI/UI.hpp>
 
 #include <memory>
 
@@ -24,7 +26,7 @@ class BasicGame final : public Pyramid::Game
 {
 public:
     BasicGame();
-    ~BasicGame() override = default;
+    ~BasicGame() override;
 
 protected:
     void onCreate() override;
@@ -36,8 +38,11 @@ private:
     std::shared_ptr<Pyramid::Mesh> CreateColoredCube(float size);
     bool SetupScene();
     bool SetupInputActions();
+    void BuildDebugUI(float deltaTime);
 
     std::unique_ptr<Pyramid::Renderer::RenderSystem> m_renderSystem;
+    std::unique_ptr<Pyramid::UIRenderer> m_uiRenderer;
+    Pyramid::UI::Context m_debugUI;
     std::shared_ptr<Pyramid::Scene> m_scene;
     std::unique_ptr<Pyramid::SceneManagement::SceneManager> m_sceneManager;
     std::unique_ptr<Pyramid::Camera> m_camera;
@@ -51,6 +56,9 @@ private:
     std::shared_ptr<Pyramid::Material> m_cubeMaterial;
     std::shared_ptr<Pyramid::Material> m_floorMaterial;
 
+    Pyramid::UI::FrameInfo m_uiFrame{1280.0f, 720.0f, 1.0f, 0.0f};
     float m_elapsedTime = 0.0f;
+    float m_smoothedFrameTime = 1.0f / 60.0f;
+    bool m_debugUIVisible = true;
     bool m_animationPaused = false;
 };

@@ -54,6 +54,8 @@ namespace Pyramid
         // State management methods
         void EnableBlend(bool enable) override;
         void SetBlendFunc(u32 sfactor, u32 dfactor) override;
+        void EnableScissorTest(bool enable) override;
+        void SetScissorRect(u32 x, u32 y, u32 width, u32 height) override;
         void EnableDepthTest(bool enable) override;
         void SetDepthFunc(u32 func) override;
         void EnableDepthClamp(bool enable) override;

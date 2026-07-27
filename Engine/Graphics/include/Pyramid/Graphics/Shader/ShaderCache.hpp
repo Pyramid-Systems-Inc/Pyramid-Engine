@@ -62,6 +62,10 @@ namespace Pyramid
         std::shared_ptr<ShaderProgram> Find(ShaderAssetId assetId) const;
         bool Contains(ShaderAssetId assetId) const;
         u32 GetGeneration(ShaderAssetId assetId) const;
+
+        /** Remove only a non-canonical alias without evicting compiled content. */
+        bool RemoveAlias(ShaderAssetId assetId);
+
         bool Evict(ShaderAssetId assetId);
         u32 CollectUnused();
         u32 Clear();

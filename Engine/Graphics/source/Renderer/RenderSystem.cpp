@@ -289,6 +289,11 @@ namespace Pyramid
                 pass->Begin(*m_mainCommandBuffer);
                 pass->Execute(*m_mainCommandBuffer, scene, camera);
                 m_mainCommandBuffer->End();
+                const CommandBufferDrawStats drawStats =
+                    m_mainCommandBuffer->GetDrawStats();
+                m_stats.drawCalls += drawStats.drawCalls;
+                m_stats.vertices += drawStats.vertices;
+                m_stats.triangles += drawStats.triangles;
                 m_mainCommandBuffer->Execute(m_device);
                 pass->End(*m_mainCommandBuffer);
 
@@ -310,6 +315,11 @@ namespace Pyramid
             m_mainCommandBuffer->End();
             if (m_mainCommandBuffer->GetCommandCount() > 0)
             {
+                const CommandBufferDrawStats drawStats =
+                    m_mainCommandBuffer->GetDrawStats();
+                m_stats.drawCalls += drawStats.drawCalls;
+                m_stats.vertices += drawStats.vertices;
+                m_stats.triangles += drawStats.triangles;
                 m_mainCommandBuffer->Execute(m_device);
             }
 

@@ -30,6 +30,8 @@ target_link_libraries(PyramidEngine
         Pyramid::Input
         Pyramid::Image
         Pyramid::Model
+        Pyramid::Text
+        Pyramid::UI
 )
 
 if(WIN32)

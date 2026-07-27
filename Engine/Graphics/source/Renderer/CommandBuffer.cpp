@@ -10,6 +10,9 @@
 
 #include <type_traits>
 
+#include <algorithm>
+#include <limits>
+
 namespace Pyramid
 {
     namespace Renderer
@@ -344,6 +347,49 @@ namespace Pyramid
                     else if constexpr (std::is_same_v<T, Math::Mat4>) shader.SetUniformMat4(uniform.name, value.m);
                 }, uniform.value);
             }
+        }
+
+        CommandBufferDrawStats CommandBuffer::GetDrawStats() const
+        {
+            CommandBufferDrawStats stats;
+            u64 drawCalls = 0;
+            u64 vertices = 0;
+            u64 triangles = 0;
+            for (const RenderCommand& command : m_commands)
+            {
+                if (command.type != RenderCommandType::DrawIndexed &&
+                    command.type != RenderCommandType::DrawArrays)
+                {
+                    continue;
+                }
+
+                const u64 count = command.data.draw.count;
+                const u64 instances = command.data.draw.instanceCount;
+                ++drawCalls;
+                vertices += count * instances;
+
+                const auto topology = static_cast<PrimitiveTopology>(
+                    command.data.draw.topology);
+                if (topology == PrimitiveTopology::Triangles)
+                {
+                    triangles += (count / 3U) * instances;
+                }
+                else if (topology == PrimitiveTopology::TriangleStrip && count >= 3U)
+                {
+                    triangles += (count - 2U) * instances;
+                }
+            }
+
+            const auto clamp = [](u64 value)
+            {
+                return static_cast<u32>((std::min)(
+                    value,
+                    static_cast<u64>(std::numeric_limits<u32>::max())));
+            };
+            stats.drawCalls = clamp(drawCalls);
+            stats.vertices = clamp(vertices);
+            stats.triangles = clamp(triangles);
+            return stats;
         }
 
         void CommandBuffer::Execute(IGraphicsDevice* device)

@@ -97,6 +97,16 @@ Legacy `SceneManager::LoadScene` and `SaveScene` JSON/XML/Binary methods remain 
 
 The engine-facing `ModelResourceImporter` is the graphics bridge for renderer-independent `ImportedModel` data. Its mesh-only path validates primitives and stable IDs before publication through `MeshCache`. Its complete path consumes a caller-defined shader/material profile, loads MTL diffuse images through `TextureCache`, maps imported properties to typed immutable `Material` uniforms/render state, and returns mesh/material/texture handles for each primitive. Exact resident content is reused, stable-ID conflicts fail explicitly, and rollback removes only non-canonical aliases and content introduced by the failed transaction. The importer does not select a shader policy, mutate the CPU model package, create entities, or instantiate a scene hierarchy.
 
+## Text and UI
+
+`Pyramid::Text` owns deterministic glyph metrics, text measurement, glyph-quad generation, and the embedded ASCII debug atlas. It has no filesystem, platform, window, graphics, or font-middleware dependency. Runtime font import, Unicode shaping, bidirectional text, and editing are intentionally later milestones.
+
+`Pyramid::UI` is a hybrid retained/immediate runtime. Widget calls reconcile stable scoped IDs into retained element state, then shared layout, focus, hit-testing, pointer capture, clipping, theme resolution, and draw generation produce a renderer-independent `UI::DrawList`. Multiple contexts can coexist for debug, game, and future editor surfaces without parallel widget implementations.
+
+Before named action contexts evaluate, `Game` asks each registered UI context for an `InputConsumptionMask`. Controls handled by UI are seeded into `InputActionSystem`, so clicks, drags, wheel input, and focused navigation keys do not leak into gameplay. UI libraries never depend on `Game`; registration is an engine integration convenience.
+
+`UIRenderer` is the engine graphics adapter. It owns the UI shader, font-atlas texture, dynamic buffers, texture-ID registration, alpha-blended batching, conservative DPI-scaled scissor rectangles, and deterministic baseline-state restoration. Initialization is transactional: failures remove only shader/texture aliases and content introduced by that attempt while preserving unrelated or previously resident cache resources. `Pyramid::UI` never includes GLAD or issues graphics calls.
+
 ## Textures and framebuffers
 
 The direct specification and file constructors create mutable `OpenGLTexture2D` instances. Shared sampled assets should use immutable `TextureResource` objects through a graphics-device-bound `TextureCache`. Content identity includes decoded pixels, dimensions, base format, mip policy, sampler state, and explicit linear/sRGB intent. Stable aliases map to strong resident resources; exact content is uploaded once across aliases, conflicts are rejected, and file reload publishes a replacement only after decode and GPU creation succeed. Existing external owners remain valid after reload or eviction.
@@ -126,12 +136,12 @@ Size-based, render-target, and solid-color convenience factories remain availabl
 ## Build and package model
 
 - `PyramidEngine` is the engine target; `Pyramid::Engine` is its build-tree alias and installed name.
-- `PyramidFoundation`, `PyramidMath`, `PyramidInput`, `PyramidImage`, and `PyramidModel` are engine-independent targets exported as `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, and `Pyramid::Model`. `Pyramid::Engine` links them publicly so existing headers remain transitively available.
+- `PyramidFoundation`, `PyramidMath`, `PyramidInput`, `PyramidImage`, `PyramidModel`, `PyramidText`, and `PyramidUI` are engine-independent targets exported as `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, `Pyramid::Model`, `Pyramid::Text`, and `Pyramid::UI`. `Pyramid::Engine` links them publicly so existing headers remain transitively available.
 - GLAD is the sole approved bundled third-party runtime library and remains public because OpenGL implementation headers expose GLAD types.
 - The installed package has no JPEG or codec package dependency.
 - Public headers are installed separately rather than exported through `INTERFACE_SOURCES`, keeping the package relocatable.
-- CMake package configuration and version files support independent engine, foundation, math, input, image, and model consumers. The engine package resolves every owned library as an explicit package dependency.
-- Windows CI validates separate engine, foundation/math/input, image, and model consumers after installation.
+- CMake package configuration and version files support independent engine, foundation, math, input, image, model, text, and UI consumers. The engine package resolves every owned library as an explicit package dependency.
+- Windows CI validates separate engine, foundation/math/input, image, model, and UI consumers after installation.
 
 ## Dependency direction
 
@@ -143,6 +153,8 @@ Pyramid::Engine ─────→ Pyramid::Foundation
     │                  Pyramid::Input
     │                  Pyramid::Image
     │                  Pyramid::Model
+    │                  Pyramid::Text
+    │                  Pyramid::UI
     ↓
 Core / Graphics / Win32-WGL Platform
     ↓

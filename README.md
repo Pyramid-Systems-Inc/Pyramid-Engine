@@ -21,7 +21,9 @@ The project is intended for engine development and experimentation. It is not ye
 | Input | Standalone `Pyramid::Input` physical state and named action mapping |
 | Images | Standalone `Pyramid::Image` library with TGA/BMP subsets, custom non-interlaced PNG, and owned baseline/progressive JPEG decoding |
 | Models | Standalone `Pyramid::Model` OBJ/MTL parser with bounded diagnostics, triangulation, indexing, generated normals, and normalized dependencies |
-| Tests | 42 CTest targets, including standalone foundation, math, input, image, and model coverage plus focused engine/reference-game tests |
+| Text | Standalone `Pyramid::Text` metrics, glyph-run generation, and deterministic embedded ASCII debug atlas |
+| UI | Standalone hybrid `Pyramid::UI` retained state/immediate facade with layout, input capture, clipping, widgets, and renderer-independent draw lists |
+| Tests | 46 CTest targets, including standalone foundation, math, input, image, model, text, and UI coverage plus focused engine/reference-game tests |
 | CI | GCC and Clang, Debug and Release, package install, and external-consumer validation |
 
 ## Implemented
@@ -38,10 +40,13 @@ The project is intended for engine development and experimentation. It is not ye
 - Bounds-aware point, sphere, box, ray, nearest-object, and K-nearest scene queries with octree/linear parity.
 - An authoritative entity/component scene: every entity has a stable ID, name, visibility, and hierarchical transform; mesh-renderer and light components are optional. Renderer/light proxies are derived from entities for rendering, culling, and spatial queries.
 - OpenGL driver debug callbacks and centralized error diagnostics in Debug builds.
-- Foundation types/logging, math primitives, physical/action input, image decoding, and CPU model importing are independently testable owned libraries.
+- Foundation types/logging, math primitives, physical/action input, image decoding, CPU model importing, debug text, and UI layout/interaction are independently testable owned libraries.
 - Dependency-free OBJ/MTL import supports positive/negative indices, polygon triangulation, material groups, common MTL properties, generated smooth or hard-edge normals, vertex deduplication, bounds, file/memory input, and bounded malformed-input diagnostics.
 - `ModelResourceImporter` transactionally publishes imported meshes, diffuse textures, and immutable materials through the existing caches using a configurable shader/material profile; repeated content is reused and failed imports roll back only resources introduced by that operation.
-- Installable CMake packages export `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, `Pyramid::Model`, and `Pyramid::Engine`.
+- Hybrid `Pyramid::UI` contexts reconcile immediate widget calls into retained state, generate renderer-independent clipped draw batches, and reserve handled controls before gameplay action evaluation.
+- `UIRenderer` uploads batched quads through the graphics device, renders the embedded `Pyramid::Text` atlas, supports registered image textures, applies DPI-scaled scissor clipping, and restores the engine render-state baseline.
+- `BasicGame` includes an F1 runtime overlay for frame/render/resource/input statistics plus animation and camera controls.
+- Installable CMake packages export `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, `Pyramid::Model`, `Pyramid::Text`, `Pyramid::UI`, and `Pyramid::Engine`.
 
 ## Important limitations
 
@@ -51,7 +56,7 @@ The project is intended for engine development and experimentation. It is not ye
 - `SceneSerializer` version 2 persists stable entities, hierarchy, transforms, mesh-renderer components, light components, and the primary light. Cameras, environment settings, gameplay components, and editor metadata are not serialized yet; the legacy `SceneManager` JSON/XML/Binary methods remain unsupported.
 - Occlusion culling remains a placeholder and is disabled by default.
 - `ITexture2D::CreateDepthTarget` fails explicitly; use the framebuffer API for depth attachments.
-- Audio and physics modules are not part of the current source tree. Text input, raw relative mouse mode, collision-aware cameras, camera blending, and persisted user bindings are not implemented yet. The reference edge-scrolling/selection/command layer is example support rather than an installed engine API. Model import currently supports OBJ/MTL and diffuse `map_Kd` material publication only; additional material maps, model formats, asset packaging, and scene-hierarchy instantiation remain later steps.
+- Audio and physics modules are not part of the current source tree. Text editing/input, Unicode shaping, runtime font import, advanced retained screen authoring, raw relative mouse mode, collision-aware cameras, camera blending, and persisted user bindings are not implemented yet. The reference edge-scrolling/selection/command layer is example support rather than an installed engine API. Model import currently supports OBJ/MTL and diffuse `map_Kd` material publication only; additional material maps, model formats, asset packaging, and scene-hierarchy instantiation remain later steps.
 
 See [Roadmap and known issues](docs/ROADMAP.md) before building new systems on top of the engine.
 
@@ -212,11 +217,12 @@ Standalone image and model tooling use the same package model:
 ```cmake
 find_package(PyramidImage CONFIG REQUIRED)
 find_package(PyramidModel CONFIG REQUIRED)
+find_package(PyramidUI CONFIG REQUIRED)
 add_executable(MyAssetTool main.cpp)
-target_link_libraries(MyAssetTool PRIVATE Pyramid::Image Pyramid::Model)
+target_link_libraries(MyAssetTool PRIVATE Pyramid::Image Pyramid::Model Pyramid::UI)
 ```
 
-The CI workflow validates engine, foundation/math/input, image, and model package-consumer paths with GCC and Clang.
+The CI workflow validates engine, foundation/math/input, image, model, and UI package-consumer paths with GCC and Clang.
 
 ## Documentation
 

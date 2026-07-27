@@ -170,6 +170,25 @@ jobs:
         shell: msys2 {0}
         run: ./build/model-consumer/${{ matrix.name }}/PyramidModelConsumer.exe
 
+      - name: Configure standalone UI consumer
+        shell: msys2 {0}
+        run: >-
+          cmake -S Tests/UIConsumer
+          -B build/ui-consumer/${{ matrix.name }}
+          -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ matrix.configuration }}
+          -DCMAKE_C_COMPILER=${{ matrix.compiler_c }}
+          -DCMAKE_CXX_COMPILER=${{ matrix.compiler_cxx }}
+          -DCMAKE_PREFIX_PATH="$PWD/build/install/${{ matrix.name }}"
+
+      - name: Build standalone UI consumer
+        shell: msys2 {0}
+        run: cmake --build build/ui-consumer/${{ matrix.name }} --parallel
+
+      - name: Run standalone UI consumer
+        shell: msys2 {0}
+        run: ./build/ui-consumer/${{ matrix.name }}/PyramidUIConsumer.exe
+
       - name: Upload binaries
         if: always()
         uses: actions/upload-artifact@v4

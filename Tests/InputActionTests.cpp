@@ -199,6 +199,41 @@ int main()
     Require(gameplay->RemoveBinding("Rebindable", 0), "binding removal failed");
     Require(gameplay->GetBindingCount("Rebindable") == 0, "binding count after removal mismatch");
 
+    InputState maskedInput;
+    maskedInput.SetFocused(true);
+    InputActionSystem maskedActions;
+    InputContext* maskedContext = maskedActions.CreateContext("masked", 0, true);
+    Require(maskedContext != nullptr, "masked context creation failed");
+    Require(maskedContext->AddAction("Key", InputActionType::Button),
+        "masked key action creation failed");
+    Require(maskedContext->AddBinding("Key", InputBinding::KeyBinding(Key::Enter)),
+        "masked key binding failed");
+    Require(maskedContext->AddAction("Click", InputActionType::Button),
+        "masked click action creation failed");
+    Require(maskedContext->AddBinding(
+        "Click", InputBinding::MouseButtonBinding(MouseButton::Left)),
+        "masked click binding failed");
+    Require(maskedContext->AddAction("Wheel", InputActionType::Axis1D),
+        "masked wheel action creation failed");
+    Require(maskedContext->AddBinding("Wheel", InputBinding::MouseWheelBinding()),
+        "masked wheel binding failed");
+
+    maskedInput.BeginFrame();
+    maskedInput.ProcessKey(Key::Enter, true);
+    maskedInput.ProcessMouseButton(MouseButton::Left, true);
+    maskedInput.ProcessMouseWheel(2.0f);
+    InputConsumptionMask initialConsumption;
+    initialConsumption.ConsumeKey(Key::Enter);
+    initialConsumption.ConsumeMouseButton(MouseButton::Left);
+    initialConsumption.ConsumeMouseWheel();
+    maskedActions.Update(maskedInput, initialConsumption);
+    Require(!maskedActions.IsActionDown("masked", "Key"),
+        "pre-consumed key reached action contexts");
+    Require(!maskedActions.IsActionDown("masked", "Click"),
+        "pre-consumed mouse button reached action contexts");
+    Require(NearlyEqual(maskedActions.GetActionValue("masked", "Wheel"), 0.0f),
+        "pre-consumed wheel reached action contexts");
+
     input.BeginFrame();
     input.SetFocused(false);
     actions.Update(input);

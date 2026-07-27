@@ -222,6 +222,20 @@ int main()
         return Fail("identical shader source was not compiled once");
     }
 
+    auto temporaryAliasSpecification = renamed;
+    const ShaderAssetId temporaryAlias =
+        ShaderAssetId::FromString("shaders/temporary-alias");
+    temporaryAliasSpecification.assetId = temporaryAlias;
+    auto temporaryAliasProgram = cache.GetOrCreate(temporaryAliasSpecification);
+    const u32 temporaryGeneration = cache.GetGeneration(temporaryAlias);
+    if (temporaryAliasProgram != first || temporaryGeneration == 0 ||
+        !cache.RemoveAlias(temporaryAlias) || cache.Find(temporaryAlias) ||
+        cache.GetGeneration(temporaryAlias) == temporaryGeneration ||
+        cache.RemoveAlias(contentId) || cache.Find(contentId) != first)
+    {
+        return Fail("non-canonical shader alias removal was not isolated");
+    }
+
     first->Bind();
     first->SetUniformFloat("u_Value", 1.0f);
     first->Unbind();
@@ -325,6 +339,7 @@ int main()
 
     first.reset();
     contentAlias.reset();
+    temporaryAliasProgram.reset();
     replacement.reset();
     beforeFailure.reset();
     alternateProgram.reset();

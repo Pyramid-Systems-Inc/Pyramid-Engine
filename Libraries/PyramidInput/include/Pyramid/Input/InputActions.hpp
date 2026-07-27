@@ -3,6 +3,8 @@
 #include <Pyramid/Core/Prerequisites.hpp>
 #include <Pyramid/Platform/Input.hpp>
 
+#include <array>
+
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -11,6 +13,49 @@
 
 namespace Pyramid
 {
+
+    /**
+     * @brief Physical controls reserved before named action evaluation.
+     *
+     * UI and editor layers use this mask to prevent an already handled pointer
+     * or keyboard event from leaking into lower-level gameplay contexts.
+     */
+    class InputConsumptionMask final
+    {
+    public:
+        void Clear();
+        void Merge(const InputConsumptionMask& other);
+
+        void ConsumeKey(Key key);
+        void ConsumeMouseButton(MouseButton button);
+        void ConsumeMouseDelta();
+        void ConsumeMouseWheel();
+        void ConsumeAllMouse();
+
+        [[nodiscard]] bool IsKeyConsumed(Key key) const;
+        [[nodiscard]] bool IsMouseButtonConsumed(MouseButton button) const;
+        [[nodiscard]] bool IsMouseDeltaXConsumed() const { return m_mouseDeltaX; }
+        [[nodiscard]] bool IsMouseDeltaYConsumed() const { return m_mouseDeltaY; }
+        [[nodiscard]] bool IsMouseWheelConsumed() const { return m_mouseWheel; }
+        [[nodiscard]] bool IsMouseHorizontalWheelConsumed() const
+        {
+            return m_mouseHorizontalWheel;
+        }
+        [[nodiscard]] bool HasAnyConsumption() const;
+
+    private:
+        static constexpr std::size_t KeyCount = static_cast<std::size_t>(Key::Count);
+        static constexpr std::size_t MouseButtonCount =
+            static_cast<std::size_t>(MouseButton::Count);
+
+        std::array<bool, KeyCount> m_keys{};
+        std::array<bool, MouseButtonCount> m_mouseButtons{};
+        bool m_mouseDeltaX = false;
+        bool m_mouseDeltaY = false;
+        bool m_mouseWheel = false;
+        bool m_mouseHorizontalWheel = false;
+    };
+
     /**
      * @brief Shape of the value produced by an input action.
      */
@@ -206,6 +251,7 @@ namespace Pyramid
          * update logic reads action states. Game performs this automatically.
          */
         void Update(const InputState& input);
+        void Update(const InputState& input, const InputConsumptionMask& consumed);
 
         [[nodiscard]] const InputActionState* FindActionState(
             std::string_view contextName,

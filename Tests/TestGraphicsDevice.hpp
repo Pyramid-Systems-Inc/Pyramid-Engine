@@ -253,6 +253,11 @@ namespace Pyramid::Tests
         std::shared_ptr<IShaderStorageBuffer> CreateShaderStorageBuffer() override { return nullptr; }
 
         void EnableBlend(bool enable) override { blendEnabled = enable; }
+        void EnableScissorTest(bool enable) override { scissorEnabled = enable; }
+        void SetScissorRect(u32 x, u32 y, u32 width, u32 height) override
+        {
+            scissorX = x; scissorY = y; scissorWidth = width; scissorHeight = height;
+        }
         void SetBlendFunc(u32 source, u32 destination) override
         {
             blendSource = source;
@@ -311,6 +316,11 @@ namespace Pyramid::Tests
         PrimitiveTopology lastTopology = PrimitiveTopology::Triangles;
         IVertexArray* boundVertexArray = nullptr;
         bool blendEnabled = false;
+        bool scissorEnabled = false;
+        u32 scissorX = 0;
+        u32 scissorY = 0;
+        u32 scissorWidth = 0;
+        u32 scissorHeight = 0;
         u32 blendSource = 0;
         u32 blendDestination = 0;
         bool depthTestEnabled = false;

@@ -17,8 +17,8 @@ The current `0.6.0-pre-alpha` baseline includes:
 - strict required window operations with Win32 implementations;
 - relocatable install/export package and external-consumer test;
 - Windows Debug/Release CI for build, CTest, install, and package consumption;
-- 42 registered tests, including standalone foundation, math, input, image, and model validation, platform input, action mapping, reusable camera controllers, game-side RTS interaction, engine-owned mesh resources, transactional OBJ-to-mesh/texture/material publication, immutable geometry bounds, real PNG/JPEG decoding, transactional texture loading, OpenGL diagnostics, window events, camera resize/frustum behavior, framebuffer resize, scene-hierarchy transforms, spatial queries, resource caches, and scene serialization;
-- extracted primitive types/logging, math, physical/action input, image codecs, and CPU model importing into independently installable `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, and `Pyramid::Model` packages;
+- 46 registered tests, including standalone foundation, math, input, image, model, text, and UI validation, pre-action UI input consumption, command-buffer statistics, OpenGL UI batching and clipping, platform input, action mapping, reusable camera controllers, game-side RTS interaction, engine-owned mesh resources, transactional OBJ-to-mesh/texture/material publication, immutable geometry bounds, real PNG/JPEG decoding, transactional texture loading, OpenGL diagnostics, window events, camera resize/frustum behavior, framebuffer resize, scene-hierarchy transforms, spatial queries, resource caches, and scene serialization;
+- extracted primitive types/logging, math, physical/action input, image codecs, CPU model importing, debug text, and UI into independently installable `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, `Pyramid::Model`, `Pyramid::Text`, and `Pyramid::UI` packages;
 - completed the previously stubbed `Mat4` determinant and inverse operations with pivoted elimination;
 - corrected standards-invalid PNG, zlib, and JPEG test fixtures;
 - public texture convenience definitions and explicit depth-target failure;
@@ -109,7 +109,7 @@ Target outcome: a trustworthy rendering SDK rather than a larger feature list.
 - Shader preprocessing, dependency tracking, and reload.
 - Scene serialization with versioning and validation, built on resource manifests.
 - Asset packaging and path abstraction independent of the source checkout.
-- Debug UI and frame inspection tools.
+- [x] Runtime debug UI and frame/resource/input inspection foundation.
 
 ## P3 — first playable RTS runtime
 
@@ -122,11 +122,18 @@ Target outcome: one interactive Ruqoom RTS vertical slice that validates the eng
 5. [x] owned OBJ/MTL model import feeding existing mesh, diffuse-texture, and immutable material resources, with scene-hierarchy instantiation still pending;
 6. RTS components such as selectable, team/owner, movement target, health, and basic unit state;
 7. terrain/large-map rendering and scalable visibility/spatial updates;
-8. debug statistics and inspection UI as the first editor foundation;
+8. [x] debug statistics and inspection UI as the first editor foundation;
 9. versioned scene extensions for camera, environment, gameplay components, and editor metadata;
 10. verified Windows `0.7.0-pre-alpha` vertical slice, then Linux platform work.
 
 A full editor follows the validated runtime model. Baa integration starts as gameplay scripting only after its runtime, ABI/FFI, debugger, and hot-reload semantics are defined; engine reimplementation is a later compatibility project, not a blind source translation.
+
+### UI and editor continuation
+
+- Runtime font import and owned font asset format.
+- Unicode decoding, bidirectional layout, Arabic shaping, fallback fonts, and text editing/IME integration.
+- Retained screen routing, style classes, animation, controller navigation, and game HUD composition.
+- Editor widgets including tree views, property grids, splitters, menus, dialogs, docking, and scene/resource inspectors.
 
 ## Pre-release exit criteria
 

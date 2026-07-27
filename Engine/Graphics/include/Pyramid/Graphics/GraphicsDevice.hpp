@@ -175,6 +175,15 @@ namespace Pyramid
          */
         virtual void SetBlendFunc(u32 sfactor, u32 dfactor) = 0;
 
+        /** Enable or disable rectangular scissor clipping. */
+        virtual void EnableScissorTest(bool enable) = 0;
+
+        /**
+         * Set a framebuffer-pixel scissor rectangle using Pyramid's top-left
+         * coordinate convention. Backends perform any native-axis conversion.
+         */
+        virtual void SetScissorRect(u32 x, u32 y, u32 width, u32 height) = 0;
+
         /**
          * @brief Enable or disable depth testing
          * @param enable True to enable depth testing, false to disable

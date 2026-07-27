@@ -24,6 +24,9 @@
 #include <Pyramid/Graphics/Resources/ResourceRegistry.hpp>
 #include <Pyramid/Graphics/Resources/ResourceManifest.hpp>
 #include <Pyramid/Graphics/Scene/SceneSerializer.hpp>
+#include <Pyramid/Graphics/UI/UIRenderer.hpp>
+#include <Pyramid/Text/Text.hpp>
+#include <Pyramid/UI/UI.hpp>
 
 #include <memory>
 #include <string>
@@ -38,19 +41,48 @@ namespace
         using Pyramid::Game::GetInputActions;
         using Pyramid::Game::GetResourceRegistry;
         using Pyramid::Game::SetRenderSystem;
+        using Pyramid::Game::RegisterUIContext;
+        using Pyramid::Game::UnregisterUIContext;
     };
 
 
     volatile decltype(&Pyramid::InputActionSystem::CreateContext) g_createInputContext =
         &Pyramid::InputActionSystem::CreateContext;
-    volatile decltype(&Pyramid::InputActionSystem::Update) g_updateInputActions =
-        &Pyramid::InputActionSystem::Update;
+    using UpdateInputActions = void (Pyramid::InputActionSystem::*)(
+        const Pyramid::InputState&);
+    using UpdateInputActionsWithConsumption = void (Pyramid::InputActionSystem::*)(
+        const Pyramid::InputState&, const Pyramid::InputConsumptionMask&);
+    volatile UpdateInputActions g_updateInputActions =
+        static_cast<UpdateInputActions>(&Pyramid::InputActionSystem::Update);
+    volatile UpdateInputActionsWithConsumption g_updateInputActionsWithConsumption =
+        static_cast<UpdateInputActionsWithConsumption>(&Pyramid::InputActionSystem::Update);
     volatile decltype(&Pyramid::InputContext::AddAction) g_addInputAction =
         &Pyramid::InputContext::AddAction;
     volatile decltype(&Pyramid::InputContext::AddBinding) g_addInputBinding =
         &Pyramid::InputContext::AddBinding;
     volatile decltype(&Pyramid::InputContext::Rebind) g_rebindInputAction =
         &Pyramid::InputContext::Rebind;
+
+    volatile decltype(&Pyramid::InputConsumptionMask::Merge) g_mergeInputConsumption =
+        &Pyramid::InputConsumptionMask::Merge;
+    volatile decltype(&Pyramid::InputConsumptionMask::ConsumeAllMouse) g_consumeAllMouse =
+        &Pyramid::InputConsumptionMask::ConsumeAllMouse;
+    volatile decltype(&Pyramid::Text::CreateDebugFontAtlas) g_createDebugFontAtlas =
+        &Pyramid::Text::CreateDebugFontAtlas;
+    volatile decltype(&Pyramid::Text::Measure) g_measureText =
+        &Pyramid::Text::Measure;
+    volatile decltype(&Pyramid::Text::BuildGlyphQuads) g_buildGlyphQuads =
+        &Pyramid::Text::BuildGlyphQuads;
+    volatile decltype(&Pyramid::UI::Context::PrepareInput) g_prepareUIInput =
+        &Pyramid::UI::Context::PrepareInput;
+    volatile decltype(&Pyramid::UI::Context::BeginFrame) g_beginUIFrame =
+        &Pyramid::UI::Context::BeginFrame;
+    volatile decltype(&Pyramid::UI::Context::EndFrame) g_endUIFrame =
+        &Pyramid::UI::Context::EndFrame;
+    volatile decltype(&Pyramid::UIRenderer::Initialize) g_initializeUIRenderer =
+        &Pyramid::UIRenderer::Initialize;
+    volatile decltype(&Pyramid::UIRenderer::Render) g_renderUI =
+        &Pyramid::UIRenderer::Render;
 
     using Pyramid::ITexture2D;
     using Pyramid::TextureFormat;
@@ -260,6 +292,8 @@ namespace
         &Pyramid::ShaderCache::Recompile;
     volatile decltype(&Pyramid::ShaderCache::Find) g_findCachedShader =
         &Pyramid::ShaderCache::Find;
+    volatile decltype(&Pyramid::ShaderCache::RemoveAlias) g_removeCachedShaderAlias =
+        &Pyramid::ShaderCache::RemoveAlias;
     volatile decltype(&Pyramid::ShaderCache::Evict) g_evictCachedShader =
         &Pyramid::ShaderCache::Evict;
     volatile decltype(&Pyramid::ShaderCache::CollectUnused) g_collectUnusedShaders =
@@ -380,6 +414,8 @@ namespace
         &Pyramid::Renderer::CommandBuffer::SetUniformMat4;
     volatile decltype(&Pyramid::Renderer::CommandBuffer::DrawMesh) g_drawMesh =
         &Pyramid::Renderer::CommandBuffer::DrawMesh;
+    volatile decltype(&Pyramid::Renderer::CommandBuffer::GetDrawStats) g_getDrawStats =
+        &Pyramid::Renderer::CommandBuffer::GetDrawStats;
     volatile decltype(&Pyramid::OpenGLFramebuffer::Resize) g_resizeFramebuffer =
         &Pyramid::OpenGLFramebuffer::Resize;
     volatile decltype(&Pyramid::Renderer::RenderTarget::Resize) g_resizeRenderTarget =
@@ -508,6 +544,7 @@ int main()
                    g_getOrCreateCachedShader &&
                    g_recompileCachedShader &&
                    g_findCachedShader &&
+                   g_removeCachedShaderAlias &&
                    g_evictCachedShader &&
                    g_collectUnusedShaders &&
                    g_clearShaderCache &&

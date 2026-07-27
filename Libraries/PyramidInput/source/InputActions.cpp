@@ -39,6 +39,25 @@ namespace Pyramid
             bool mouseHorizontalWheel = false;
         };
 
+        ConsumedControls ToConsumedControls(const InputConsumptionMask& mask)
+        {
+            ConsumedControls consumed;
+            for (std::size_t index = 0; index < kKeyCount; ++index)
+            {
+                consumed.keys[index] = mask.IsKeyConsumed(static_cast<Key>(index));
+            }
+            for (std::size_t index = 0; index < kMouseButtonCount; ++index)
+            {
+                consumed.mouseButtons[index] =
+                    mask.IsMouseButtonConsumed(static_cast<MouseButton>(index));
+            }
+            consumed.mouseDeltaX = mask.IsMouseDeltaXConsumed();
+            consumed.mouseDeltaY = mask.IsMouseDeltaYConsumed();
+            consumed.mouseWheel = mask.IsMouseWheelConsumed();
+            consumed.mouseHorizontalWheel = mask.IsMouseHorizontalWheelConsumed();
+            return consumed;
+        }
+
         struct BindingSample
         {
             f32 value = 0.0f;
@@ -210,6 +229,92 @@ namespace Pyramid
                 consumed.mouseButtons[static_cast<std::size_t>(binding.requiredMouseButton)] = true;
             }
         }
+    }
+
+    void InputConsumptionMask::Clear()
+    {
+        m_keys.fill(false);
+        m_mouseButtons.fill(false);
+        m_mouseDeltaX = false;
+        m_mouseDeltaY = false;
+        m_mouseWheel = false;
+        m_mouseHorizontalWheel = false;
+    }
+
+    void InputConsumptionMask::Merge(const InputConsumptionMask& other)
+    {
+        for (std::size_t index = 0; index < m_keys.size(); ++index)
+        {
+            m_keys[index] = m_keys[index] || other.m_keys[index];
+        }
+        for (std::size_t index = 0; index < m_mouseButtons.size(); ++index)
+        {
+            m_mouseButtons[index] = m_mouseButtons[index] || other.m_mouseButtons[index];
+        }
+        m_mouseDeltaX = m_mouseDeltaX || other.m_mouseDeltaX;
+        m_mouseDeltaY = m_mouseDeltaY || other.m_mouseDeltaY;
+        m_mouseWheel = m_mouseWheel || other.m_mouseWheel;
+        m_mouseHorizontalWheel =
+            m_mouseHorizontalWheel || other.m_mouseHorizontalWheel;
+    }
+
+    void InputConsumptionMask::ConsumeKey(Key key)
+    {
+        const std::size_t index = static_cast<std::size_t>(key);
+        if (key != Key::Unknown && index < m_keys.size())
+        {
+            m_keys[index] = true;
+        }
+    }
+
+    void InputConsumptionMask::ConsumeMouseButton(MouseButton button)
+    {
+        const std::size_t index = static_cast<std::size_t>(button);
+        if (index < m_mouseButtons.size())
+        {
+            m_mouseButtons[index] = true;
+        }
+    }
+
+    void InputConsumptionMask::ConsumeMouseDelta()
+    {
+        m_mouseDeltaX = true;
+        m_mouseDeltaY = true;
+    }
+
+    void InputConsumptionMask::ConsumeMouseWheel()
+    {
+        m_mouseWheel = true;
+        m_mouseHorizontalWheel = true;
+    }
+
+    void InputConsumptionMask::ConsumeAllMouse()
+    {
+        m_mouseButtons.fill(true);
+        ConsumeMouseDelta();
+        ConsumeMouseWheel();
+    }
+
+    bool InputConsumptionMask::IsKeyConsumed(Key key) const
+    {
+        const std::size_t index = static_cast<std::size_t>(key);
+        return key != Key::Unknown && index < m_keys.size() && m_keys[index];
+    }
+
+    bool InputConsumptionMask::IsMouseButtonConsumed(MouseButton button) const
+    {
+        const std::size_t index = static_cast<std::size_t>(button);
+        return index < m_mouseButtons.size() && m_mouseButtons[index];
+    }
+
+    bool InputConsumptionMask::HasAnyConsumption() const
+    {
+        return std::any_of(m_keys.begin(), m_keys.end(), [](bool value) { return value; }) ||
+            std::any_of(
+                m_mouseButtons.begin(),
+                m_mouseButtons.end(),
+                [](bool value) { return value; }) ||
+            m_mouseDeltaX || m_mouseDeltaY || m_mouseWheel || m_mouseHorizontalWheel;
     }
 
     InputBinding InputBinding::KeyBinding(Key boundKey, f32 boundScale, InputAxisComponent axis)
@@ -551,6 +656,13 @@ namespace Pyramid
 
     void InputActionSystem::Update(const InputState& input)
     {
+        Update(input, InputConsumptionMask{});
+    }
+
+    void InputActionSystem::Update(
+        const InputState& input,
+        const InputConsumptionMask& initialConsumption)
+    {
         std::vector<InputContext*> orderedContexts;
         orderedContexts.reserve(m_contexts.size());
         for (const auto& context : m_contexts)
@@ -570,7 +682,7 @@ namespace Pyramid
                 return left->m_insertionOrder < right->m_insertionOrder;
             });
 
-        ConsumedControls consumed;
+        ConsumedControls consumed = ToConsumedControls(initialConsumption);
         for (InputContext* context : orderedContexts)
         {
             if (!context->m_enabled)

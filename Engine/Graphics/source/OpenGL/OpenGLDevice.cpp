@@ -13,6 +13,8 @@
 #include <Pyramid/Graphics/OpenGL/OpenGLTexture.hpp>
 #include <Pyramid/Graphics/Texture.hpp> // Added for ITexture2D factory methods
 #include <glad/glad.h>
+#include <algorithm>
+#include <limits>
 
 namespace Pyramid
 {
@@ -240,6 +242,39 @@ namespace Pyramid
     void OpenGLDevice::SetBlendFunc(u32 sfactor, u32 dfactor)
     {
         OpenGLStateManager::GetInstance().SetBlendFunc(static_cast<GLenum>(sfactor), static_cast<GLenum>(dfactor));
+    }
+
+    void OpenGLDevice::EnableScissorTest(bool enable)
+    {
+        OpenGLStateManager::GetInstance().EnableScissorTest(enable);
+    }
+
+    void OpenGLDevice::SetScissorRect(u32 x, u32 y, u32 width, u32 height)
+    {
+        i32 viewportX = 0;
+        i32 viewportY = 0;
+        i32 viewportWidth = 0;
+        i32 viewportHeight = 0;
+        auto& state = OpenGLStateManager::GetInstance();
+        state.GetViewport(viewportX, viewportY, viewportWidth, viewportHeight);
+        (void)viewportWidth;
+
+        const auto clampCoordinate = [](i64 value)
+        {
+            return static_cast<i32>((std::max)(
+                static_cast<i64>(0),
+                (std::min)(value, static_cast<i64>(std::numeric_limits<i32>::max()))));
+        };
+
+        const i64 left = static_cast<i64>(viewportX) + static_cast<i64>(x);
+        const i64 bottom = static_cast<i64>(viewportY) +
+            static_cast<i64>(viewportHeight) -
+            static_cast<i64>(y) - static_cast<i64>(height);
+        state.SetScissor(
+            clampCoordinate(left),
+            clampCoordinate(bottom),
+            static_cast<i32>((std::min)(width, static_cast<u32>(std::numeric_limits<i32>::max()))),
+            static_cast<i32>((std::min)(height, static_cast<u32>(std::numeric_limits<i32>::max()))));
     }
 
     void OpenGLDevice::EnableDepthTest(bool enable)

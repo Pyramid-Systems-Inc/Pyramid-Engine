@@ -149,6 +149,17 @@ target_link_libraries(ModelResourceImporterTests PRIVATE Pyramid::Engine)
 set_target_properties(ModelResourceImporterTests PROPERTIES FOLDER "Tests/Graphics")
 add_test(NAME Graphics.ModelResourceImport COMMAND $<TARGET_FILE:ModelResourceImporterTests>)
 
+
+add_executable(UIRendererTests UIRendererTests.cpp)
+target_link_libraries(UIRendererTests PRIVATE Pyramid::Engine)
+set_target_properties(UIRendererTests PROPERTIES FOLDER "Tests/Graphics")
+add_test(NAME Graphics.UIRenderer COMMAND $<TARGET_FILE:UIRendererTests>)
+
+add_executable(CommandBufferStatsTests CommandBufferStatsTests.cpp)
+target_link_libraries(CommandBufferStatsTests PRIVATE Pyramid::Engine)
+set_target_properties(CommandBufferStatsTests PROPERTIES FOLDER "Tests/Graphics")
+add_test(NAME Graphics.CommandBufferStats COMMAND $<TARGET_FILE:CommandBufferStatsTests>)
+
 add_executable(ModelMaterialResourceImporterTests ModelMaterialResourceImporterTests.cpp)
 target_link_libraries(ModelMaterialResourceImporterTests PRIVATE Pyramid::Engine)
 set_target_properties(ModelMaterialResourceImporterTests PROPERTIES FOLDER "Tests/Graphics")

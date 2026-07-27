@@ -20,7 +20,7 @@ Demonstrates:
 - engine-generic named actions with game-owned physical bindings;
 - the reusable `RTSCameraController`: WASD pans, Q/E or middle-drag orbits, the wheel zooms, Shift boosts movement, and `R` restores the captured home pose;
 - `Pyramid::RTSReference` game-side interaction: moving the pointer to a window edge scrolls, left click selects the demo cube through a selectable predicate, and right click emits a ground-plane command for the selected entity;
-- `Escape` quits and `Space` toggles cube animation;
+- `Escape` quits, `Space` toggles cube animation, and `F1` toggles the runtime debug overlay;
 - automatic default-viewport updates and active-camera projection resizing;
 - platform-neutral resize-event logging through `Game::onWindowResize()`;
 - logging configuration.

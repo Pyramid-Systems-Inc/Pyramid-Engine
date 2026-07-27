@@ -2,7 +2,9 @@
 #include <Pyramid/Graphics/GraphicsDevice.hpp>
 #include <Pyramid/Platform/Window.hpp> // Added for std::unique_ptr<Window>
 #include <Pyramid/Input/InputActions.hpp>
+#include <Pyramid/UI/UI.hpp>
 #include <memory>
+#include <vector>
 
 namespace Pyramid {
 
@@ -144,6 +146,13 @@ protected:
     Renderer::RenderSystem* GetRenderSystem() const { return m_renderSystem; }
 
     /**
+     * Register a non-owning UI context for pre-action input capture. The context
+     * must outlive its registration and should be unregistered before destruction.
+     */
+    void RegisterUIContext(UI::Context* context);
+    void UnregisterUIContext(UI::Context* context);
+
+    /**
      * @brief Whether the window currently has a non-zero renderable client area.
      */
     bool IsRenderSurfaceAvailable() const { return m_renderSurfaceAvailable; }
@@ -155,6 +164,7 @@ private:
     std::unique_ptr<IGraphicsDevice> m_graphicsDevice;
     std::unique_ptr<ResourceRegistry> m_resourceRegistry;
     InputActionSystem m_inputActions;
+    std::vector<UI::Context*> m_uiContexts;
     Camera* m_activeCamera;
     Renderer::RenderSystem* m_renderSystem;
     bool m_isRunning;
