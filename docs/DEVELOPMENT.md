@@ -46,7 +46,7 @@ Do not leave declarations without definitions. Add the symbol to `Tests/PublicAp
 
 ## Tests
 
-Utility tests live under `Engine/Utils/test` and are registered by `add_utils_test`. A test must:
+Owned-library tests live beside their implementations under `Libraries/<Library>/test`; engine integration tests remain under `Tests/`. A test must:
 
 - return non-zero on failure;
 - avoid hidden skips that report success;
@@ -54,7 +54,7 @@ Utility tests live under `Engine/Utils/test` and are registered by `add_utils_te
 - clean up temporary files;
 - print enough context to diagnose a failure.
 
-`API.PublicApiLinkage` verifies selected exported symbols. The focused suite covers OpenGL diagnostics, window/viewport/framebuffer behavior, image and texture loading, camera frusta, octree update/query/configuration/compaction behavior, resource types and caches, registry handles/manifests, the authoritative entity scene, and versioned entity-scene serialization. `Graphics.EntityScene` verifies stable IDs, hierarchy composition, inherited visibility, component attachment, renderer/light proxy synchronization, recursive destruction, and cache invalidation. `Graphics.SceneSerialization` verifies version-2 entity/component round trips, hierarchy validation, deterministic manifest-key references, light and mesh-renderer persistence, and missing/stale resource diagnostics. JPEG tests must use standards-valid encoded fixtures and cover malformed/truncated data, progressive scans, subsampling, restart markers, and bounded allocation behavior. Windows CI validates GCC and Clang in Debug and Release, installation, and an external `find_package` consumer.
+`Foundation.Core`, `Math.Core`, `Platform.InputState`, and `Input.ActionMapping` validate the extracted owned libraries directly. `API.PublicApiLinkage` verifies selected exported engine symbols. The focused suite covers OpenGL diagnostics, window/viewport/framebuffer behavior, image and texture loading, camera frusta, octree update/query/configuration/compaction behavior, resource types and caches, registry handles/manifests, the authoritative entity scene, and versioned entity-scene serialization. `Graphics.EntityScene` verifies stable IDs, hierarchy composition, inherited visibility, component attachment, renderer/light proxy synchronization, recursive destruction, and cache invalidation. `Graphics.SceneSerialization` verifies version-2 entity/component round trips, hierarchy validation, deterministic manifest-key references, light and mesh-renderer persistence, and missing/stale resource diagnostics. JPEG tests must use standards-valid encoded fixtures and cover malformed/truncated data, progressive scans, subsampling, restart markers, and bounded allocation behavior. Windows CI validates GCC and Clang in Debug and Release, installation, and independent engine, foundation/math/input, and image `find_package` consumers.
 
 Renderer changes require manual visual validation until image-regression tests exist.
 
@@ -84,7 +84,7 @@ cmake -S Tests/Consumer -B build/consumer -G Ninja \
 cmake --build build/consumer --parallel
 ```
 
-Keep build-tree paths out of installed target interfaces. Public headers should be installed as files, not exposed as absolute `INTERFACE_SOURCES`. `Pyramid::Image` is exported as its own relocatable package; future owned libraries must follow that pattern or an explicitly documented package boundary. GLAD is the only approved bundled third-party runtime library; do not add codec or middleware package dependencies to bootstrap, CI, or package configuration by default.
+Keep build-tree paths out of installed target interfaces. Public headers should be installed as files, not exposed as absolute `INTERFACE_SOURCES`. `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, and `Pyramid::Image` are exported as relocatable packages; future owned libraries must follow that pattern or an explicitly documented package boundary. GLAD is the only approved bundled third-party runtime library; do not add codec or middleware package dependencies to bootstrap, CI, or package configuration by default.
 
 ## Documentation
 

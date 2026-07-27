@@ -10,16 +10,17 @@ set_target_properties(OpenGLDiagnosticsTests PROPERTIES FOLDER "Tests/Graphics")
 add_test(NAME Graphics.OpenGLDiagnostics COMMAND $<TARGET_FILE:OpenGLDiagnosticsTests>)
 
 add_executable(InputStateTests InputStateTests.cpp)
-target_link_libraries(InputStateTests PRIVATE Pyramid::Engine)
+target_link_libraries(InputStateTests PRIVATE Pyramid::Input)
 set_target_properties(InputStateTests PROPERTIES FOLDER "Tests/Platform")
 add_test(NAME Platform.InputState COMMAND $<TARGET_FILE:InputStateTests>)
 
 add_executable(InputActionTests InputActionTests.cpp)
-target_link_libraries(InputActionTests PRIVATE Pyramid::Engine)
+target_link_libraries(InputActionTests PRIVATE Pyramid::Input)
 set_target_properties(InputActionTests PROPERTIES FOLDER "Tests/Input")
 add_test(NAME Input.ActionMapping COMMAND $<TARGET_FILE:InputActionTests>)
 
 add_executable(WindowResizeEventTests WindowResizeEventTests.cpp)
+target_link_libraries(WindowResizeEventTests PRIVATE Pyramid::Foundation)
 target_include_directories(WindowResizeEventTests
     PRIVATE
         "${PROJECT_SOURCE_DIR}/Engine/Core/include"

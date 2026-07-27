@@ -15,7 +15,9 @@ Pyramid is a C++17 engine ecosystem with a Win32/WGL `Pyramid::Engine` target an
 | Renderer | `Pyramid::Renderer` | Command recording, materials, render targets, and render passes |
 | Scene | `Pyramid` | Stable-ID entities, hierarchical transforms, optional components, renderer proxies, and environment |
 | Spatial management | `Pyramid::SceneManagement` | Scene manager, octree, AABB, and query helpers |
-| Math | `Pyramid::Math` | Vectors, matrices, quaternions, geometry, and SIMD helpers |
+| PyramidFoundation | `Pyramid`, `Pyramid::Util` | Primitive aliases, colors, assertions, and logging |
+| PyramidMath | `Pyramid::Math` | Vectors, matrices, quaternions, geometry, and SIMD helpers |
+| PyramidInput | `Pyramid` | Physical input snapshots and generic named action mapping |
 | Engine utilities | `Pyramid::Util` | Logging and engine diagnostics |
 | PyramidImage | `Pyramid::Util` | Standalone image dispatch, TGA/BMP subsets, PNG, DEFLATE/zlib, and owned JPEG decoding |
 | RTS reference | `Pyramid::Examples::RTSReference` | Game-side edge scrolling, selectable filtering, ray picking, and command requests; not installed with `Pyramid::Engine` |
@@ -113,28 +115,31 @@ Size-based, render-target, and solid-color convenience factories remain availabl
 
 ## Logging
 
-The logger supports severity filtering, console/file output, rotation, structured fields, source locations, assertions, and thread synchronization. Engine subsystems use `PYRAMID_LOG_*` rather than direct console output.
+`Pyramid::Foundation` owns the logger and public primitive types. The logger supports severity filtering, console/file output, rotation, structured fields, source locations, assertions, and thread synchronization. Engine subsystems use `PYRAMID_LOG_*` rather than direct console output.
 
 ## Build and package model
 
 - `PyramidEngine` is the engine target; `Pyramid::Engine` is its build-tree alias and installed name.
-- `PyramidImage` is an engine-independent target exported as `Pyramid::Image`; `Pyramid::Engine` links it publicly so existing image headers remain available transitively.
+- `PyramidFoundation`, `PyramidMath`, `PyramidInput`, and `PyramidImage` are engine-independent targets exported as `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, and `Pyramid::Image`. `Pyramid::Engine` links them publicly so existing headers remain transitively available.
 - GLAD is the sole approved bundled third-party runtime library and remains public because OpenGL implementation headers expose GLAD types.
 - The installed package has no JPEG or codec package dependency.
 - Public headers are installed separately rather than exported through `INTERFACE_SOURCES`, keeping the package relocatable.
-- CMake package configuration and version files support independent `find_package(PyramidEngine CONFIG REQUIRED)` and `find_package(PyramidImage CONFIG REQUIRED)` consumers. The engine package resolves `PyramidImage` as an owned package dependency.
-- Windows CI validates separate engine and image consumers after installation.
+- CMake package configuration and version files support independent engine, foundation, math, input, and image consumers. The engine package resolves every owned library as an explicit package dependency.
+- Windows CI validates separate engine, foundation/math/input, and image consumers after installation.
 
 ## Dependency direction
 
 ```text
 Application
     ↓
-Pyramid::Engine ─────────→ Pyramid::Image
-    ↓                           ↓
-Core / Platform / Graphics     Owned codecs and image parsing
+Pyramid::Engine ─────→ Pyramid::Foundation
+    │                  Pyramid::Math
+    │                  Pyramid::Input
+    │                  Pyramid::Image
     ↓
-Math + GLAD + Win32/OpenGL
+Core / Graphics / Win32-WGL Platform
+    ↓
+GLAD + Win32/OpenGL
 ```
 
 Avoid introducing platform handles into generic interfaces or renderer-specific ownership into scene data without an explicit lifetime model. GLAD is the only approved bundled third-party runtime library. New codec, importer, audio, physics, serialization, or tooling functionality must be implemented as a Pyramid/Ruqoom-owned library with an independent API and focused tests unless an explicit architectural decision changes this policy.

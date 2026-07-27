@@ -16,9 +16,11 @@ The project is intended for engine development and experimentation. It is not ye
 | Optional compiler | Clang targeting the same MinGW-w64/UCRT runtime |
 | Renderer | Forward, shadow, and deferred passes; several advanced paths remain partial |
 | Scene | Stable-ID entities, hierarchical transforms, optional mesh-renderer/light components, scene serialization, and octree queries |
-| Math | Vectors, matrices, quaternions, geometry helpers, and SIMD-oriented utilities |
+| Foundation | Standalone `Pyramid::Foundation` types, colors, assertions, and logging |
+| Math | Standalone `Pyramid::Math` vectors, matrices, quaternions, geometry helpers, and SIMD utilities |
+| Input | Standalone `Pyramid::Input` physical state and named action mapping |
 | Images | Standalone `Pyramid::Image` library with TGA/BMP subsets, custom non-interlaced PNG, and owned baseline/progressive JPEG decoding |
-| Tests | 35 CTest targets: 7 standalone image tests plus API linkage and focused graphics/platform/input/reference-game coverage |
+| Tests | 37 CTest targets, including standalone foundation, math, input, and image coverage plus focused engine/reference-game tests |
 | CI | GCC and Clang, Debug and Release, package install, and external-consumer validation |
 
 ## Implemented
@@ -35,8 +37,8 @@ The project is intended for engine development and experimentation. It is not ye
 - Bounds-aware point, sphere, box, ray, nearest-object, and K-nearest scene queries with octree/linear parity.
 - An authoritative entity/component scene: every entity has a stable ID, name, visibility, and hierarchical transform; mesh-renderer and light components are optional. Renderer/light proxies are derived from entities for rendering, culling, and spatial queries.
 - OpenGL driver debug callbacks and centralized error diagnostics in Debug builds.
-- Logging, assertions, compression utilities, and math primitives; image decoding is provided by the separately testable `Pyramid::Image` library.
-- Installable CMake packages exporting `Pyramid::Engine` and the engine-independent `Pyramid::Image`.
+- Foundation types/logging, math primitives, physical/action input, and image decoding are independently testable owned libraries.
+- Installable CMake packages export `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, and `Pyramid::Engine`.
 
 ## Important limitations
 
@@ -192,7 +194,17 @@ add_executable(MyGame main.cpp)
 target_link_libraries(MyGame PRIVATE Pyramid::Engine)
 ```
 
-Standalone image tooling can consume the codec library without the engine or OpenGL package:
+Owned libraries can be consumed without the engine or OpenGL package:
+
+```cmake
+find_package(PyramidFoundation CONFIG REQUIRED)
+find_package(PyramidMath CONFIG REQUIRED)
+find_package(PyramidInput CONFIG REQUIRED)
+add_executable(MyTool main.cpp)
+target_link_libraries(MyTool PRIVATE Pyramid::Foundation Pyramid::Math Pyramid::Input)
+```
+
+Standalone image tooling uses the same package model:
 
 ```cmake
 find_package(PyramidImage CONFIG REQUIRED)
@@ -200,7 +212,7 @@ add_executable(MyImageTool main.cpp)
 target_link_libraries(MyImageTool PRIVATE Pyramid::Image)
 ```
 
-The CI workflow validates both package-consumer paths with GCC and Clang.
+The CI workflow validates engine, foundation/math/input, and image package-consumer paths with GCC and Clang.
 
 ## Documentation
 
@@ -217,15 +229,16 @@ The CI workflow validates both package-consumer paths with GCC and Clang.
 
 ```text
 Libraries/
-  PyramidImage/  Owned image parsing, PNG/DEFLATE, and JPEG decoding
+  PyramidFoundation/  Primitive types, colors, assertions, and logging
+  PyramidMath/        Vectors, matrices, quaternions, and SIMD utilities
+  PyramidInput/       Physical input state and named action mapping
+  PyramidImage/       Owned image parsing, PNG/DEFLATE, and JPEG decoding
 Engine/
-  Core/          Application lifecycle and common types
-  Graphics/      OpenGL resources, renderer, camera, scenes, and octree
-  Math/          Math and SIMD-oriented utilities
-  Platform/      Win32/WGL implementation
-  Utils/         Logging
-Examples/     BasicGame, BasicRenderingExample, and game-side RTS reference support
-Tests/        Public API linkage and external package consumer
+  Core/               Application lifecycle
+  Graphics/           OpenGL resources, renderer, camera, scenes, and octree
+  Platform/           Win32/WGL window and context implementation
+Examples/          BasicGame, BasicRenderingExample, and game-side RTS reference support
+Tests/             Focused tests and external package consumers
 CMake/        Package configuration template
 scripts/      MSYS2 setup, builds, clean configure, and smoke tests
 docs/         Maintained documentation

@@ -171,17 +171,26 @@ cmake --install build/gcc-release-tests --prefix install
 
 The installation contains:
 
-- engine and image-library public headers;
+- public headers for the engine and all owned libraries;
 - GLAD headers;
-- `PyramidEngine`, `PyramidImage`, and `glad` libraries;
-- independent `PyramidEngineConfig.cmake` and `PyramidImageConfig.cmake` package metadata;
-- exported `Pyramid::Engine`, `Pyramid::Image`, and `Pyramid::glad` targets.
+- `PyramidEngine`, `PyramidFoundation`, `PyramidMath`, `PyramidInput`, `PyramidImage`, and `glad` libraries;
+- independent package metadata for each owned target;
+- exported `Pyramid::Engine`, `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, and `Pyramid::glad` targets.
 
 Engine consumer:
 
 ```cmake
 find_package(PyramidEngine CONFIG REQUIRED)
 target_link_libraries(MyTarget PRIVATE Pyramid::Engine)
+```
+
+Standalone foundation, math, and input consumer:
+
+```cmake
+find_package(PyramidFoundation CONFIG REQUIRED)
+find_package(PyramidMath CONFIG REQUIRED)
+find_package(PyramidInput CONFIG REQUIRED)
+target_link_libraries(MyTool PRIVATE Pyramid::Foundation Pyramid::Math Pyramid::Input)
 ```
 
 Standalone image consumer:
@@ -191,7 +200,7 @@ find_package(PyramidImage CONFIG REQUIRED)
 target_link_libraries(MyImageTool PRIVATE Pyramid::Image)
 ```
 
-`Tests/Consumer` and `Tests/ImageConsumer` are the reference external consumers and are built independently by CI after installation. `PyramidImage` can also be installed alone with `--component PyramidImage`.
+`Tests/Consumer`, `Tests/LibrariesConsumer`, and `Tests/ImageConsumer` are the reference external consumers and are built independently by CI after installation. Every owned library can also be installed by its matching component name.
 
 ## CI
 
@@ -202,7 +211,7 @@ target_link_libraries(MyImageTool PRIVATE Pyramid::Image)
 - Clang Debug;
 - Clang Release.
 
-Each combination configures, builds, runs CTest, installs both packages, builds independent engine and image `find_package` consumers, and runs both consumers. No Visual Studio installation is used by the workflow.
+Each combination configures, builds, runs CTest, installs all packages, builds independent engine, foundation/math/input, and image `find_package` consumers, and runs all consumers. No Visual Studio installation is used by the workflow.
 
 ## Troubleshooting
 

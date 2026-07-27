@@ -2,6 +2,8 @@
 #include <sstream>
 #include <iomanip>
 #include <cstring>
+#include <cmath>
+#include <utility>
 
 namespace Pyramid
 {
@@ -255,36 +257,137 @@ namespace Pyramid
 
         f32 Mat4::Determinant() const
         {
-            // Calculate determinant using cofactor expansion along first row
-            f32 det = 0.0f;
+            f64 working[4][4]{};
+            for (i32 row = 0; row < 4; ++row)
+            {
+                for (i32 col = 0; col < 4; ++col)
+                {
+                    working[row][col] = static_cast<f64>(Get(col, row));
+                }
+            }
+
+            f64 determinant = 1.0;
+            i32 sign = 1;
 
             for (i32 col = 0; col < 4; ++col)
             {
-                // Calculate 3x3 minor determinant
-                f32 minor = 0.0f;
-                i32 sign = (col % 2 == 0) ? 1 : -1;
+                i32 pivotRow = col;
+                f64 pivotMagnitude = std::abs(working[pivotRow][col]);
+                for (i32 row = col + 1; row < 4; ++row)
+                {
+                    const f64 candidateMagnitude = std::abs(working[row][col]);
+                    if (candidateMagnitude > pivotMagnitude)
+                    {
+                        pivotMagnitude = candidateMagnitude;
+                        pivotRow = row;
+                    }
+                }
 
-                // This is a simplified version - full implementation would be more complex
-                // For now, we'll use a basic approach
-                minor = Get(col, 0);
-                det += sign * minor;
+                if (pivotMagnitude <= static_cast<f64>(EPSILON))
+                {
+                    return 0.0f;
+                }
+
+                if (pivotRow != col)
+                {
+                    for (i32 entry = 0; entry < 4; ++entry)
+                    {
+                        std::swap(working[col][entry], working[pivotRow][entry]);
+                    }
+                    sign = -sign;
+                }
+
+                const f64 pivot = working[col][col];
+                determinant *= pivot;
+
+                for (i32 row = col + 1; row < 4; ++row)
+                {
+                    const f64 factor = working[row][col] / pivot;
+                    for (i32 entry = col + 1; entry < 4; ++entry)
+                    {
+                        working[row][entry] -= factor * working[col][entry];
+                    }
+                }
             }
 
-            return det;
+            return static_cast<f32>(determinant * static_cast<f64>(sign));
         }
 
         Mat4 Mat4::Inverse() const
         {
-            // For now, return identity if not easily invertible
-            // Full inverse calculation is complex and will be implemented later
-            f32 det = Determinant();
-            if (Math::IsZero(det))
+            f64 augmented[4][8]{};
+            for (i32 row = 0; row < 4; ++row)
             {
-                return Mat4::Identity;
+                for (i32 col = 0; col < 4; ++col)
+                {
+                    augmented[row][col] = static_cast<f64>(Get(col, row));
+                }
+                augmented[row][row + 4] = 1.0;
             }
 
-            // Simplified inverse - full implementation needed
-            return Mat4::Identity;
+            for (i32 col = 0; col < 4; ++col)
+            {
+                i32 pivotRow = col;
+                f64 pivotMagnitude = std::abs(augmented[pivotRow][col]);
+                for (i32 row = col + 1; row < 4; ++row)
+                {
+                    const f64 candidateMagnitude = std::abs(augmented[row][col]);
+                    if (candidateMagnitude > pivotMagnitude)
+                    {
+                        pivotMagnitude = candidateMagnitude;
+                        pivotRow = row;
+                    }
+                }
+
+                if (pivotMagnitude <= static_cast<f64>(EPSILON))
+                {
+                    return Mat4::Identity;
+                }
+
+                if (pivotRow != col)
+                {
+                    for (i32 entry = 0; entry < 8; ++entry)
+                    {
+                        std::swap(augmented[col][entry], augmented[pivotRow][entry]);
+                    }
+                }
+
+                const f64 pivot = augmented[col][col];
+                for (i32 entry = 0; entry < 8; ++entry)
+                {
+                    augmented[col][entry] /= pivot;
+                }
+
+                for (i32 row = 0; row < 4; ++row)
+                {
+                    if (row == col)
+                    {
+                        continue;
+                    }
+
+                    const f64 factor = augmented[row][col];
+                    if (std::abs(factor) <= static_cast<f64>(EPSILON))
+                    {
+                        augmented[row][col] = 0.0;
+                        continue;
+                    }
+
+                    for (i32 entry = 0; entry < 8; ++entry)
+                    {
+                        augmented[row][entry] -= factor * augmented[col][entry];
+                    }
+                }
+            }
+
+            Mat4 result = Mat4::Zero;
+            for (i32 row = 0; row < 4; ++row)
+            {
+                for (i32 col = 0; col < 4; ++col)
+                {
+                    result.Set(col, row, static_cast<f32>(augmented[row][col + 4]));
+                }
+            }
+            return result;
         }
 
         Mat4 &Mat4::InvertInPlace()

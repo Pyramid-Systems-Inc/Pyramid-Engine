@@ -113,6 +113,25 @@ jobs:
         shell: msys2 {0}
         run: ./build/consumer/${{ matrix.name }}/PyramidConsumer.exe
 
+      - name: Configure standalone owned-library consumer
+        shell: msys2 {0}
+        run: >-
+          cmake -S Tests/LibrariesConsumer
+          -B build/libraries-consumer/${{ matrix.name }}
+          -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ matrix.configuration }}
+          -DCMAKE_C_COMPILER=${{ matrix.compiler_c }}
+          -DCMAKE_CXX_COMPILER=${{ matrix.compiler_cxx }}
+          -DCMAKE_PREFIX_PATH="$PWD/build/install/${{ matrix.name }}"
+
+      - name: Build standalone owned-library consumer
+        shell: msys2 {0}
+        run: cmake --build build/libraries-consumer/${{ matrix.name }} --parallel
+
+      - name: Run standalone owned-library consumer
+        shell: msys2 {0}
+        run: ./build/libraries-consumer/${{ matrix.name }}/PyramidLibrariesConsumer.exe
+
       - name: Configure standalone image consumer
         shell: msys2 {0}
         run: >-

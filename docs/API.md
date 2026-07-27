@@ -447,7 +447,7 @@ Mat4 model = Mat4::CreateTranslation(position)
            * Mat4::CreateRotationY(Radians(30.0f));
 ```
 
-Concrete headers define exact conventions and available operations for vectors, matrices, quaternions, geometry, interpolation, and SIMD helpers.
+Concrete headers define exact conventions and available operations for vectors, matrices, quaternions, geometry, interpolation, and SIMD helpers. These headers and implementations belong to the independently installable `Pyramid::Math` target. `Mat4::Determinant()` and `Mat4::Inverse()` use pivoted elimination and return zero/identity respectively for singular matrices.
 
 ## Images
 
@@ -467,6 +467,8 @@ if (image.Data)
 ## Logging
 
 Header: `Pyramid/Util/Log.hpp`
+
+The logger, primitive aliases, colors, and assertions are supplied by the standalone `Pyramid::Foundation` target.
 
 ```cpp
 Pyramid::Util::LoggerConfig config;

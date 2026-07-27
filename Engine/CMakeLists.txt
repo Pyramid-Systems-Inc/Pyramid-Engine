@@ -4,9 +4,6 @@ add_library(Pyramid::Engine ALIAS PyramidEngine)
 add_subdirectory(Core)
 add_subdirectory(Graphics)
 add_subdirectory(Platform)
-add_subdirectory(Input)
-add_subdirectory(Math)
-add_subdirectory(Utils)
 
 set_target_properties(PyramidEngine PROPERTIES
     VERSION "${PROJECT_VERSION}"
@@ -20,19 +17,17 @@ target_include_directories(PyramidEngine
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Engine/Core/include>
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Engine/Graphics/include>
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Engine/Platform/include>
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Engine/Input/include>
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Engine/Math/include>
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Engine/Utils/include>
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Libraries/PyramidImage/include>
         $<INSTALL_INTERFACE:include>
     PRIVATE
         "${PROJECT_SOURCE_DIR}/vendor"
 )
 
-
 target_link_libraries(PyramidEngine
     PUBLIC
         glad
+        Pyramid::Foundation
+        Pyramid::Math
+        Pyramid::Input
         Pyramid::Image
 )
 

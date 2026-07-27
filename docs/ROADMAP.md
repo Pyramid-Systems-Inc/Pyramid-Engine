@@ -6,7 +6,7 @@ Priorities are based on technical risk. They are not delivery dates.
 
 Pyramid is a general-purpose engine whose first proving game will be a Ruqoom RTS. The authoritative runtime model is a stable-ID entity/component scene with hierarchical transforms. The first playable milestone remains Windows-only; Linux follows after it. A full editor is planned. Baa is the long-term scripting language and eventual engine implementation language, but the C++ engine remains the behavioral reference until the Baa toolchain/runtime can reproduce it. New engine/editor/gameplay subsystems should be owned by the Pyramid ecosystem. GLAD is the sole approved bundled third-party runtime library; the former JPEG middleware dependency has been removed.
 
-## Stabilization completed through July 26, 2026
+## Stabilization completed through July 27, 2026
 
 The current `0.6.0-pre-alpha` baseline includes:
 
@@ -17,7 +17,9 @@ The current `0.6.0-pre-alpha` baseline includes:
 - strict required window operations with Win32 implementations;
 - relocatable install/export package and external-consumer test;
 - Windows Debug/Release CI for build, CTest, install, and package consumption;
-- 35 registered tests, including platform input, action mapping, reusable camera controllers, game-side RTS interaction, engine-owned mesh resources, immutable geometry bounds, real PNG/JPEG decoding, transactional texture loading, OpenGL diagnostics, window events, camera resize/frustum behavior, framebuffer resize, scene-hierarchy transforms, incremental octree synchronization, bounds-accurate spatial queries, bounds-aware nearest-neighbor queries, transactional octree configuration, and automatic octree compaction/health metrics, stable shader identifiers, compile-once shader reuse, and transactional shader replacement;
+- 37 registered tests, including standalone foundation and math validation, platform input, action mapping, reusable camera controllers, game-side RTS interaction, engine-owned mesh resources, immutable geometry bounds, real PNG/JPEG decoding, transactional texture loading, OpenGL diagnostics, window events, camera resize/frustum behavior, framebuffer resize, scene-hierarchy transforms, incremental octree synchronization, bounds-accurate spatial queries, bounds-aware nearest-neighbor queries, transactional octree configuration, and automatic octree compaction/health metrics, stable shader identifiers, compile-once shader reuse, and transactional shader replacement;
+- extracted primitive types/logging, math, and physical/action input into independently installable `Pyramid::Foundation`, `Pyramid::Math`, and `Pyramid::Input` packages;
+- completed the previously stubbed `Mat4` determinant and inverse operations with pivoted elimination;
 - corrected standards-invalid PNG, zlib, and JPEG test fixtures;
 - public texture convenience definitions and explicit depth-target failure;
 - definitions for scene events, box queries, visibility statistics, spatial test scenes, and octree operations;

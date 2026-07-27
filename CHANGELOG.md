@@ -4,6 +4,15 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### Owned foundation, math, and input libraries
+
+- Extracted public primitive types, colors, assertions, and logging into the independently installable `PyramidFoundation` target exported as `Pyramid::Foundation`.
+- Extracted vectors, matrices, quaternions, and SIMD utilities into `PyramidMath`, exported as `Pyramid::Math` and dependent only on `Pyramid::Foundation`.
+- Extracted platform-neutral physical input state and generic action mapping into `PyramidInput`, exported as `Pyramid::Input` and dependent only on `Pyramid::Foundation`.
+- Preserved existing public include paths while removing Math, Input, and Utils source ownership from the `PyramidEngine` binary.
+- Replaced the placeholder `Mat4::Determinant()` and `Mat4::Inverse()` implementations with pivoted elimination and added focused correctness tests.
+- Added an installed foundation/math/input package consumer and expanded Windows CI package validation; CTest now registers 37 tests.
+
 ### Owned image library and dependency removal
 
 - Extracted image dispatch, TGA/BMP subsets, PNG, DEFLATE/zlib, and JPEG decoding into the engine-independent `PyramidImage` target exported as `Pyramid::Image`.
