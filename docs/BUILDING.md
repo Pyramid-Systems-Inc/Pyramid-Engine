@@ -271,3 +271,16 @@ Development builds resolve checked-in shaders using the compile-time source root
 ### Build files are locked
 
 Close running examples and any terminal/debugger using the output files, then rerun `scripts/configure-clean.ps1`.
+
+## Compile a processed font
+
+After a normal build, the owned compiler is available beside the examples:
+
+```powershell
+.\build\gcc-debug-tests\bin\PyramidFontCompiler.exe `
+    .\Examples\BasicGame\Assets\Fonts\PyramidSans.ttf `
+    .\build\gcc-debug-tests\bin\Fonts\PyramidSans-24.pfont `
+    24 256 U+00E9 U+03A9 U+2713
+```
+
+The checked-in reference `.pfont` is deterministic. Recompiling it with the same source and options should produce byte-identical output.

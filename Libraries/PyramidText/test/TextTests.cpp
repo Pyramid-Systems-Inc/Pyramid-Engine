@@ -100,6 +100,35 @@ int main()
     Require(tabbed.metrics.width > Pyramid::Text::Measure(font, "AB", 1.0f).width,
         "tab expansion did not affect text width");
 
+
+    Pyramid::Text::FontAtlas processed;
+    std::string processedError;
+    Require(
+        Pyramid::Text::LoadFontAtlas(PYRAMID_TEXT_TEST_FONT, processed, &processedError),
+        "processed font atlas failed to load");
+    Require(processed.IsValid(), "processed atlas is invalid");
+    Require(processed.familyName == "Pyramid Sans", "processed family name mismatch");
+    Require(processed.glyphs.size() == 98, "processed glyph count mismatch");
+    Require(processed.HasGlyph(U'\u00E9') && processed.HasGlyph(U'\u03A9') &&
+            processed.HasGlyph(U'\u2713'),
+        "processed Unicode coverage mismatch");
+    const float unkerned = processed.GetGlyph(U'A').advance + processed.GetGlyph(U'V').advance;
+    const auto kernedMetrics = Pyramid::Text::Measure(processed, "AV", 1.0f);
+    Require(kernedMetrics.width < unkerned, "processed kerning was not applied");
+    const auto coveredUnicode = Pyramid::Text::Layout(
+        processed,
+        std::string("\xC3\xA9 ") + "\xCE\xA9 " + "\xE2\x9C\x93",
+        Pyramid::Math::Vec2::Zero);
+    Require(coveredUnicode.glyphs.size() == 3 && coveredUnicode.fallbackGlyphs == 0,
+        "processed Unicode text used fallback glyphs");
+    const auto unsupportedUnicode = Pyramid::Text::Layout(
+        processed,
+        "\xE2\x98\x83",
+        Pyramid::Math::Vec2::Zero);
+    Require(unsupportedUnicode.fallbackGlyphs == 1 &&
+            processed.GetGlyph(U'\u2603').codepoint == U'?',
+        "processed fallback glyph mismatch");
+
     std::cout << "Text tests passed\n";
     return EXIT_SUCCESS;
 }

@@ -1,5 +1,8 @@
 add_executable(PyramidUITests UITests.cpp)
 target_link_libraries(PyramidUITests PRIVATE Pyramid::UI)
+target_compile_definitions(PyramidUITests PRIVATE
+    PYRAMID_UI_LIBRARY_TEST_FONT="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidSans-24.pfont"
+)
 set_target_properties(PyramidUITests PROPERTIES FOLDER "Tests/Libraries")
 add_test(NAME UI.Context COMMAND $<TARGET_FILE:PyramidUITests>)
 

@@ -25,6 +25,7 @@
 #include <Pyramid/Graphics/Resources/ResourceManifest.hpp>
 #include <Pyramid/Graphics/Scene/SceneSerializer.hpp>
 #include <Pyramid/Graphics/UI/UIRenderer.hpp>
+#include <Pyramid/Font/Font.hpp>
 #include <Pyramid/Text/Text.hpp>
 #include <Pyramid/UI/UI.hpp>
 #include <Pyramid/UI/GameUI.hpp>
@@ -73,8 +74,24 @@ namespace
     volatile decltype(&Pyramid::InputConsumptionMask::HasAnyMouseConsumption)
         g_hasAnyMouseConsumption =
             &Pyramid::InputConsumptionMask::HasAnyMouseConsumption;
+    volatile decltype(&Pyramid::Font::LoadTrueType) g_loadTrueType =
+        &Pyramid::Font::LoadTrueType;
+    volatile decltype(&Pyramid::Font::LoadTrueTypeFile) g_loadTrueTypeFile =
+        &Pyramid::Font::LoadTrueTypeFile;
+    volatile decltype(&Pyramid::Font::RasterizeGlyph) g_rasterizeGlyph =
+        &Pyramid::Font::RasterizeGlyph;
+    volatile decltype(&Pyramid::Font::BakeFont) g_bakeFont =
+        &Pyramid::Font::BakeFont;
+    volatile decltype(&Pyramid::Font::SaveProcessedFont) g_saveProcessedFont =
+        &Pyramid::Font::SaveProcessedFont;
+    volatile decltype(&Pyramid::Font::LoadProcessedFont) g_loadProcessedFont =
+        &Pyramid::Font::LoadProcessedFont;
     volatile decltype(&Pyramid::Text::CreateDebugFontAtlas) g_createDebugFontAtlas =
         &Pyramid::Text::CreateDebugFontAtlas;
+    volatile decltype(&Pyramid::Text::CreateFontAtlas) g_createFontAtlas =
+        &Pyramid::Text::CreateFontAtlas;
+    volatile decltype(&Pyramid::Text::LoadFontAtlas) g_loadFontAtlas =
+        &Pyramid::Text::LoadFontAtlas;
     volatile decltype(&Pyramid::Text::Measure) g_measureText =
         &Pyramid::Text::Measure;
     volatile decltype(&Pyramid::Text::BuildGlyphQuads) g_buildGlyphQuads =

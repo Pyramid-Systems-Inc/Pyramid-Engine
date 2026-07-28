@@ -22,6 +22,7 @@ Demonstrates:
 - `Pyramid::RTSReference` game-side interaction: moving the pointer to a window edge scrolls, left click selects the demo cube through a selectable predicate, and right click emits a ground-plane command for the selected entity;
 - a retained main menu starts the reference runtime; `Escape` opens/closes the modal pause menu, `F10` quits, `Space` toggles cube animation during gameplay, and `F1` toggles the runtime debug overlay;
 - responsive retained main-menu/HUD/pause screens plus collapsible diagnostics, wrapped help text, runtime controls, and a scrollable severity-colored in-memory log console;
+- the Ruqoom-owned `Pyramid Sans` TrueType source, deterministic `.pfont` runtime asset, kerning-aware `Pyramid::Text` layout, automatic copied font assets, and embedded-font fallback when the processed file is unavailable;
 - explicit final-surface viewport restoration after fixed-resolution shadow/off-screen passes;
 - UI pointer capture that blocks both named actions and raw RTS edge scrolling/selection/commands;
 - automatic default-viewport updates and active-camera projection resizing;
@@ -40,6 +41,18 @@ Run:
 ```powershell
 ./build/gcc-debug/bin/BasicGame.exe
 ```
+
+
+Compile another TrueType source into Pyramid's runtime format:
+
+```powershell
+.\build\gcc-debug-tests\bin\PyramidFontCompiler.exe `
+    .\Fonts\MyFont.ttf `
+    .\Fonts\MyFont-24.pfont `
+    24 512 U+00E9 U+03A9 U+2713 U+0600-U+06FF
+```
+
+The compiler always includes Basic Latin and accepts additional single codepoints or inclusive ranges in `U+XXXX[-U+YYYY]` form. The compiler is an owned development tool; packaged games load `.pfont` rather than depending on a font middleware DLL.
 
 Selection and command requests are logged and appear in the runtime log panel. The reference helper lives under `Examples/RTSReference`; it is deliberately not exported by the installed `Pyramid::Engine` package.
 

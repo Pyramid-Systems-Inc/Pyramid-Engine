@@ -150,7 +150,16 @@ int main()
 
     ResourceRegistry resources(device);
     UIRenderer renderer;
-    const Text::FontAtlas font = Text::CreateDebugFontAtlas();
+    Text::FontAtlas font;
+    std::string fontError;
+    if (!Text::LoadFontAtlas(PYRAMID_UI_TEST_FONT, font, &fontError))
+    {
+        return Fail("processed font atlas failed to load");
+    }
+    if (font.width != 256 || font.height != 256 || font.glyphs.size() != 98)
+    {
+        return Fail("processed font atlas metadata mismatch");
+    }
     if (!renderer.Initialize(device, resources, font) || !renderer.IsInitialized())
     {
         return Fail("initialization failed");

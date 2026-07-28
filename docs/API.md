@@ -146,17 +146,42 @@ Contexts are evaluated from highest to lowest priority. An enabled consuming con
 
 `InputConsumptionMask` reserves physical controls before context evaluation. Use `InputActionSystem::Update(input, mask)` when a higher layer has already handled keys, mouse buttons, pointer deltas, or wheel input. `Game::RegisterUIContext()` and `UnregisterUIContext()` merge registered UI masks automatically before the normal action update. Gamepad input, text input, raw relative mouse mode, camera blending/collision, and persisted binding files remain future work.
 
+## Font assets
+
+Include the owned font pipeline with:
+
+```cpp
+#include <Pyramid/Font/Font.hpp>
+```
+
+Development tools may parse a TrueType-outline `.ttf`, rasterize selected Unicode ranges, and save a deterministic processed asset:
+
+```cpp
+auto loaded = Pyramid::Font::LoadTrueTypeFile("Fonts/MyFont.ttf");
+Pyramid::Font::BakeOptions options;
+options.pixelHeight = 24.0f;
+options.atlasWidth = 512;
+options.atlasHeight = 512;
+
+auto baked = Pyramid::Font::BakeFont(loaded.face, options);
+Pyramid::Font::SaveProcessedFontFile(
+    baked.font, "Fonts/MyFont-24.pfont");
+```
+
+The first parser supports TrueType quadratic `glyf` outlines, compound glyphs, `cmap` formats 4/12, horizontal metrics, classic `kern` format 0, and bounded malformed-input rejection. CFF/OpenType outlines, collections, WOFF/WOFF2, variable/color fonts, bytecode hinting, and complex-script shaping are explicitly outside this version. Runtime applications should prefer the checksummed version-1 `.pfont` loader instead of reparsing source fonts. `PyramidFontCompiler` exposes the same pipeline from the command line.
+
 ## Text and UI
 
 Include the renderer-independent APIs with:
 
 ```cpp
+#include <Pyramid/Font/Font.hpp>
 #include <Pyramid/Text/Text.hpp>
 #include <Pyramid/UI/UI.hpp>
 #include <Pyramid/Util/Log.hpp>
 ```
 
-`Text::CreateDebugFontAtlas()` returns a deterministic embedded ASCII atlas. `Text::Layout()` strictly decodes UTF-8, substitutes unsupported code points through the atlas fallback glyph, reports malformed-sequence counts, expands tabs, wraps by word or character, aligns lines, and emits renderer-neutral glyph geometry plus line metrics. `Text::Measure()` and `Text::BuildGlyphQuads()` remain compact convenience APIs.
+`Text::CreateDebugFontAtlas()` returns a deterministic embedded ASCII atlas. `Text::LoadFontAtlas()` converts a processed `.pfont` into the same renderer-neutral atlas contract, and `UI::Context::SetFontAtlas()` switches an idle context to that atlas. `Text::Layout()` strictly decodes UTF-8, substitutes unsupported code points through the atlas fallback glyph, reports malformed-sequence counts, expands tabs, wraps by word or character, aligns lines, and emits renderer-neutral glyph geometry plus line metrics. `Text::Measure()` and `Text::BuildGlyphQuads()` remain compact convenience APIs.
 
 A `UI::Context` owns retained widget state and accepts immediate calls between `BeginFrame()` and `EndFrame()`:
 
@@ -216,11 +241,11 @@ The engine graphics adapter is:
 #include <Pyramid/Graphics/UI/UIRenderer.hpp>
 
 Pyramid::UIRenderer renderer;
-renderer.Initialize(device, resources, ui.GetDebugFont());
+renderer.Initialize(device, resources, ui.GetFontAtlas());
 renderer.Render(ui.GetDrawList(), frame);
 ```
 
-`UIRenderer` consumes `UI::DrawList`, supports the embedded font plus registered `ITexture2D` IDs, binds framebuffer zero, establishes the DPI-scaled physical surface viewport, applies top-left scissor clipping, and restores the engine baseline render state. It should run after world rendering and before presentation. `RenderSystem` independently restores the main framebuffer and viewport after every render pass so shadow-map or off-screen dimensions cannot leak into later passes.
+`UIRenderer` consumes `UI::DrawList`, supports the active processed or embedded fallback font plus registered `ITexture2D` IDs, binds framebuffer zero, establishes the DPI-scaled physical surface viewport, applies top-left scissor clipping, and restores the engine baseline render state. It should run after world rendering and before presentation. `RenderSystem` independently restores the main framebuffer and viewport after every render pass so shadow-map or off-screen dimensions cannot leak into later passes.
 
 `Util::Logger` maintains an optional bounded in-memory history for diagnostics. `GetRecentEntries(maximum, minimumLevel)` returns the newest matching entries in chronological order, `SetHistoryCapacity()` trims deterministically, and `ClearHistory()` removes only the in-memory history; console/file sinks remain unchanged.
 

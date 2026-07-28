@@ -115,6 +115,7 @@ namespace
                 ui.Spacer();
                 ui.Label("F1  DEBUG OVERLAY");
                 ui.Label("ESC  PAUSE DURING GAMEPLAY");
+                ui.Label(u8"UNICODE  é  Ω  ✓");
                 ui.Spacer();
                 if (ui.Button("QUIT") && m_quit)
                 {
@@ -351,22 +352,41 @@ void BasicGame::onCreate()
     }
     SetRenderSystem(m_renderSystem.get());
 
+    std::string fontError;
+    m_runtimeFontLoaded = Pyramid::Text::LoadFontAtlas(
+        "Fonts/PyramidSans-24.pfont",
+        m_runtimeFont,
+        &fontError);
+    if (m_runtimeFontLoaded)
+    {
+        (void)m_gameUI.SetFontAtlas(m_runtimeFont);
+        (void)m_debugUI.SetFontAtlas(m_runtimeFont);
+        PYRAMID_LOG_INFO(
+            "Loaded processed UI font: " + m_runtimeFont.familyName +
+            " (" + std::to_string(m_runtimeFont.glyphs.size()) + " glyphs)");
+    }
+    else
+    {
+        PYRAMID_LOG_WARN(
+            "Processed UI font unavailable; using embedded debug font: " + fontError);
+    }
+
     auto gameTheme = m_gameUI.GetTheme();
-    gameTheme.textScale = 1.5f;
+    gameTheme.textScale = m_runtimeFontLoaded ? 0.82f : 1.5f;
     gameTheme.defaultRowHeight = 30.0f;
     gameTheme.spacing = 8.0f;
     gameTheme.padding = 10.0f;
     m_gameUI.SetTheme(gameTheme);
 
     auto debugTheme = m_debugUI.GetTheme();
-    debugTheme.textScale = 1.5f;
+    debugTheme.textScale = m_runtimeFontLoaded ? 0.66f : 1.5f;
     debugTheme.defaultRowHeight = 28.0f;
     debugTheme.spacing = 7.0f;
     m_debugUI.SetTheme(debugTheme);
     m_debugUI.SetEnabled(m_debugUIVisible);
 
     m_uiRenderer = std::make_unique<Pyramid::UIRenderer>();
-    if (!m_uiRenderer->Initialize(*device, *resources, m_gameUI.GetDebugFont()))
+    if (!m_uiRenderer->Initialize(*device, *resources, m_gameUI.GetFontAtlas()))
     {
         PYRAMID_LOG_CRITICAL("BasicGame aborted: UI renderer initialization failed.");
         quit();
@@ -783,6 +803,15 @@ void BasicGame::BuildDebugUI(float deltaTime)
             m_debugUI.LabelValue("ELEMENTS", FormatCount(uiStats.retainedElements));
             m_debugUI.LabelValue("VERTICES", FormatCount(uiStats.vertices));
             m_debugUI.LabelValue("BATCHES", FormatCount(uiStats.batches));
+            const auto& font = m_debugUI.GetFontAtlas();
+            m_debugUI.LabelValue("FONT", font.familyName);
+            m_debugUI.LabelValue("FONT GLYPHS", FormatCount(font.glyphs.size()));
+            m_debugUI.LabelValue(
+                "FONT ATLAS",
+                std::to_string(font.width) + "x" + std::to_string(font.height));
+            m_debugUI.LabelValue(
+                "FONT KB",
+                FormatFloat(static_cast<float>(font.rgbaPixels.size()) / 1024.0f, 1));
             if (m_uiRenderer)
             {
                 const auto& rendererStats = m_uiRenderer->GetStats();

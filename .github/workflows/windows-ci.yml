@@ -170,6 +170,25 @@ jobs:
         shell: msys2 {0}
         run: ./build/model-consumer/${{ matrix.name }}/PyramidModelConsumer.exe
 
+      - name: Configure standalone font consumer
+        shell: msys2 {0}
+        run: >-
+          cmake -S Tests/FontConsumer
+          -B build/font-consumer/${{ matrix.name }}
+          -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ matrix.configuration }}
+          -DCMAKE_C_COMPILER=${{ matrix.compiler_c }}
+          -DCMAKE_CXX_COMPILER=${{ matrix.compiler_cxx }}
+          -DCMAKE_PREFIX_PATH="$PWD/build/install/${{ matrix.name }}"
+
+      - name: Build standalone font consumer
+        shell: msys2 {0}
+        run: cmake --build build/font-consumer/${{ matrix.name }} --parallel
+
+      - name: Run standalone font consumer
+        shell: msys2 {0}
+        run: ./build/font-consumer/${{ matrix.name }}/PyramidFontConsumer.exe
+
       - name: Configure standalone UI consumer
         shell: msys2 {0}
         run: >-

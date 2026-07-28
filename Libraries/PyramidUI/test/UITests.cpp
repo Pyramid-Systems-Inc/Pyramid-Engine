@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <string>
 
 namespace
 {
@@ -153,6 +154,26 @@ int main()
     const auto advancedCapture = advanced.PrepareInput(advancedInput);
     Require(advancedCapture.HasAnyMouseConsumption(),
         "advanced UI did not reserve pointer input");
+
+    Pyramid::Text::FontAtlas processedFont;
+    std::string fontError;
+    Require(
+        Pyramid::Text::LoadFontAtlas(
+            PYRAMID_UI_LIBRARY_TEST_FONT, processedFont, &fontError),
+        "processed UI font failed to load");
+    Pyramid::UI::Context fontContext;
+    Require(fontContext.SetFontAtlas(processedFont),
+        "valid processed font was rejected by UI context");
+    Require(fontContext.GetFontAtlas().familyName == "Pyramid Sans",
+        "UI context did not retain processed font metadata");
+    Require(fontContext.BeginFrame(frame, advancedInput),
+        "processed-font UI frame rejected");
+    Require(fontContext.BeginPanel("FONT", panel),
+        "processed-font panel failed");
+    fontContext.Label("AV KERNING AND SCALABLE GLYPHS");
+    fontContext.EndPanel();
+    Require(!fontContext.EndFrame().Empty(),
+        "processed font emitted no UI geometry");
 
     std::cout << "UI tests passed\n";
     return EXIT_SUCCESS;

@@ -12,6 +12,7 @@
 #include <Pyramid/Graphics/UI/UIRenderer.hpp>
 #include <Pyramid/UI/UI.hpp>
 #include <Pyramid/UI/GameUI.hpp>
+#include <Pyramid/Text/Text.hpp>
 
 #include <memory>
 
@@ -51,6 +52,7 @@ private:
     std::unique_ptr<Pyramid::UIRenderer> m_uiRenderer;
     Pyramid::UI::Context m_gameUI;
     Pyramid::UI::Context m_debugUI;
+    Pyramid::Text::FontAtlas m_runtimeFont;
     Pyramid::UI::ScreenStack m_gameScreens;
     std::shared_ptr<Pyramid::Scene> m_scene;
     std::unique_ptr<Pyramid::SceneManagement::SceneManager> m_sceneManager;
@@ -69,6 +71,7 @@ private:
     float m_elapsedTime = 0.0f;
     float m_smoothedFrameTime = 1.0f / 60.0f;
     bool m_debugUIVisible = false;
+    bool m_runtimeFontLoaded = false;
     bool m_gameplayStarted = false;
     bool m_animationPaused = false;
     bool m_performanceSectionOpen = true;

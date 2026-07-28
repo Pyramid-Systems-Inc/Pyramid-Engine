@@ -99,7 +99,9 @@ The engine-facing `ModelResourceImporter` is the graphics bridge for renderer-in
 
 ## Text and UI
 
-`Pyramid::Text` owns strict UTF-8 decoding, fallback accounting, tab expansion, line measurement, character/word wrapping, horizontal alignment, glyph-quad generation, and the embedded ASCII debug atlas. It has no filesystem, platform, window, graphics, or font-middleware dependency. The bootstrap atlas intentionally maps unsupported valid code points to a replacement glyph; runtime font import, bidirectional layout, Arabic shaping, fallback font chains, and editing remain later milestones.
+`Pyramid::Font` owns bounded SFNT/TrueType parsing, Unicode-to-glyph mapping, simple and compound quadratic outlines, classic kerning, CPU supersampled rasterization, deterministic atlas packing, and the checksummed versioned `.pfont` runtime format. It depends only on `Pyramid::Foundation`; source-font parsing and offline compilation never enter the UI or graphics layers. The first implementation supports TrueType `glyf` outlines and explicitly rejects unsupported CFF/OpenType outlines, collections, variable/color fonts, WOFF, and malformed tables.
+
+`Pyramid::Text` consumes baked font data and owns strict UTF-8 decoding, fallback accounting, kerning-aware line measurement, tab expansion, character/word wrapping, horizontal alignment, and renderer-neutral glyph-quad generation. It retains the embedded ASCII atlas as an emergency diagnostic fallback. Bidirectional layout, Arabic/complex-script shaping, fallback font families, text editing, and IME integration remain later milestones.
 
 `Pyramid::UI` is a hybrid retained/immediate runtime. Widget calls reconcile stable scoped IDs into retained element state, then shared layout, focus, hit-testing, pointer capture, nested clipping, persistent collapsing/scroll state, theme resolution, and draw generation produce a renderer-independent `UI::DrawList`. Logical item rectangles remain stable inside scroll areas while visible retained rectangles, hit testing, and generated batches are intersected with the active clip. Multiple contexts can coexist for debug, game, and future editor surfaces without parallel widget implementations.
 
@@ -140,12 +142,12 @@ Size-based, render-target, and solid-color convenience factories remain availabl
 ## Build and package model
 
 - `PyramidEngine` is the engine target; `Pyramid::Engine` is its build-tree alias and installed name.
-- `PyramidFoundation`, `PyramidMath`, `PyramidInput`, `PyramidImage`, `PyramidModel`, `PyramidText`, and `PyramidUI` are engine-independent targets exported as `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, `Pyramid::Model`, `Pyramid::Text`, and `Pyramid::UI`. `Pyramid::Engine` links them publicly so existing headers remain transitively available.
+- `PyramidFoundation`, `PyramidMath`, `PyramidInput`, `PyramidImage`, `PyramidModel`, `PyramidFont`, `PyramidText`, and `PyramidUI` are engine-independent targets exported as `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, `Pyramid::Model`, `Pyramid::Font`, `Pyramid::Text`, and `Pyramid::UI`. `Pyramid::Engine` links them publicly so existing headers remain transitively available.
 - GLAD is the sole approved bundled third-party runtime library and remains public because OpenGL implementation headers expose GLAD types.
 - The installed package has no JPEG or codec package dependency.
 - Public headers are installed separately rather than exported through `INTERFACE_SOURCES`, keeping the package relocatable.
-- CMake package configuration and version files support independent engine, foundation, math, input, image, model, text, and UI consumers. The engine package resolves every owned library as an explicit package dependency.
-- Windows CI validates separate engine, foundation/math/input, image, model, and UI consumers after installation.
+- CMake package configuration and version files support independent engine, foundation, math, input, image, model, font, text, and UI consumers. The engine package resolves every owned library as an explicit package dependency.
+- Windows CI validates separate engine, foundation/math/input, image, model, font, and UI consumers after installation.
 - Native MinGW build trees and installations copy the compiler runtime DLLs into their `bin` directory through `PyramidMinGWRuntime`; Pyramid executables therefore do not depend on an interactive MSYS2 shell or user-modified `PATH`.
 
 ## Dependency direction

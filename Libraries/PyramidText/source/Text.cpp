@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cmath>
 #include <string_view>
+#include <tuple>
 
 namespace Pyramid::Text
 {
@@ -125,27 +126,74 @@ namespace Pyramid::Text
 
     bool FontAtlas::IsValid() const
     {
-        return width > 0 && height > 0 && lineHeight > 0.0f &&
-            rgbaPixels.size() == static_cast<std::size_t>(width) * height * 4U;
+        return width > 0 && height > 0 && std::isfinite(lineHeight) && lineHeight > 0.0f &&
+            rgbaPixels.size() == static_cast<std::size_t>(width) * height * 4U &&
+            !glyphs.empty() &&
+            std::is_sorted(glyphs.begin(), glyphs.end(), [](const Glyph& a, const Glyph& b)
+            {
+                return a.codepoint < b.codepoint;
+            }) &&
+            HasGlyph(fallbackCodepoint);
+    }
+
+    bool FontAtlas::HasGlyph(char32_t codepoint) const
+    {
+        const auto found = std::lower_bound(glyphs.begin(), glyphs.end(), codepoint,
+            [](const Glyph& glyph, char32_t value)
+            {
+                return glyph.codepoint < value;
+            });
+        return found != glyphs.end() && found->codepoint == codepoint;
     }
 
     const Glyph& FontAtlas::GetGlyph(char32_t codepoint) const
     {
-        const std::size_t index = codepoint < glyphs.size()
-            ? static_cast<std::size_t>(codepoint)
-            : static_cast<std::size_t>('?');
-        return glyphs[index];
+        auto find = [&](char32_t value) -> const Glyph*
+        {
+            const auto found = std::lower_bound(glyphs.begin(), glyphs.end(), value,
+                [](const Glyph& glyph, char32_t candidate)
+                {
+                    return glyph.codepoint < candidate;
+                });
+            return found != glyphs.end() && found->codepoint == value ? &*found : nullptr;
+        };
+        if (const Glyph* glyph = find(codepoint))
+        {
+            return *glyph;
+        }
+        if (const Glyph* fallback = find(fallbackCodepoint))
+        {
+            return *fallback;
+        }
+        return glyphs.front();
+    }
+
+    f32 FontAtlas::GetKerning(char32_t left, char32_t right) const
+    {
+        const auto found = std::lower_bound(
+            kerning.begin(), kerning.end(), std::pair<char32_t, char32_t>{left, right},
+            [](const Font::BakedKerning& pair, const std::pair<char32_t, char32_t>& key)
+            {
+                return std::tie(pair.left, pair.right) < std::tie(key.first, key.second);
+            });
+        return found != kerning.end() && found->left == left && found->right == right
+            ? found->value
+            : 0.0f;
     }
 
     FontAtlas CreateDebugFontAtlas()
     {
         FontAtlas atlas;
+        atlas.familyName = "Pyramid Embedded Debug";
         atlas.width = kColumns * kCellWidth;
         atlas.height = kRows * kCellHeight;
+        atlas.pixelHeight = static_cast<f32>(kGlyphHeight);
         atlas.lineHeight = static_cast<f32>(kCellHeight);
+        atlas.fallbackCodepoint = U'?';
         atlas.rgbaPixels.assign(
             static_cast<std::size_t>(atlas.width) * atlas.height * 4U,
             0);
+        atlas.glyphs.resize(128);
 
         SetPixel(atlas, 0, 0, 255);
         atlas.whitePixelUv = Math::Vec2(
@@ -188,6 +236,67 @@ namespace Pyramid::Text
             atlas.glyphs[code] = glyph;
         }
         return atlas;
+    }
+
+    FontAtlas CreateFontAtlas(const Font::BakedFont& font)
+    {
+        FontAtlas atlas;
+        if (!font.IsValid())
+        {
+            return atlas;
+        }
+        atlas.familyName = font.familyName;
+        atlas.width = font.atlasWidth;
+        atlas.height = font.atlasHeight;
+        atlas.pixelHeight = font.pixelHeight;
+        atlas.lineHeight = font.lineHeight;
+        atlas.rgbaPixels = font.rgbaPixels;
+        atlas.kerning = font.kerning;
+        atlas.fallbackCodepoint = font.fallbackCodepoint;
+        atlas.whitePixelUv = Math::Vec2(
+            0.5f / static_cast<f32>(atlas.width),
+            0.5f / static_cast<f32>(atlas.height));
+        atlas.glyphs.reserve(font.glyphs.size());
+        for (const Font::BakedGlyph& source : font.glyphs)
+        {
+            Glyph glyph;
+            glyph.codepoint = source.codepoint;
+            glyph.advance = source.advance;
+            glyph.width = source.width;
+            glyph.height = source.height;
+            glyph.bearingX = source.bearingX;
+            glyph.bearingY = source.bearingY;
+            glyph.u0 = source.u0;
+            glyph.v0 = source.v0;
+            glyph.u1 = source.u1;
+            glyph.v1 = source.v1;
+            atlas.glyphs.push_back(glyph);
+        }
+        return atlas;
+    }
+
+    bool LoadFontAtlas(
+        std::string_view processedFontPath,
+        FontAtlas& output,
+        std::string* error)
+    {
+        Font::BakedFont font;
+        if (!Font::LoadProcessedFontFile(processedFontPath, font, error))
+        {
+            output = {};
+            return false;
+        }
+        output = CreateFontAtlas(font);
+        if (!output.IsValid())
+        {
+            output = {};
+            if (error)
+            {
+                *error = "processed font could not be converted to a text atlas";
+            }
+            return false;
+        }
+        return true;
     }
 
     namespace
@@ -298,20 +407,67 @@ namespace Pyramid::Text
             return font.GetGlyph(codepoint).advance * scale;
         }
 
+        f32 PairAdjustment(
+            const FontAtlas& font,
+            char32_t left,
+            char32_t right,
+            f32 scale)
+        {
+            return font.GetKerning(left, right) * scale;
+        }
+
         struct PendingLine
         {
             std::vector<char32_t> codepoints;
             f32 width = 0.0f;
         };
 
+        f32 MeasureCodepoints(
+            const FontAtlas& font,
+            const std::vector<char32_t>& codepoints,
+            f32 scale)
+        {
+            f32 width = 0.0f;
+            char32_t previous = 0;
+            for (char32_t codepoint : codepoints)
+            {
+                if (previous != 0)
+                {
+                    width += PairAdjustment(font, previous, codepoint, scale);
+                }
+                width += AdvanceFor(font, codepoint, scale);
+                previous = codepoint;
+            }
+            return width;
+        }
+
+        f32 AppendWidth(
+            const PendingLine& line,
+            const FontAtlas& font,
+            char32_t codepoint,
+            f32 scale)
+        {
+            f32 width = AdvanceFor(font, codepoint, scale);
+            if (!line.codepoints.empty())
+            {
+                width += PairAdjustment(font, line.codepoints.back(), codepoint, scale);
+            }
+            return width;
+        }
+
+        void Append(PendingLine& line, const FontAtlas& font, char32_t codepoint, f32 scale)
+        {
+            line.width += AppendWidth(line, font, codepoint, scale);
+            line.codepoints.push_back(codepoint);
+        }
+
         void TrimTrailingSpaces(PendingLine& line, const FontAtlas& font, f32 scale)
         {
             while (!line.codepoints.empty() && line.codepoints.back() == U' ')
             {
-                line.width -= AdvanceFor(font, U' ', scale);
                 line.codepoints.pop_back();
             }
-            line.width = (std::max)(0.0f, line.width);
+            line.width = MeasureCodepoints(font, line.codepoints, scale);
         }
 
         void AppendCharacterWrapped(
@@ -321,16 +477,15 @@ namespace Pyramid::Text
             const FontAtlas& font,
             const LayoutOptions& options)
         {
-            const f32 advance = AdvanceFor(font, codepoint, options.scale);
+            const f32 added = AppendWidth(line, font, codepoint, options.scale);
             if (options.maximumWidth > 0.0f && !line.codepoints.empty() &&
-                line.width + advance > options.maximumWidth)
+                line.width + added > options.maximumWidth)
             {
                 TrimTrailingSpaces(line, font, options.scale);
                 lines.push_back(std::move(line));
                 line = {};
             }
-            line.codepoints.push_back(codepoint);
-            line.width += advance;
+            Append(line, font, codepoint, options.scale);
         }
 
         std::vector<PendingLine> BuildLines(
@@ -367,8 +522,7 @@ namespace Pyramid::Text
                     }
                     else
                     {
-                        line.codepoints.push_back(codepoint);
-                        line.width += AdvanceFor(font, codepoint, options.scale);
+                        Append(line, font, codepoint, options.scale);
                     }
                     ++index;
                     continue;
@@ -378,11 +532,10 @@ namespace Pyramid::Text
                 {
                     if (!line.codepoints.empty())
                     {
-                        const f32 spaceAdvance = AdvanceFor(font, U' ', options.scale);
-                        if (line.width + spaceAdvance <= options.maximumWidth)
+                        const f32 added = AppendWidth(line, font, U' ', options.scale);
+                        if (line.width + added <= options.maximumWidth)
                         {
-                            line.codepoints.push_back(U' ');
-                            line.width += spaceAdvance;
+                            Append(line, font, U' ', options.scale);
                         }
                     }
                     ++index;
@@ -390,33 +543,38 @@ namespace Pyramid::Text
                 }
 
                 std::size_t wordEnd = index;
-                f32 wordWidth = 0.0f;
+                std::vector<char32_t> word;
                 while (wordEnd < codepoints.size() && codepoints[wordEnd] != U' ' &&
                     codepoints[wordEnd] != U'\n')
                 {
-                    wordWidth += AdvanceFor(font, codepoints[wordEnd], options.scale);
+                    word.push_back(codepoints[wordEnd]);
                     ++wordEnd;
                 }
-
-                if (!line.codepoints.empty() && line.width + wordWidth > options.maximumWidth)
+                const f32 wordWidth = MeasureCodepoints(font, word, options.scale);
+                f32 boundaryKerning = 0.0f;
+                if (!line.codepoints.empty() && !word.empty())
+                {
+                    boundaryKerning = PairAdjustment(
+                        font, line.codepoints.back(), word.front(), options.scale);
+                }
+                if (!line.codepoints.empty() &&
+                    line.width + boundaryKerning + wordWidth > options.maximumWidth)
                 {
                     finishLine();
                 }
 
-                if (wordWidth <= options.maximumWidth || options.maximumWidth <= 0.0f)
+                if (wordWidth <= options.maximumWidth)
                 {
                     for (; index < wordEnd; ++index)
                     {
-                        line.codepoints.push_back(codepoints[index]);
-                        line.width += AdvanceFor(font, codepoints[index], options.scale);
+                        Append(line, font, codepoints[index], options.scale);
                     }
                 }
                 else
                 {
                     for (; index < wordEnd; ++index)
                     {
-                        AppendCharacterWrapped(
-                            lines, line, codepoints[index], font, options);
+                        AppendCharacterWrapped(lines, line, codepoints[index], font, options);
                     }
                 }
             }
@@ -492,8 +650,17 @@ namespace Pyramid::Text
                 x += alignmentWidth - line.width;
             }
 
+            char32_t previousCodepoint = 0;
             for (char32_t codepoint : line.codepoints)
             {
+                if (!font.HasGlyph(codepoint))
+                {
+                    ++result.fallbackGlyphs;
+                }
+                if (previousCodepoint != 0)
+                {
+                    x += font.GetKerning(previousCodepoint, codepoint) * options.scale;
+                }
                 const Glyph& glyph = font.GetGlyph(codepoint);
                 if (glyph.width > 0.0f && glyph.height > 0.0f)
                 {
@@ -511,6 +678,7 @@ namespace Pyramid::Text
                     ++lineMetrics.glyphCount;
                 }
                 x += glyph.advance * options.scale;
+                previousCodepoint = codepoint;
             }
 
             result.metrics.width = (std::max)(result.metrics.width, line.width);

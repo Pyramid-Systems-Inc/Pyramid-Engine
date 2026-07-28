@@ -26,6 +26,7 @@ target_link_libraries(PyramidText
     PUBLIC
         Pyramid::Foundation
         Pyramid::Math
+        Pyramid::Font
 )
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")

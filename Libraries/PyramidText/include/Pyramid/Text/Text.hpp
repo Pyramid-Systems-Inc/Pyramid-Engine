@@ -2,8 +2,9 @@
 
 #include <Pyramid/Core/Prerequisites.hpp>
 #include <Pyramid/Math/Vec2.hpp>
+#include <Pyramid/Font/Font.hpp>
 
-#include <array>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -25,15 +26,21 @@ namespace Pyramid::Text
 
     struct FontAtlas
     {
+        std::string familyName;
         u32 width = 0;
         u32 height = 0;
+        f32 pixelHeight = 0.0f;
         f32 lineHeight = 0.0f;
         std::vector<u8> rgbaPixels;
-        std::array<Glyph, 128> glyphs{};
+        std::vector<Glyph> glyphs;
+        std::vector<Font::BakedKerning> kerning;
+        char32_t fallbackCodepoint = U'?';
         Math::Vec2 whitePixelUv = Math::Vec2::Zero;
 
         [[nodiscard]] bool IsValid() const;
+        [[nodiscard]] bool HasGlyph(char32_t codepoint) const;
         [[nodiscard]] const Glyph& GetGlyph(char32_t codepoint) const;
+        [[nodiscard]] f32 GetKerning(char32_t left, char32_t right) const;
     };
 
     struct GlyphQuad
@@ -91,6 +98,7 @@ namespace Pyramid::Text
         std::vector<GlyphQuad> glyphs;
         std::vector<LineMetrics> lines;
         u32 invalidUtf8Sequences = 0;
+        u32 fallbackGlyphs = 0;
     };
 
     /**
@@ -100,6 +108,11 @@ namespace Pyramid::Text
      * layout layer so game/editor font backends can reuse the same layout contract.
      */
     [[nodiscard]] FontAtlas CreateDebugFontAtlas();
+    [[nodiscard]] FontAtlas CreateFontAtlas(const Font::BakedFont& font);
+    [[nodiscard]] bool LoadFontAtlas(
+        std::string_view processedFontPath,
+        FontAtlas& output,
+        std::string* error = nullptr);
 
     [[nodiscard]] LayoutResult Layout(
         const FontAtlas& font,

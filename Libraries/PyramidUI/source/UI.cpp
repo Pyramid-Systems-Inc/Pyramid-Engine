@@ -192,6 +192,22 @@ namespace Pyramid::UI
         m_idStack.push_back(kFnvOffset);
     }
 
+    bool Context::SetFontAtlas(const Text::FontAtlas& font)
+    {
+        if (m_frameActive || !font.IsValid())
+        {
+            return false;
+        }
+        m_font = font;
+        m_elements.clear();
+        m_drawOrder.clear();
+        m_interactiveOrder.clear();
+        m_focusedId = 0;
+        m_hotId = 0;
+        m_activeId = 0;
+        return true;
+    }
+
     void Context::SetEnabled(bool enabled)
     {
         m_enabled = enabled;

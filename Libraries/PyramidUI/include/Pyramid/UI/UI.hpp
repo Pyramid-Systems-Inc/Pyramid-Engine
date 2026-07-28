@@ -170,6 +170,8 @@ namespace Pyramid::UI
         [[nodiscard]] bool IsEnabled() const { return m_enabled; }
         void SetTheme(const Theme& theme) { m_theme = theme; }
         [[nodiscard]] const Theme& GetTheme() const { return m_theme; }
+        [[nodiscard]] bool SetFontAtlas(const Text::FontAtlas& font);
+        [[nodiscard]] const Text::FontAtlas& GetFontAtlas() const { return m_font; }
         [[nodiscard]] const Text::FontAtlas& GetDebugFont() const { return m_font; }
 
         /** Hit-tests the previous retained frame before action contexts evaluate. */

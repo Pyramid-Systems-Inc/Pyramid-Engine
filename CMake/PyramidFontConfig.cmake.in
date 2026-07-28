@@ -1,0 +1,7 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(PyramidFoundation CONFIG)
+
+include("${CMAKE_CURRENT_LIST_DIR}/PyramidFontTargets.cmake")
+check_required_components(PyramidFont)

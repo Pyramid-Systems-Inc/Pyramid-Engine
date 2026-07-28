@@ -1,5 +1,8 @@
 add_executable(PyramidTextTests TextTests.cpp)
 target_link_libraries(PyramidTextTests PRIVATE Pyramid::Text)
+target_compile_definitions(PyramidTextTests PRIVATE
+    PYRAMID_TEXT_TEST_FONT="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidSans-24.pfont"
+)
 set_target_properties(PyramidTextTests PROPERTIES FOLDER "Tests/Libraries")
 add_test(NAME Text.DebugFont COMMAND $<TARGET_FILE:PyramidTextTests>)
 
