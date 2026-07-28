@@ -8,7 +8,7 @@ namespace Pyramid
     /**
      * @brief Win32-specific OpenGL window implementation
      */
-    class Win32OpenGLWindow : public Window
+    class Win32OpenGLWindow : public Window, private Clipboard
     {
     public:
         Win32OpenGLWindow();
@@ -29,6 +29,7 @@ namespace Pyramid
         bool IsMinimized() const override;
         bool IsMaximized() const override;
         const InputState& GetInputState() const override { return m_input; }
+        Clipboard& GetClipboard() override { return *this; }
 
     private:
         static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
@@ -37,6 +38,8 @@ namespace Pyramid
         void LogOpenGLContextInfo();
         static Key TranslateKey(WPARAM virtualKey, LPARAM keyData);
         void UpdateMouseCapture();
+        bool SetText(std::u32string_view text, std::string* error = nullptr) override;
+        [[nodiscard]] ClipboardTextResult GetText() const override;
 
         HWND m_hwnd;
         HDC m_hdc;

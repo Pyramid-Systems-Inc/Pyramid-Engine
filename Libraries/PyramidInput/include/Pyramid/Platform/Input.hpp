@@ -4,6 +4,8 @@
 
 #include <array>
 #include <cstddef>
+#include <string>
+#include <vector>
 
 namespace Pyramid
 {
@@ -154,6 +156,20 @@ namespace Pyramid
         f32 y = 0.0f;
     };
 
+    enum class TextInputEventType : u8
+    {
+        Commit = 0,
+        CompositionStart,
+        CompositionUpdate,
+        CompositionEnd
+    };
+
+    struct TextInputEvent
+    {
+        TextInputEventType type = TextInputEventType::Commit;
+        std::u32string text;
+    };
+
     /**
      * @brief Per-window input state with one-frame transition tracking.
      *
@@ -172,6 +188,9 @@ namespace Pyramid
         void ProcessMouseButton(MouseButton button, bool down);
         void ProcessMouseMove(f32 x, f32 y);
         void ProcessMouseWheel(f32 verticalSteps, f32 horizontalSteps = 0.0f);
+        void ProcessTextCodepoint(char32_t codepoint);
+        void ProcessUtf16CodeUnit(char16_t codeUnit);
+        void ProcessTextEvent(TextInputEvent event);
         void ReleaseMouseButtons();
         void Reset(bool emitReleaseEvents = true);
 
@@ -190,6 +209,14 @@ namespace Pyramid
         [[nodiscard]] MouseDelta GetMouseDelta() const { return m_mouseDelta; }
         [[nodiscard]] f32 GetMouseWheelDelta() const { return m_mouseWheelDelta; }
         [[nodiscard]] f32 GetMouseHorizontalWheelDelta() const { return m_mouseHorizontalWheelDelta; }
+        [[nodiscard]] const std::vector<TextInputEvent>& GetTextInputEvents() const
+        {
+            return m_textInputEvents;
+        }
+        [[nodiscard]] std::size_t GetTextInputEventCount() const
+        {
+            return m_textInputEvents.size();
+        }
 
     private:
         static constexpr std::size_t KeyCount = static_cast<std::size_t>(Key::Count);
@@ -209,6 +236,8 @@ namespace Pyramid
         MouseDelta m_mouseDelta{};
         f32 m_mouseWheelDelta = 0.0f;
         f32 m_mouseHorizontalWheelDelta = 0.0f;
+        std::vector<TextInputEvent> m_textInputEvents;
+        char16_t m_pendingHighSurrogate = 0;
         bool m_hasMousePosition = false;
         bool m_focused = false;
     };

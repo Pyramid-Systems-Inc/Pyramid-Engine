@@ -1,5 +1,6 @@
 #include <Pyramid/Core/Game.hpp>
 #include <Pyramid/Platform/Input.hpp>
+#include <Pyramid/Platform/Clipboard.hpp>
 #include <Pyramid/Input/InputActions.hpp>
 #include <Pyramid/Graphics/Texture.hpp>
 #include <Pyramid/Graphics/Texture/TextureResource.hpp>
@@ -42,6 +43,7 @@ namespace
     public:
         using Pyramid::Game::GetInput;
         using Pyramid::Game::GetInputActions;
+        using Pyramid::Game::GetClipboard;
         using Pyramid::Game::GetUIInputConsumption;
         using Pyramid::Game::GetResourceRegistry;
         using Pyramid::Game::SetRenderSystem;
@@ -71,6 +73,14 @@ namespace
         &Pyramid::InputConsumptionMask::Merge;
     volatile decltype(&Pyramid::InputConsumptionMask::ConsumeAllMouse) g_consumeAllMouse =
         &Pyramid::InputConsumptionMask::ConsumeAllMouse;
+    volatile decltype(&Pyramid::InputConsumptionMask::ConsumeAllKeys) g_consumeAllKeys =
+        &Pyramid::InputConsumptionMask::ConsumeAllKeys;
+    volatile decltype(&Pyramid::InputConsumptionMask::ConsumeTextInput) g_consumeTextInput =
+        &Pyramid::InputConsumptionMask::ConsumeTextInput;
+    volatile decltype(&Pyramid::InputState::ProcessTextCodepoint) g_processTextCodepoint =
+        &Pyramid::InputState::ProcessTextCodepoint;
+    volatile decltype(&Pyramid::InputState::ProcessUtf16CodeUnit) g_processUtf16CodeUnit =
+        &Pyramid::InputState::ProcessUtf16CodeUnit;
     volatile decltype(&Pyramid::InputConsumptionMask::HasAnyMouseConsumption)
         g_hasAnyMouseConsumption =
             &Pyramid::InputConsumptionMask::HasAnyMouseConsumption;
@@ -98,6 +108,18 @@ namespace
         &Pyramid::Text::BuildGlyphQuads;
     volatile decltype(&Pyramid::Text::Layout) g_layoutText =
         &Pyramid::Text::Layout;
+    volatile decltype(&Pyramid::Text::DecodeUtf8) g_decodeUtf8 =
+        &Pyramid::Text::DecodeUtf8;
+    volatile decltype(&Pyramid::Text::EncodeUtf8) g_encodeUtf8 =
+        &Pyramid::Text::EncodeUtf8;
+    volatile decltype(&Pyramid::Text::TextBuffer::Insert) g_insertTextBuffer =
+        &Pyramid::Text::TextBuffer::Insert;
+    volatile decltype(&Pyramid::Text::TextBuffer::MoveCursor) g_moveTextCursor =
+        &Pyramid::Text::TextBuffer::MoveCursor;
+    volatile decltype(&Pyramid::ClipboardEncoding::Utf32ToUtf16) g_utf32ToUtf16 =
+        &Pyramid::ClipboardEncoding::Utf32ToUtf16;
+    volatile decltype(&Pyramid::ClipboardEncoding::Utf16ToUtf32) g_utf16ToUtf32 =
+        &Pyramid::ClipboardEncoding::Utf16ToUtf32;
     volatile decltype(&Pyramid::UI::Context::PrepareInput) g_prepareUIInput =
         &Pyramid::UI::Context::PrepareInput;
     volatile decltype(&Pyramid::UI::Context::BeginFrame) g_beginUIFrame =
@@ -108,6 +130,14 @@ namespace
         &Pyramid::UI::Context::LabelColored;
     volatile decltype(&Pyramid::UI::Context::WrappedLabel) g_wrappedLabel =
         &Pyramid::UI::Context::WrappedLabel;
+    volatile decltype(&Pyramid::UI::Context::TextField) g_textField =
+        &Pyramid::UI::Context::TextField;
+    volatile decltype(&Pyramid::UI::Context::PasswordField) g_passwordField =
+        &Pyramid::UI::Context::PasswordField;
+    volatile decltype(&Pyramid::UI::Context::SearchField) g_searchField =
+        &Pyramid::UI::Context::SearchField;
+    volatile decltype(&Pyramid::UI::Context::MultilineTextArea) g_multilineTextArea =
+        &Pyramid::UI::Context::MultilineTextArea;
     volatile decltype(&Pyramid::UI::Context::CollapsingHeader) g_collapsingHeader =
         &Pyramid::UI::Context::CollapsingHeader;
     volatile decltype(&Pyramid::UI::Context::BeginScrollArea) g_beginScrollArea =
@@ -460,6 +490,8 @@ namespace
         static_cast<GetRegistryMaterials>(&Pyramid::ResourceRegistry::Materials);
     volatile decltype(&GameLinkageProbe::GetInput) g_getGameInput =
         &GameLinkageProbe::GetInput;
+    volatile decltype(&GameLinkageProbe::GetClipboard) g_getGameClipboard =
+        &GameLinkageProbe::GetClipboard;
     using GetGameInputActions = Pyramid::InputActionSystem& (GameLinkageProbe::*)();
     volatile GetGameInputActions g_getGameInputActions =
         static_cast<GetGameInputActions>(&GameLinkageProbe::GetInputActions);
@@ -518,19 +550,49 @@ int main()
     return g_updateInputActionsWithConsumption &&
                    g_mergeInputConsumption &&
                    g_consumeAllMouse &&
+                   g_consumeAllKeys &&
+                   g_consumeTextInput &&
+                   g_processTextCodepoint &&
+                   g_processUtf16CodeUnit &&
                    g_hasAnyMouseConsumption &&
+                   g_loadTrueType &&
+                   g_loadTrueTypeFile &&
+                   g_rasterizeGlyph &&
+                   g_bakeFont &&
+                   g_saveProcessedFont &&
+                   g_loadProcessedFont &&
                    g_createDebugFontAtlas &&
+                   g_createFontAtlas &&
+                   g_loadFontAtlas &&
                    g_measureText &&
                    g_buildGlyphQuads &&
                    g_layoutText &&
+                   g_decodeUtf8 &&
+                   g_encodeUtf8 &&
+                   g_insertTextBuffer &&
+                   g_moveTextCursor &&
+                   g_utf32ToUtf16 &&
+                   g_utf16ToUtf32 &&
                    g_prepareUIInput &&
                    g_beginUIFrame &&
                    g_endUIFrame &&
                    g_labelColored &&
                    g_wrappedLabel &&
+                   g_textField &&
+                   g_passwordField &&
+                   g_searchField &&
+                   g_multilineTextArea &&
                    g_collapsingHeader &&
                    g_beginScrollArea &&
                    g_endScrollArea &&
+                   g_uiOverlay &&
+                   g_addNineSlice &&
+                   g_resolveAnchoredRect &&
+                   g_resolveDockedRect &&
+                   g_pushUIScreen &&
+                   g_replaceUIScreen &&
+                   g_popUIScreen &&
+                   g_buildUIScreens &&
                    g_getRecentLogEntries &&
                    g_clearLogHistory &&
                    g_setLogHistoryCapacity &&
@@ -680,6 +742,7 @@ int main()
                    g_addInputBinding &&
                    g_rebindInputAction &&
                    g_getGameInput &&
+                   g_getGameClipboard &&
                    g_getGameInputActions &&
                    g_getGameResourceRegistry &&
                    g_getGameUIInputConsumption &&
@@ -688,6 +751,7 @@ int main()
                    g_setMaterial &&
                    g_setCommandUniformMat4 &&
                    g_drawMesh &&
+                   g_getDrawStats &&
                    g_resizeFramebuffer &&
                    g_resizeRenderTarget &&
                    g_resizeRenderSystem &&

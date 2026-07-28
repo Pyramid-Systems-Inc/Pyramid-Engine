@@ -77,8 +77,12 @@ namespace
     class MainMenuScreen final : public Pyramid::UI::Screen
     {
     public:
-        MainMenuScreen(std::function<void()> start, std::function<void()> quit)
+        MainMenuScreen(
+            std::function<void()> start,
+            std::function<void()> settings,
+            std::function<void()> quit)
             : m_start(std::move(start))
+            , m_settings(std::move(settings))
             , m_quit(std::move(quit))
         {
         }
@@ -96,7 +100,7 @@ namespace
             const Pyramid::UI::Rect root{0.0f, 0.0f, frame.width, frame.height};
             const Pyramid::UI::Rect rect = Pyramid::UI::ResolveAnchoredRect(
                 root,
-                Pyramid::Math::Vec2(440.0f, 330.0f),
+                Pyramid::Math::Vec2(440.0f, 370.0f),
                 Pyramid::UI::Anchor::Center,
                 {18.0f, 18.0f, 18.0f, 18.0f});
 
@@ -111,6 +115,10 @@ namespace
                 if (ui.Button("START GAME") && m_start)
                 {
                     m_start();
+                }
+                if (ui.Button("PROFILE SETTINGS") && m_settings)
+                {
+                    m_settings();
                 }
                 ui.Spacer();
                 ui.Label("F1  DEBUG OVERLAY");
@@ -127,7 +135,115 @@ namespace
 
     private:
         std::function<void()> m_start;
+        std::function<void()> m_settings;
         std::function<void()> m_quit;
+    };
+
+    class SettingsScreen final : public Pyramid::UI::Screen
+    {
+    public:
+        SettingsScreen(
+            std::string playerName,
+            std::string kingdomName,
+            std::string notes,
+            std::function<void(std::string, std::string, std::string)> save,
+            std::function<void()> cancel)
+            : m_playerName(std::move(playerName))
+            , m_kingdomName(std::move(kingdomName))
+            , m_notes(std::move(notes))
+            , m_save(std::move(save))
+            , m_cancel(std::move(cancel))
+        {
+        }
+
+        std::string_view GetName() const override { return "Settings"; }
+        Pyramid::UI::ScreenPresentation GetPresentation() const override
+        {
+            return Pyramid::UI::ScreenPresentation::Modal;
+        }
+
+        void Build(Pyramid::UI::Context& ui) override
+        {
+            const auto& frame = ui.GetFrameInfo();
+            ui.Overlay(
+                "SETTINGS BACKDROP",
+                Pyramid::Color(0.01f, 0.015f, 0.025f, 0.74f),
+                true);
+            const Pyramid::UI::Rect root{0.0f, 0.0f, frame.width, frame.height};
+            const Pyramid::UI::Rect rect = Pyramid::UI::ResolveAnchoredRect(
+                root,
+                Pyramid::Math::Vec2(540.0f, 590.0f),
+                Pyramid::UI::Anchor::Center,
+                {16.0f, 16.0f, 16.0f, 16.0f});
+            Pyramid::UI::PanelOptions panel;
+            panel.position = Pyramid::Math::Vec2(rect.x, rect.y);
+            panel.size = Pyramid::Math::Vec2(rect.width, rect.height);
+            if (!ui.BeginPanel("PROFILE SETTINGS", panel))
+            {
+                return;
+            }
+
+            Pyramid::UI::TextFieldOptions playerOptions;
+            playerOptions.placeholder = "Player name";
+            playerOptions.maximumCharacters = 48;
+            playerOptions.hasError = m_showValidation && m_playerName.empty();
+            const auto player = ui.TextField("PLAYER NAME", m_playerName, playerOptions);
+
+            Pyramid::UI::TextFieldOptions kingdomOptions;
+            kingdomOptions.placeholder = "Kingdom name";
+            kingdomOptions.maximumCharacters = 64;
+            kingdomOptions.hasError = m_showValidation && m_kingdomName.empty();
+            const auto kingdom = ui.TextField("KINGDOM NAME", m_kingdomName, kingdomOptions);
+
+            Pyramid::UI::TextAreaOptions notesOptions;
+            notesOptions.placeholder = "Notes";
+            notesOptions.maximumCharacters = 512;
+            notesOptions.height = 175.0f;
+            const auto notes = ui.MultilineTextArea("NOTES", m_notes, notesOptions);
+            (void)notes;
+
+            if (m_showValidation && (m_playerName.empty() || m_kingdomName.empty()))
+            {
+                ui.LabelColored(
+                    "Player and kingdom names are required.",
+                    Pyramid::Color(1.0f, 0.38f, 0.38f, 1.0f));
+            }
+            else
+            {
+                ui.WrappedLabel(
+                    "Supports Unicode typing, selection, Ctrl+C/X/V, and multiline notes.");
+            }
+
+            if (ui.BeginHorizontal("SETTINGS ACTIONS", 30.0f))
+            {
+                Pyramid::UI::ItemOptions action;
+                action.width = 145.0f;
+                const bool saveRequested = ui.Button("SAVE", action) ||
+                    player.submitted || kingdom.submitted;
+                if (saveRequested)
+                {
+                    m_showValidation = true;
+                    if (!m_playerName.empty() && !m_kingdomName.empty() && m_save)
+                    {
+                        m_save(m_playerName, m_kingdomName, m_notes);
+                    }
+                }
+                if (ui.Button("CANCEL", action) && m_cancel)
+                {
+                    m_cancel();
+                }
+                ui.EndHorizontal();
+            }
+            ui.EndPanel();
+        }
+
+    private:
+        std::string m_playerName;
+        std::string m_kingdomName;
+        std::string m_notes;
+        std::function<void(std::string, std::string, std::string)> m_save;
+        std::function<void()> m_cancel;
+        bool m_showValidation = false;
     };
 
     class GameplayHUDScreen final : public Pyramid::UI::Screen
@@ -343,6 +459,9 @@ void BasicGame::onCreate()
         return;
     }
 
+    m_gameUI.SetClipboard(GetClipboard());
+    m_debugUI.SetClipboard(GetClipboard());
+
     m_renderSystem = std::make_unique<Pyramid::Renderer::RenderSystem>();
     if (!m_renderSystem->Initialize(device))
     {
@@ -538,7 +657,11 @@ void BasicGame::onUpdate(float deltaTime)
 
     if (actions.WasActionPressed(kInputContext, kPauseAction))
     {
-        if (m_gameScreens.GetTopName() == "Pause")
+        if (m_gameScreens.GetTopName() == "Settings")
+        {
+            CloseSettings();
+        }
+        else if (m_gameScreens.GetTopName() == "Pause")
         {
             ResumeGameplay();
         }
@@ -651,11 +774,46 @@ void BasicGame::ShowMainMenu()
     m_gameplayStarted = false;
     auto screen = std::make_shared<MainMenuScreen>(
         [this]() { StartGameplay(); },
+        [this]() { OpenSettings(); },
         [this]() { quit(); });
     m_gameScreens.Clear();
     (void)m_gameScreens.Push(
         std::move(screen),
         {Pyramid::UI::ScreenTransitionType::Fade, 0.20f});
+}
+
+void BasicGame::OpenSettings()
+{
+    if (m_gameScreens.GetTopName() == "Settings")
+    {
+        return;
+    }
+    auto screen = std::make_shared<SettingsScreen>(
+        m_playerName,
+        m_kingdomName,
+        m_profileNotes,
+        [this](std::string player, std::string kingdom, std::string notes)
+        {
+            m_playerName = std::move(player);
+            m_kingdomName = std::move(kingdom);
+            m_profileNotes = std::move(notes);
+            PYRAMID_LOG_INFO(
+                "Saved UI profile for " + m_playerName + " / " + m_kingdomName);
+            CloseSettings();
+        },
+        [this]() { CloseSettings(); });
+    (void)m_gameScreens.Push(
+        std::move(screen),
+        {Pyramid::UI::ScreenTransitionType::Fade, 0.12f});
+}
+
+void BasicGame::CloseSettings()
+{
+    if (m_gameScreens.GetTopName() == "Settings")
+    {
+        (void)m_gameScreens.Pop(
+            {Pyramid::UI::ScreenTransitionType::Fade, 0.12f});
+    }
 }
 
 void BasicGame::StartGameplay()
@@ -789,8 +947,12 @@ void BasicGame::BuildDebugUI(float deltaTime)
                 FormatFloat(mouse.x, 0) + ", " + FormatFloat(mouse.y, 0));
             m_debugUI.LabelValue("WHEEL", FormatFloat(GetInput().GetMouseWheelDelta(), 1));
             m_debugUI.LabelValue(
+                "TEXT EVENTS",
+                FormatCount(GetInput().GetTextInputEventCount()));
+            m_debugUI.LabelValue(
                 "UI CAPTURE",
-                GetUIInputConsumption().HasAnyMouseConsumption() ? "POINTER" : "NONE");
+                GetUIInputConsumption().HasAnyMouseConsumption() ? "POINTER" :
+                (GetUIInputConsumption().IsTextInputConsumed() ? "TEXT" : "NONE"));
         }
 
         if (m_debugUI.CollapsingHeader("UI FRAME", m_uiSectionOpen))
@@ -803,6 +965,16 @@ void BasicGame::BuildDebugUI(float deltaTime)
             m_debugUI.LabelValue("ELEMENTS", FormatCount(uiStats.retainedElements));
             m_debugUI.LabelValue("VERTICES", FormatCount(uiStats.vertices));
             m_debugUI.LabelValue("BATCHES", FormatCount(uiStats.batches));
+            const auto& editing = m_gameUI.GetTextEditDebugInfo();
+            m_debugUI.LabelValue("EDIT CURSOR", FormatCount(editing.cursor));
+            m_debugUI.LabelValue(
+                "EDIT SELECTION",
+                std::to_string(editing.selection.begin) + "-" +
+                    std::to_string(editing.selection.end));
+            if (!editing.clipboardStatus.empty())
+            {
+                m_debugUI.LabelValue("CLIPBOARD", editing.clipboardStatus);
+            }
             const auto& font = m_debugUI.GetFontAtlas();
             m_debugUI.LabelValue("FONT", font.familyName);
             m_debugUI.LabelValue("FONT GLYPHS", FormatCount(font.glyphs.size()));

@@ -239,6 +239,7 @@ namespace Pyramid
         m_mouseDeltaY = false;
         m_mouseWheel = false;
         m_mouseHorizontalWheel = false;
+        m_textInput = false;
     }
 
     void InputConsumptionMask::Merge(const InputConsumptionMask& other)
@@ -256,6 +257,7 @@ namespace Pyramid
         m_mouseWheel = m_mouseWheel || other.m_mouseWheel;
         m_mouseHorizontalWheel =
             m_mouseHorizontalWheel || other.m_mouseHorizontalWheel;
+        m_textInput = m_textInput || other.m_textInput;
     }
 
     void InputConsumptionMask::ConsumeKey(Key key)
@@ -265,6 +267,17 @@ namespace Pyramid
         {
             m_keys[index] = true;
         }
+    }
+
+    void InputConsumptionMask::ConsumeAllKeys()
+    {
+        m_keys.fill(true);
+        m_keys[static_cast<std::size_t>(Key::Unknown)] = false;
+    }
+
+    void InputConsumptionMask::ConsumeTextInput()
+    {
+        m_textInput = true;
     }
 
     void InputConsumptionMask::ConsumeMouseButton(MouseButton button)

@@ -28,9 +28,32 @@ namespace
         bool IsMinimized() const override { return false; }
         bool IsMaximized() const override { return false; }
         const Pyramid::InputState& GetInputState() const override { return m_input; }
+        Pyramid::Clipboard& GetClipboard() override { return m_clipboard; }
 
     private:
+        class TestClipboard final : public Pyramid::Clipboard
+        {
+        public:
+            bool SetText(std::u32string_view text, std::string*) override
+            {
+                m_text.assign(text);
+                return true;
+            }
+
+            Pyramid::ClipboardTextResult GetText() const override
+            {
+                Pyramid::ClipboardTextResult result;
+                result.success = true;
+                result.text = m_text;
+                return result;
+            }
+
+        private:
+            std::u32string m_text;
+        };
+
         Pyramid::InputState m_input;
+        TestClipboard m_clipboard;
     };
 
     bool Expect(bool condition, const char* message)

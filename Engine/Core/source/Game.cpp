@@ -156,6 +156,11 @@ namespace Pyramid
         return m_window ? m_window->GetInputState() : emptyInput;
     }
 
+    Clipboard* Game::GetClipboard() const
+    {
+        return m_window ? &m_window->GetClipboard() : nullptr;
+    }
+
     void Game::SetActiveCamera(Camera* camera)
     {
         m_activeCamera = camera;

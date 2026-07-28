@@ -12,6 +12,7 @@ set_target_properties(PyramidUI PROPERTIES
 target_sources(PyramidUI
     PRIVATE
         source/UI.cpp
+        source/TextEditing.cpp
         source/GameUI.cpp
     PRIVATE
         include/Pyramid/UI/UI.hpp

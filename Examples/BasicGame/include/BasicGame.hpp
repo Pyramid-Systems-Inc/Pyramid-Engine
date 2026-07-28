@@ -15,6 +15,7 @@
 #include <Pyramid/Text/Text.hpp>
 
 #include <memory>
+#include <string>
 
 namespace Pyramid
 {
@@ -45,6 +46,8 @@ private:
     void ShowMainMenu();
     void StartGameplay();
     void OpenPauseMenu();
+    void OpenSettings();
+    void CloseSettings();
     void ResumeGameplay();
     void ReturnToMainMenu();
 
@@ -78,4 +81,7 @@ private:
     bool m_resourcesSectionOpen = true;
     bool m_inputSectionOpen = true;
     bool m_uiSectionOpen = true;
+    std::string m_playerName = "Omar";
+    std::string m_kingdomName = "Pyramid Kingdom";
+    std::string m_profileNotes = "Unicode text input is ready.";
 };

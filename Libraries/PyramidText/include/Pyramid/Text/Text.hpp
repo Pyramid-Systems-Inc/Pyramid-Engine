@@ -4,12 +4,105 @@
 #include <Pyramid/Math/Vec2.hpp>
 #include <Pyramid/Font/Font.hpp>
 
+#include <cstddef>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace Pyramid::Text
 {
+
+    struct Utf8DecodeResult
+    {
+        std::u32string text;
+        u32 invalidSequences = 0;
+    };
+
+    [[nodiscard]] Utf8DecodeResult DecodeUtf8(std::string_view utf8Text);
+    [[nodiscard]] std::string EncodeUtf8(std::u32string_view text);
+
+    struct TextRange
+    {
+        std::size_t begin = 0;
+        std::size_t end = 0;
+
+        [[nodiscard]] bool Empty() const { return begin == end; }
+        [[nodiscard]] std::size_t Length() const { return end >= begin ? end - begin : 0; }
+    };
+
+    enum class CursorMove : u8
+    {
+        PreviousCodepoint = 0,
+        NextCodepoint,
+        PreviousWord,
+        NextWord,
+        LineStart,
+        LineEnd,
+        DocumentStart,
+        DocumentEnd,
+        LineUp,
+        LineDown
+    };
+
+    /**
+     * Renderer-independent Unicode editing model.
+     *
+     * Text is stored as Unicode scalar values so cursor and selection indices are
+     * code-point indices rather than UTF-8 byte offsets. UI, console and editor
+     * widgets share this model without depending on a native window backend.
+     */
+    class TextBuffer final
+    {
+    public:
+        TextBuffer() = default;
+        explicit TextBuffer(std::u32string text);
+
+        void SetText(std::u32string text);
+        [[nodiscard]] const std::u32string& GetText() const { return m_text; }
+        [[nodiscard]] std::string GetUtf8() const;
+        [[nodiscard]] std::size_t Size() const { return m_text.size(); }
+        [[nodiscard]] bool Empty() const { return m_text.empty(); }
+
+        void SetMaximumCharacters(std::size_t maximum);
+        [[nodiscard]] std::size_t GetMaximumCharacters() const { return m_maximumCharacters; }
+        void SetSingleLine(bool singleLine);
+        [[nodiscard]] bool IsSingleLine() const { return m_singleLine; }
+        void SetReadOnly(bool readOnly) { m_readOnly = readOnly; }
+        [[nodiscard]] bool IsReadOnly() const { return m_readOnly; }
+
+        [[nodiscard]] std::size_t GetCursor() const { return m_cursor; }
+        [[nodiscard]] TextRange GetSelection() const;
+        [[nodiscard]] bool HasSelection() const { return m_cursor != m_anchor; }
+        [[nodiscard]] std::u32string GetSelectedText() const;
+
+        void SetCursor(std::size_t index, bool extendSelection = false);
+        void SetSelection(TextRange range);
+        void SelectAll();
+        void ClearSelection();
+        [[nodiscard]] bool SelectWordAt(std::size_t index);
+        [[nodiscard]] bool SelectLineAt(std::size_t index);
+
+        [[nodiscard]] bool Insert(std::u32string_view text);
+        [[nodiscard]] bool Backspace();
+        [[nodiscard]] bool DeleteForward();
+        [[nodiscard]] bool DeleteSelection();
+        [[nodiscard]] bool MoveCursor(CursorMove move, bool extendSelection = false);
+
+    private:
+        [[nodiscard]] std::size_t ClampIndex(std::size_t index) const;
+        [[nodiscard]] std::size_t FindLineStart(std::size_t index) const;
+        [[nodiscard]] std::size_t FindLineEnd(std::size_t index) const;
+        [[nodiscard]] static bool IsWordCharacter(char32_t codepoint);
+        void Normalize();
+
+        std::u32string m_text;
+        std::size_t m_cursor = 0;
+        std::size_t m_anchor = 0;
+        std::size_t m_maximumCharacters = (std::numeric_limits<std::size_t>::max)();
+        bool m_singleLine = false;
+        bool m_readOnly = false;
+    };
     struct Glyph
     {
         char32_t codepoint = U'?';

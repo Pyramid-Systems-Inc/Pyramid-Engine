@@ -11,6 +11,11 @@ target_link_libraries(PyramidGameUITests PRIVATE Pyramid::UI)
 set_target_properties(PyramidGameUITests PROPERTIES FOLDER "Tests/Libraries")
 add_test(NAME UI.GameScreens COMMAND $<TARGET_FILE:PyramidGameUITests>)
 
+add_executable(PyramidUITextEditingTests TextEditingTests.cpp)
+target_link_libraries(PyramidUITextEditingTests PRIVATE Pyramid::UI)
+set_target_properties(PyramidUITextEditingTests PROPERTIES FOLDER "Tests/Libraries")
+add_test(NAME UI.TextEditing COMMAND $<TARGET_FILE:PyramidUITextEditingTests>)
+
 if(TARGET PyramidMinGWRuntime)
     get_property(_pyramid_library_test_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
     foreach(_pyramid_library_test_target IN LISTS _pyramid_library_test_targets)

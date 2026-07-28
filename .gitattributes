@@ -9,3 +9,9 @@ docs/ROADMAP.md -diff
 Tests/PublicApiLinkage.cpp -diff
 Tests/CMakeLists.txt -diff
 docs/DEVELOPMENT.md -diff
+Engine/Core/include/Pyramid/Core/Game.hpp -diff
+Engine/Core/source/Game.cpp -diff
+Engine/Platform/include/Pyramid/Platform/Window.hpp -diff
+Engine/Platform/include/Pyramid/Platform/Windows/Win32OpenGLWindow.hpp -diff
+Engine/Platform/source/Windows/Win32OpenGLWindow.cpp -diff
+Tests/WindowResizeEventTests.cpp -diff

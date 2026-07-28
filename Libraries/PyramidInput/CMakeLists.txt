@@ -13,8 +13,10 @@ target_sources(PyramidInput
     PRIVATE
         source/Input.cpp
         source/InputActions.cpp
+        source/Clipboard.cpp
     PRIVATE
         include/Pyramid/Platform/Input.hpp
+        include/Pyramid/Platform/Clipboard.hpp
         include/Pyramid/Input/InputActions.hpp
 )
 

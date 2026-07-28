@@ -18,13 +18,13 @@ The project is intended for engine development and experimentation. It is not ye
 | Scene | Stable-ID entities, hierarchical transforms, optional mesh-renderer/light components, scene serialization, and octree queries |
 | Foundation | Standalone `Pyramid::Foundation` types, colors, assertions, and logging |
 | Math | Standalone `Pyramid::Math` vectors, matrices, quaternions, geometry helpers, and SIMD utilities |
-| Input | Standalone `Pyramid::Input` physical state and named action mapping |
+| Input | Standalone `Pyramid::Input` physical state, Unicode text events, clipboard abstraction, and named action mapping |
 | Images | Standalone `Pyramid::Image` library with TGA/BMP subsets, custom non-interlaced PNG, and owned baseline/progressive JPEG decoding |
 | Models | Standalone `Pyramid::Model` OBJ/MTL parser with bounded diagnostics, triangulation, indexing, generated normals, and normalized dependencies |
-| Text | Standalone `Pyramid::Text` UTF-8 decoding, wrapping/alignment, glyph-run generation, and deterministic embedded ASCII debug atlas |
+| Text | Standalone `Pyramid::Text` Unicode editing buffers, UTF-8 conversion, wrapping/alignment, glyph-run generation, and deterministic embedded fallback atlas |
 | Font | Standalone `Pyramid::Font` TrueType-outline parsing, CPU rasterization, deterministic `.pfont` assets, kerning, and bounded malformed-input rejection |
-| UI | Standalone hybrid `Pyramid::UI` runtime with retained game screens, immediate debug tools, responsive layout, modal input blocking, clipping, widgets, and renderer-independent draw lists |
-| Tests | 48 CTest targets, including standalone foundation, math, input, image, model, font, text, and UI coverage plus focused engine/reference-game tests |
+| UI | Standalone hybrid `Pyramid::UI` runtime with retained screens, immediate debug tools, editable text controls, modal input blocking, clipping, responsive layout, and renderer-independent draw lists |
+| Tests | 52 CTest targets, including standalone foundation, math, input, image, model, font, text, and UI coverage plus focused engine/reference-game tests |
 | CI | GCC and Clang, Debug and Release, package install, and external-consumer validation |
 
 ## Implemented
@@ -32,6 +32,7 @@ The project is intended for engine development and experimentation. It is not ye
 - Application lifecycle and frame loop through `Pyramid::Game`.
 - Real Win32 keyboard and mouse input with held/pressed/released states, pointer movement, wheel deltas, and focus-safe reset behavior.
 - Engine-generic named input actions with button/1D/2D values, prioritized contexts, control consumption, chords, and runtime rebinding.
+- Unicode committed-text events remain separate from physical keys; the Win32 backend combines UTF-16 surrogate pairs and exposes a bounded `CF_UNICODETEXT` clipboard service through the platform-neutral input package.
 - Reusable camera-controller framework with free-fly, target-orbit, and optional XZ-ground-plane strategy controllers. Controllers consume configurable named actions and never own physical bindings.
 - A game-side RTS reference interaction layer with focus-safe edge scrolling, ray-based selection, and ground-plane command requests; RTS semantics remain outside `Pyramid::Engine`.
 - Win32 window creation, resize-event delivery, resize-safe viewport updates, visibility, positioning, and WGL context management.
@@ -45,8 +46,9 @@ The project is intended for engine development and experimentation. It is not ye
 - Dependency-free OBJ/MTL import supports positive/negative indices, polygon triangulation, material groups, common MTL properties, generated smooth or hard-edge normals, vertex deduplication, bounds, file/memory input, and bounded malformed-input diagnostics.
 - `ModelResourceImporter` transactionally publishes imported meshes, diffuse textures, and immutable materials through the existing caches using a configurable shader/material profile; repeated content is reused and failed imports roll back only resources introduced by that operation.
 - Hybrid `Pyramid::UI` contexts reconcile immediate widgets into retained state, while `ScreenStack` owns persistent opaque, transparent, and modal game screens with deferred lifecycle-safe routing.
+- `Pyramid::Text::TextBuffer` and retained UI text fields provide code-point-based cursor/selection editing, Unicode insertion, copy/cut/paste, password masking, multiline scrolling, submission, cancellation, and gameplay-input isolation.
 - `UIRenderer` uploads batched quads through the graphics device, renders either the processed `Pyramid::Font` atlas or the embedded `Pyramid::Text` fallback atlas, supports registered image textures, explicitly restores the final DPI-scaled surface viewport after off-screen passes, applies scissor clipping, and restores the engine render-state baseline.
-- `BasicGame` includes a retained main menu, responsive gameplay HUD, modal pause menu, and an F1 runtime overlay with collapsible diagnostics and a scrollable runtime log.
+- `BasicGame` includes a retained main menu, modal profile-settings form with Unicode text editing, responsive gameplay HUD, modal pause menu, and an F1 runtime overlay with collapsible diagnostics and a scrollable runtime log.
 - Installable CMake packages export `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, `Pyramid::Model`, `Pyramid::Font`, `Pyramid::Text`, `Pyramid::UI`, and `Pyramid::Engine`.
 
 ## Important limitations

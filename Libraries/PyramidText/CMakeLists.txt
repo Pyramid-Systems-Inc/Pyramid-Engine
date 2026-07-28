@@ -12,6 +12,7 @@ set_target_properties(PyramidText PROPERTIES
 target_sources(PyramidText
     PRIVATE
         source/Text.cpp
+        source/TextEditing.cpp
     PRIVATE
         include/Pyramid/Text/Text.hpp
 )

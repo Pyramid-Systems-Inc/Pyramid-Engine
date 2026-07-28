@@ -2,6 +2,8 @@
 #include <Pyramid/Util/Log.hpp>
 #include <glad/glad.h>
 #include <glad/glad_wgl.h>
+#include <algorithm>
+#include <cstring>
 #include <string>
 #include <vector>
 #include <windowsx.h>
@@ -235,6 +237,29 @@ namespace Pyramid
             return msg == WM_SYSKEYUP
                 ? DefWindowProcW(hwnd, msg, wParam, lParam)
                 : 0;
+
+        case WM_UNICHAR:
+            if (wParam == UNICODE_NOCHAR)
+            {
+                return TRUE;
+            }
+            if (window)
+            {
+                window->m_input.ProcessTextCodepoint(static_cast<char32_t>(wParam));
+            }
+            return 0;
+
+        case WM_CHAR:
+        case WM_SYSCHAR:
+            if (window)
+            {
+                window->m_input.ProcessUtf16CodeUnit(static_cast<char16_t>(wParam));
+            }
+            return 0;
+
+        case WM_DEADCHAR:
+        case WM_SYSDEADCHAR:
+            return 0;
 
         case WM_MOUSEMOVE:
             if (window)
@@ -673,6 +698,194 @@ namespace Pyramid
     {
         if (m_hdc && m_hglrc)
             wglMakeCurrent(m_hdc, m_hglrc);
+    }
+
+    bool Win32OpenGLWindow::SetText(std::u32string_view text, std::string* error)
+    {
+        if (error)
+        {
+            error->clear();
+        }
+
+        std::u32string normalized;
+        normalized.reserve(text.size());
+        for (std::size_t index = 0; index < text.size(); ++index)
+        {
+            const char32_t codepoint = text[index];
+            if (codepoint == U'\r')
+            {
+                if (index + 1U < text.size() && text[index + 1U] == U'\n')
+                {
+                    ++index;
+                }
+                normalized.push_back(U'\n');
+            }
+            else
+            {
+                normalized.push_back(codepoint);
+            }
+        }
+
+        std::u32string windowsText;
+        windowsText.reserve(normalized.size() + normalized.size() / 8U);
+        for (char32_t codepoint : normalized)
+        {
+            if (codepoint == U'\n')
+            {
+                windowsText.push_back(U'\r');
+            }
+            windowsText.push_back(codepoint);
+        }
+
+        std::u16string utf16;
+        if (!ClipboardEncoding::Utf32ToUtf16(windowsText, utf16, 4U * 1024U * 1024U, error))
+        {
+            return false;
+        }
+        utf16.push_back(u'\0');
+
+        const SIZE_T bytes = utf16.size() * sizeof(char16_t);
+        HGLOBAL memory = GlobalAlloc(GMEM_MOVEABLE, bytes);
+        if (!memory)
+        {
+            if (error)
+            {
+                *error = "GlobalAlloc failed for clipboard text";
+            }
+            return false;
+        }
+
+        void* destination = GlobalLock(memory);
+        if (!destination)
+        {
+            if (error)
+            {
+                *error = "GlobalLock failed for clipboard text";
+            }
+            GlobalFree(memory);
+            return false;
+        }
+        std::memcpy(destination, utf16.data(), bytes);
+        GlobalUnlock(memory);
+
+        if (!OpenClipboard(m_hwnd))
+        {
+            if (error)
+            {
+                *error = "OpenClipboard failed";
+            }
+            GlobalFree(memory);
+            return false;
+        }
+
+        if (!EmptyClipboard())
+        {
+            if (error)
+            {
+                *error = "EmptyClipboard failed";
+            }
+            GlobalFree(memory);
+            CloseClipboard();
+            return false;
+        }
+
+        if (!SetClipboardData(CF_UNICODETEXT, memory))
+        {
+            if (error)
+            {
+                *error = "SetClipboardData failed";
+            }
+            GlobalFree(memory);
+            CloseClipboard();
+            return false;
+        }
+
+        CloseClipboard();
+        return true;
+    }
+
+    ClipboardTextResult Win32OpenGLWindow::GetText() const
+    {
+        ClipboardTextResult result;
+        if (!IsClipboardFormatAvailable(CF_UNICODETEXT))
+        {
+            result.error = "clipboard does not contain Unicode text";
+            return result;
+        }
+        if (!OpenClipboard(m_hwnd))
+        {
+            result.error = "OpenClipboard failed";
+            return result;
+        }
+
+        HANDLE handle = GetClipboardData(CF_UNICODETEXT);
+        if (!handle)
+        {
+            result.error = "GetClipboardData failed";
+            CloseClipboard();
+            return result;
+        }
+
+        const SIZE_T byteSize = GlobalSize(handle);
+        const auto* data = static_cast<const char16_t*>(GlobalLock(handle));
+        if (!data || byteSize < sizeof(char16_t))
+        {
+            result.error = "clipboard Unicode text is unavailable";
+            if (data)
+            {
+                GlobalUnlock(handle);
+            }
+            CloseClipboard();
+            return result;
+        }
+
+        const std::size_t maximumUnits = byteSize / sizeof(char16_t);
+        std::size_t length = 0;
+        while (length < maximumUnits && data[length] != u'\0')
+        {
+            ++length;
+        }
+        if (length == maximumUnits)
+        {
+            result.error = "clipboard Unicode text is not terminated";
+            GlobalUnlock(handle);
+            CloseClipboard();
+            return result;
+        }
+
+        std::u32string decoded;
+        std::string conversionError;
+        const bool converted = ClipboardEncoding::Utf16ToUtf32(
+            std::u16string_view(data, length),
+            decoded,
+            4U * 1024U * 1024U,
+            &conversionError);
+        GlobalUnlock(handle);
+        CloseClipboard();
+        if (!converted)
+        {
+            result.error = conversionError;
+            return result;
+        }
+
+        result.text.reserve(decoded.size());
+        for (std::size_t index = 0; index < decoded.size(); ++index)
+        {
+            if (decoded[index] == U'\r')
+            {
+                if (index + 1U < decoded.size() && decoded[index + 1U] == U'\n')
+                {
+                    ++index;
+                }
+                result.text.push_back(U'\n');
+            }
+            else
+            {
+                result.text.push_back(decoded[index]);
+            }
+        }
+        result.success = true;
+        return result;
     }
 
     bool Win32OpenGLWindow::ProcessMessages()

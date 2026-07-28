@@ -1,4 +1,5 @@
 #include <Pyramid/Platform/Input.hpp>
+#include <utility>
 
 
 namespace Pyramid
@@ -12,6 +13,7 @@ namespace Pyramid
         m_mouseDelta = {};
         m_mouseWheelDelta = 0.0f;
         m_mouseHorizontalWheelDelta = 0.0f;
+        m_textInputEvents.clear();
     }
 
     void InputState::SetFocused(bool focused)
@@ -96,6 +98,79 @@ namespace Pyramid
         m_mouseHorizontalWheelDelta += horizontalSteps;
     }
 
+    void InputState::ProcessTextCodepoint(char32_t codepoint)
+    {
+        if (!m_focused)
+        {
+            return;
+        }
+        if (codepoint > 0x10ffffU || (codepoint >= 0xd800U && codepoint <= 0xdfffU))
+        {
+            codepoint = U'\uFFFD';
+        }
+        TextInputEvent event;
+        event.type = TextInputEventType::Commit;
+        event.text.push_back(codepoint);
+        m_textInputEvents.push_back(std::move(event));
+    }
+
+    void InputState::ProcessUtf16CodeUnit(char16_t codeUnit)
+    {
+        if (!m_focused)
+        {
+            m_pendingHighSurrogate = 0;
+            return;
+        }
+
+        if (codeUnit >= 0xd800U && codeUnit <= 0xdbffU)
+        {
+            if (m_pendingHighSurrogate != 0)
+            {
+                ProcessTextCodepoint(U'\uFFFD');
+            }
+            m_pendingHighSurrogate = codeUnit;
+            return;
+        }
+
+        if (codeUnit >= 0xdc00U && codeUnit <= 0xdfffU)
+        {
+            if (m_pendingHighSurrogate == 0)
+            {
+                ProcessTextCodepoint(U'\uFFFD');
+                return;
+            }
+            const char32_t high = static_cast<char32_t>(m_pendingHighSurrogate) - 0xd800U;
+            const char32_t low = static_cast<char32_t>(codeUnit) - 0xdc00U;
+            m_pendingHighSurrogate = 0;
+            ProcessTextCodepoint(0x10000U + (high << 10U) + low);
+            return;
+        }
+
+        if (m_pendingHighSurrogate != 0)
+        {
+            m_pendingHighSurrogate = 0;
+            ProcessTextCodepoint(U'\uFFFD');
+        }
+        ProcessTextCodepoint(static_cast<char32_t>(codeUnit));
+    }
+
+    void InputState::ProcessTextEvent(TextInputEvent event)
+    {
+        if (!m_focused ||
+            (event.type == TextInputEventType::Commit && event.text.empty()))
+        {
+            return;
+        }
+        for (char32_t& codepoint : event.text)
+        {
+            if (codepoint > 0x10ffffU || (codepoint >= 0xd800U && codepoint <= 0xdfffU))
+            {
+                codepoint = U'\uFFFD';
+            }
+        }
+        m_textInputEvents.push_back(std::move(event));
+    }
+
     void InputState::ReleaseMouseButtons()
     {
         for (std::size_t index = 0; index < MouseButtonCount; ++index)
@@ -140,6 +215,8 @@ namespace Pyramid
         m_mouseWheelDelta = 0.0f;
         m_mouseHorizontalWheelDelta = 0.0f;
         m_hasMousePosition = false;
+        m_textInputEvents.clear();
+        m_pendingHighSurrogate = 0;
     }
 
     bool InputState::IsKeyDown(Key key) const

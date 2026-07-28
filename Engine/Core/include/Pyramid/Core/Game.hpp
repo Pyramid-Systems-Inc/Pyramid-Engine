@@ -111,6 +111,9 @@ protected:
      */
     const InputState& GetInput() const;
 
+    /** Native Unicode clipboard associated with the game window. */
+    Clipboard* GetClipboard() const;
+
     /**
      * @brief Engine-generic named action and input-context system.
      *

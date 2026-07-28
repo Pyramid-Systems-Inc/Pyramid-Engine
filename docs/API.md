@@ -144,7 +144,32 @@ Call `Synchronize()` after external code changes a camera pose, `CaptureHome()` 
 
 Contexts are evaluated from highest to lowest priority. An enabled consuming context blocks only controls that were active during that frame, allowing UI, editor, console, gameplay, and vehicle modes to coexist.
 
-`InputConsumptionMask` reserves physical controls before context evaluation. Use `InputActionSystem::Update(input, mask)` when a higher layer has already handled keys, mouse buttons, pointer deltas, or wheel input. `Game::RegisterUIContext()` and `UnregisterUIContext()` merge registered UI masks automatically before the normal action update. Gamepad input, text input, raw relative mouse mode, camera blending/collision, and persisted binding files remain future work.
+`InputConsumptionMask` reserves physical controls before context evaluation. Use `InputActionSystem::Update(input, mask)` when a higher layer has already handled keys, mouse buttons, pointer deltas, wheel input, or committed text. `Game::RegisterUIContext()` and `UnregisterUIContext()` merge registered UI masks automatically before the normal action update. Gamepad input, raw relative mouse mode, camera blending/collision, and persisted binding files remain future work.
+
+### Unicode text events and clipboard
+
+Physical key transitions and entered text are separate APIs. The Win32 backend feeds UTF-16 character messages into `InputState`, which combines surrogate pairs and emits Unicode scalar values:
+
+```cpp
+for (const Pyramid::TextInputEvent& event : GetInput().GetTextInputEvents())
+{
+    if (event.type == Pyramid::TextInputEventType::Commit)
+    {
+        for (char32_t codepoint : event.text)
+            HandleCommittedCharacter(codepoint);
+    }
+}
+```
+
+`TextInputEventType` also reserves composition start/update/end events so a later IME implementation does not require replacing the public event model. Focus loss clears pending surrogates and text events. `InputConsumptionMask::ConsumeTextInput()` prevents committed text from reaching lower action layers while leaving unrelated controls available.
+
+Include the clipboard contract with:
+
+```cpp
+#include <Pyramid/Platform/Clipboard.hpp>
+```
+
+`Game::GetClipboard()` returns the native window clipboard service. It exchanges UTF-32 text through a platform-neutral interface; the Win32 implementation uses `CF_UNICODETEXT`, normalizes clipboard line endings to LF, and bounds conversions. `ClipboardEncoding::Utf32ToUtf16()` and `Utf16ToUtf32()` are available for backend and test code.
 
 ## Font assets
 
@@ -183,6 +208,19 @@ Include the renderer-independent APIs with:
 
 `Text::CreateDebugFontAtlas()` returns a deterministic embedded ASCII atlas. `Text::LoadFontAtlas()` converts a processed `.pfont` into the same renderer-neutral atlas contract, and `UI::Context::SetFontAtlas()` switches an idle context to that atlas. `Text::Layout()` strictly decodes UTF-8, substitutes unsupported code points through the atlas fallback glyph, reports malformed-sequence counts, expands tabs, wraps by word or character, aligns lines, and emits renderer-neutral glyph geometry plus line metrics. `Text::Measure()` and `Text::BuildGlyphQuads()` remain compact convenience APIs.
 
+`Text::TextBuffer` stores Unicode scalar values and exposes code-point-based cursor and selection operations independently from UI rendering:
+
+```cpp
+Pyramid::Text::TextBuffer buffer(U"Kingdom");
+buffer.SetMaximumCharacters(64);
+buffer.MoveCursor(Pyramid::Text::CursorMove::DocumentEnd);
+buffer.Insert(U" Ω");
+buffer.SelectWordAt(buffer.GetCursor() - 1);
+const std::string utf8 = buffer.GetUtf8();
+```
+
+It supports insertion, backspace/delete, word/line/document movement, line-up/down movement, selection replacement, single-line normalization, read-only mode, and character limits. `Text::DecodeUtf8()` and `EncodeUtf8()` provide strict conversion at application boundaries.
+
 A `UI::Context` owns retained widget state and accepts immediate calls between `BeginFrame()` and `EndFrame()`:
 
 ```cpp
@@ -213,6 +251,24 @@ if (ui.BeginPanel("DEBUG"))
 }
 const Pyramid::UI::DrawList& drawList = ui.EndFrame();
 ```
+
+Editable controls bind directly to UTF-8 application strings while retaining Unicode editing state internally:
+
+```cpp
+ui.SetClipboard(GetClipboard());
+
+Pyramid::UI::TextFieldOptions nameOptions;
+nameOptions.placeholder = "Kingdom name";
+nameOptions.maximumCharacters = 64;
+const auto nameResult = ui.TextField("KINGDOM NAME", kingdomName, nameOptions);
+
+Pyramid::UI::TextAreaOptions notesOptions;
+notesOptions.height = 160.0f;
+notesOptions.maximumCharacters = 1024;
+const auto notesResult = ui.MultilineTextArea("NOTES", notes, notesOptions);
+```
+
+`TextField`, `PasswordField`, `SearchField`, and `MultilineTextArea` support pointer caret placement, drag selection, double-click word selection, triple-click line selection, Shift selection, Ctrl+A/C/X/V, word navigation, Home/End, Enter submission, Escape rollback, placeholder/error states, and caret/selection rendering. A focused editor consumes character-producing and editing controls before gameplay actions, but leaves unrelated function keys available. Full IME composition presentation, bidirectional editing, and complex-script shaping remain later work.
 
 Persistent game flow uses the retained screen stack:
 

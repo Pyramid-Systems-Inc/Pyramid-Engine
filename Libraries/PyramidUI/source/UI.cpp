@@ -200,6 +200,7 @@ namespace Pyramid::UI
         }
         m_font = font;
         m_elements.clear();
+        m_textEditStates.clear();
         m_drawOrder.clear();
         m_interactiveOrder.clear();
         m_focusedId = 0;
@@ -217,6 +218,7 @@ namespace Pyramid::UI
             m_hotId = 0;
             m_focusedId = 0;
             m_wantsPointer = false;
+            m_textEditDebug = {};
         }
     }
 
@@ -249,6 +251,27 @@ namespace Pyramid::UI
             }
         }
 
+        if (m_focusedId != 0 && input.HasMousePosition() &&
+            input.WasMouseButtonPressed(MouseButton::Left))
+        {
+            const auto focused = m_elements.find(m_focusedId);
+            if (focused != m_elements.end() &&
+                (focused->second.kind == ElementKind::TextField ||
+                 focused->second.kind == ElementKind::TextArea))
+            {
+                const MousePosition mouse = input.GetMousePosition();
+                const Math::Vec2 pointer(mouse.x, mouse.y);
+                if (!focused->second.rect.Contains(pointer))
+                {
+                    if (m_activeId == m_focusedId)
+                    {
+                        m_activeId = 0;
+                    }
+                    m_focusedId = 0;
+                }
+            }
+        }
+
         if (m_activeId != 0)
         {
             m_wantsPointer = true;
@@ -260,13 +283,49 @@ namespace Pyramid::UI
 
         if (m_focusedId != 0)
         {
-            mask.ConsumeKey(Key::Tab);
-            mask.ConsumeKey(Key::Enter);
-            mask.ConsumeKey(Key::Space);
-            mask.ConsumeKey(Key::Left);
-            mask.ConsumeKey(Key::Right);
-            mask.ConsumeKey(Key::Up);
-            mask.ConsumeKey(Key::Down);
+            const auto focused = m_elements.find(m_focusedId);
+            const bool textEditing = focused != m_elements.end() &&
+                (focused->second.kind == ElementKind::TextField ||
+                 focused->second.kind == ElementKind::TextArea);
+            if (textEditing)
+            {
+                for (u16 value = static_cast<u16>(Key::Space);
+                     value <= static_cast<u16>(Key::GraveAccent);
+                     ++value)
+                {
+                    mask.ConsumeKey(static_cast<Key>(value));
+                }
+                for (u16 value = static_cast<u16>(Key::Enter);
+                     value <= static_cast<u16>(Key::End);
+                     ++value)
+                {
+                    mask.ConsumeKey(static_cast<Key>(value));
+                }
+                for (u16 value = static_cast<u16>(Key::Keypad0);
+                     value <= static_cast<u16>(Key::KeypadEnter);
+                     ++value)
+                {
+                    mask.ConsumeKey(static_cast<Key>(value));
+                }
+                mask.ConsumeKey(Key::Escape);
+                mask.ConsumeKey(Key::LeftShift);
+                mask.ConsumeKey(Key::RightShift);
+                mask.ConsumeKey(Key::LeftControl);
+                mask.ConsumeKey(Key::RightControl);
+                mask.ConsumeKey(Key::LeftAlt);
+                mask.ConsumeKey(Key::RightAlt);
+                mask.ConsumeTextInput();
+            }
+            else
+            {
+                mask.ConsumeKey(Key::Tab);
+                mask.ConsumeKey(Key::Enter);
+                mask.ConsumeKey(Key::Space);
+                mask.ConsumeKey(Key::Left);
+                mask.ConsumeKey(Key::Right);
+                mask.ConsumeKey(Key::Up);
+                mask.ConsumeKey(Key::Down);
+            }
         }
         return mask;
     }
@@ -279,9 +338,14 @@ namespace Pyramid::UI
         }
 
         ++m_frameIndex;
+        m_elapsedTime += (std::max)(0.0f, frame.deltaTime);
         m_frame = frame;
         m_input = &input;
         m_frameActive = true;
+        m_textEditDebug.widget = 0;
+        m_textEditDebug.cursor = 0;
+        m_textEditDebug.selection = {};
+        m_textEditDebug.textEventsThisFrame = static_cast<u32>(input.GetTextInputEventCount());
 
         if (input.WasKeyPressed(Key::Tab))
         {
@@ -328,6 +392,7 @@ namespace Pyramid::UI
                 {
                     m_activeId = 0;
                 }
+                m_textEditStates.erase(iterator->first);
                 iterator = m_elements.erase(iterator);
             }
             else

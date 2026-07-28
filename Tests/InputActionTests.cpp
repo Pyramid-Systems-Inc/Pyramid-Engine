@@ -236,6 +236,18 @@ int main()
     Require(NearlyEqual(maskedActions.GetActionValue("masked", "Wheel"), 0.0f),
         "pre-consumed wheel reached action contexts");
 
+    InputConsumptionMask textConsumption;
+    textConsumption.ConsumeAllKeys();
+    textConsumption.ConsumeTextInput();
+    Require(textConsumption.IsKeyConsumed(Key::W) &&
+            textConsumption.IsKeyConsumed(Key::Enter),
+        "all-key consumption did not reserve keyboard controls");
+    Require(textConsumption.IsTextInputConsumed() && textConsumption.HasAnyConsumption(),
+        "text-input consumption was not reported");
+    initialConsumption.Merge(textConsumption);
+    Require(initialConsumption.IsTextInputConsumed(),
+        "text-input consumption did not merge");
+
     input.BeginFrame();
     input.SetFocused(false);
     actions.Update(input);

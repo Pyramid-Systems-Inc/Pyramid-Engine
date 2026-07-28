@@ -21,6 +21,7 @@ Demonstrates:
 - the reusable `RTSCameraController`: WASD pans, Q/E or middle-drag orbits, the wheel zooms, Shift boosts movement, and `R` restores the captured home pose;
 - `Pyramid::RTSReference` game-side interaction: moving the pointer to a window edge scrolls, left click selects the demo cube through a selectable predicate, and right click emits a ground-plane command for the selected entity;
 - a retained main menu starts the reference runtime; `Escape` opens/closes the modal pause menu, `F10` quits, `Space` toggles cube animation during gameplay, and `F1` toggles the runtime debug overlay;
+- a modal profile-settings form demonstrates Unicode player/kingdom names, multiline notes, clipboard copy/cut/paste, keyboard selection/navigation, validation, save, and Escape/cancel rollback;
 - responsive retained main-menu/HUD/pause screens plus collapsible diagnostics, wrapped help text, runtime controls, and a scrollable severity-colored in-memory log console;
 - the Ruqoom-owned `Pyramid Sans` TrueType source, deterministic `.pfont` runtime asset, kerning-aware `Pyramid::Text` layout, automatic copied font assets, and embedded-font fallback when the processed file is unavailable;
 - explicit final-surface viewport restoration after fixed-resolution shadow/off-screen passes;

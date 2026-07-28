@@ -2,6 +2,7 @@
 
 #include <Pyramid/Core/Prerequisites.hpp>
 #include <Pyramid/Platform/Input.hpp>
+#include <Pyramid/Platform/Clipboard.hpp>
 
 #include <functional>
 #include <utility>
@@ -67,6 +68,9 @@ namespace Pyramid
          * @brief Current per-frame keyboard and mouse state for this window.
          */
         [[nodiscard]] virtual const InputState& GetInputState() const = 0;
+
+        /** Unicode clipboard service owned by the native window backend. */
+        [[nodiscard]] virtual Clipboard& GetClipboard() = 0;
 
         /**
          * @brief Replaces the callback invoked for client-area size changes.

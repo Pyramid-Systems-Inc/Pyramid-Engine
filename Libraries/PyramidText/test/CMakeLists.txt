@@ -6,6 +6,11 @@ target_compile_definitions(PyramidTextTests PRIVATE
 set_target_properties(PyramidTextTests PROPERTIES FOLDER "Tests/Libraries")
 add_test(NAME Text.DebugFont COMMAND $<TARGET_FILE:PyramidTextTests>)
 
+add_executable(PyramidTextBufferTests TextBufferTests.cpp)
+target_link_libraries(PyramidTextBufferTests PRIVATE Pyramid::Text)
+set_target_properties(PyramidTextBufferTests PROPERTIES FOLDER "Tests/Libraries")
+add_test(NAME Text.TextBuffer COMMAND $<TARGET_FILE:PyramidTextBufferTests>)
+
 if(TARGET PyramidMinGWRuntime)
     get_property(_pyramid_library_test_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
     foreach(_pyramid_library_test_target IN LISTS _pyramid_library_test_targets)

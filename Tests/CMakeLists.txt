@@ -19,6 +19,16 @@ target_link_libraries(InputActionTests PRIVATE Pyramid::Input)
 set_target_properties(InputActionTests PROPERTIES FOLDER "Tests/Input")
 add_test(NAME Input.ActionMapping COMMAND $<TARGET_FILE:InputActionTests>)
 
+add_executable(InputTextEventTests InputTextEventTests.cpp)
+target_link_libraries(InputTextEventTests PRIVATE Pyramid::Input)
+set_target_properties(InputTextEventTests PROPERTIES FOLDER "Tests/Input")
+add_test(NAME Input.TextEvents COMMAND $<TARGET_FILE:InputTextEventTests>)
+
+add_executable(ClipboardEncodingTests ClipboardEncodingTests.cpp)
+target_link_libraries(ClipboardEncodingTests PRIVATE Pyramid::Input)
+set_target_properties(ClipboardEncodingTests PROPERTIES FOLDER "Tests/Platform")
+add_test(NAME Platform.ClipboardEncoding COMMAND $<TARGET_FILE:ClipboardEncodingTests>)
+
 add_executable(WindowResizeEventTests WindowResizeEventTests.cpp)
 target_link_libraries(WindowResizeEventTests PRIVATE Pyramid::Input)
 target_include_directories(WindowResizeEventTests

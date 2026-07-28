@@ -27,12 +27,15 @@ namespace Pyramid
         void Merge(const InputConsumptionMask& other);
 
         void ConsumeKey(Key key);
+        void ConsumeAllKeys();
+        void ConsumeTextInput();
         void ConsumeMouseButton(MouseButton button);
         void ConsumeMouseDelta();
         void ConsumeMouseWheel();
         void ConsumeAllMouse();
 
         [[nodiscard]] bool IsKeyConsumed(Key key) const;
+        [[nodiscard]] bool IsTextInputConsumed() const { return m_textInput; }
         [[nodiscard]] bool IsMouseButtonConsumed(MouseButton button) const;
         [[nodiscard]] bool IsMouseDeltaXConsumed() const { return m_mouseDeltaX; }
         [[nodiscard]] bool IsMouseDeltaYConsumed() const { return m_mouseDeltaY; }
@@ -55,6 +58,7 @@ namespace Pyramid
         bool m_mouseDeltaY = false;
         bool m_mouseWheel = false;
         bool m_mouseHorizontalWheel = false;
+        bool m_textInput = false;
     };
 
     /**

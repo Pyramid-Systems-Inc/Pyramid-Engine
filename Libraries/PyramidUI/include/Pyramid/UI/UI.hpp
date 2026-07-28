@@ -3,9 +3,11 @@
 #include <Pyramid/Core/Prerequisites.hpp>
 #include <Pyramid/Input/InputActions.hpp>
 #include <Pyramid/Math/Vec2.hpp>
+#include <Pyramid/Platform/Clipboard.hpp>
 #include <Pyramid/Text/Text.hpp>
 
 #include <cstddef>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -146,6 +148,48 @@ namespace Pyramid::UI
         bool enabled = true;
     };
 
+
+    struct TextFieldOptions
+    {
+        std::string placeholder;
+        std::size_t maximumCharacters = 256;
+        f32 height = 0.0f;
+        bool enabled = true;
+        bool readOnly = false;
+        bool password = false;
+        bool selectAllOnFocus = false;
+        bool submitOnEnter = true;
+        bool hasError = false;
+    };
+
+    struct TextAreaOptions
+    {
+        std::string placeholder;
+        std::size_t maximumCharacters = 4096;
+        f32 height = 150.0f;
+        bool enabled = true;
+        bool readOnly = false;
+        bool submitOnControlEnter = true;
+        bool hasError = false;
+    };
+
+    struct TextEditResult
+    {
+        bool changed = false;
+        bool submitted = false;
+        bool focused = false;
+        bool cancelled = false;
+    };
+
+    struct TextEditDebugInfo
+    {
+        WidgetId widget = 0;
+        std::size_t cursor = 0;
+        Text::TextRange selection;
+        u32 textEventsThisFrame = 0;
+        std::string clipboardStatus;
+    };
+
     struct ContextStats
     {
         u32 retainedElements = 0;
@@ -169,6 +213,8 @@ namespace Pyramid::UI
         void SetEnabled(bool enabled);
         [[nodiscard]] bool IsEnabled() const { return m_enabled; }
         void SetTheme(const Theme& theme) { m_theme = theme; }
+        void SetClipboard(Clipboard* clipboard) { m_clipboard = clipboard; }
+        [[nodiscard]] Clipboard* GetClipboard() const { return m_clipboard; }
         [[nodiscard]] const Theme& GetTheme() const { return m_theme; }
         [[nodiscard]] bool SetFontAtlas(const Text::FontAtlas& font);
         [[nodiscard]] const Text::FontAtlas& GetFontAtlas() const { return m_font; }
@@ -228,6 +274,22 @@ namespace Pyramid::UI
             f32 minimum,
             f32 maximum,
             const ItemOptions& options = {});
+        [[nodiscard]] TextEditResult TextField(
+            std::string_view label,
+            std::string& utf8Value,
+            const TextFieldOptions& options = {});
+        [[nodiscard]] TextEditResult PasswordField(
+            std::string_view label,
+            std::string& utf8Value,
+            TextFieldOptions options = {});
+        [[nodiscard]] TextEditResult SearchField(
+            std::string_view label,
+            std::string& utf8Value,
+            TextFieldOptions options = {});
+        [[nodiscard]] TextEditResult MultilineTextArea(
+            std::string_view label,
+            std::string& utf8Value,
+            const TextAreaOptions& options = {});
         void ProgressBar(
             std::string_view label,
             f32 fraction,
@@ -244,6 +306,10 @@ namespace Pyramid::UI
         [[nodiscard]] WidgetId GetFocusedWidget() const { return m_focusedId; }
         [[nodiscard]] bool WantsPointerInput() const { return m_wantsPointer; }
         [[nodiscard]] bool WantsKeyboardInput() const { return m_focusedId != 0; }
+        [[nodiscard]] const TextEditDebugInfo& GetTextEditDebugInfo() const
+        {
+            return m_textEditDebug;
+        }
 
     private:
         enum class ElementKind : u8
@@ -256,6 +322,8 @@ namespace Pyramid::UI
             Button,
             Checkbox,
             Slider,
+            TextField,
+            TextArea,
             Progress,
             Image,
             CollapsingHeader,
@@ -277,6 +345,23 @@ namespace Pyramid::UI
             f32 contentExtent = 0.0f;
             bool followsEnd = true;
             u64 visitedFrame = 0;
+        };
+
+        struct TextEditState
+        {
+            Text::TextBuffer buffer;
+            std::string synchronizedValue;
+            std::u32string focusSnapshot;
+            f32 horizontalOffset = 0.0f;
+            f32 verticalOffset = 0.0f;
+            f32 caretTimer = 0.0f;
+            f32 lastClickTime = -10.0f;
+            Math::Vec2 lastClickPosition = Math::Vec2::Zero;
+            std::size_t dragAnchor = 0;
+            u32 clickCount = 0;
+            bool initialized = false;
+            bool dragging = false;
+            bool wasFocused = false;
         };
 
         struct LayoutState
@@ -330,6 +415,28 @@ namespace Pyramid::UI
             const Text::LayoutResult& layout,
             const Color& color,
             const Rect& clip);
+        [[nodiscard]] TextEditResult EditText(
+            std::string_view label,
+            std::string& utf8Value,
+            const TextFieldOptions& options,
+            bool multiline,
+            f32 multilineHeight);
+        void DrawEditableText(
+            WidgetId id,
+            TextEditState& state,
+            const Rect& rect,
+            const Rect& clip,
+            std::string_view placeholder,
+            bool password,
+            bool multiline,
+            bool enabled,
+            bool hasError);
+        [[nodiscard]] std::size_t HitTestText(
+            const TextEditState& state,
+            const Rect& content,
+            const Math::Vec2& pointer,
+            bool password,
+            bool multiline) const;
         void AdvanceKeyboardFocus();
         void ResetFrameState();
 
@@ -339,6 +446,7 @@ namespace Pyramid::UI
         FrameInfo m_frame;
         const InputState* m_input = nullptr;
         std::unordered_map<WidgetId, ElementState> m_elements;
+        std::unordered_map<WidgetId, TextEditState> m_textEditStates;
         std::vector<WidgetId> m_drawOrder;
         std::vector<WidgetId> m_interactiveOrder;
         std::vector<LayoutState> m_layoutStack;
@@ -350,5 +458,8 @@ namespace Pyramid::UI
         bool m_enabled = true;
         bool m_frameActive = false;
         bool m_wantsPointer = false;
+        Clipboard* m_clipboard = nullptr;
+        TextEditDebugInfo m_textEditDebug;
+        f32 m_elapsedTime = 0.0f;
     };
 } // namespace Pyramid::UI
