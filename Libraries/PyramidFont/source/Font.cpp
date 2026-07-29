@@ -7,8 +7,11 @@
 #include <cstdint>
 #include <cstring>
 #include <fstream>
+#include <iomanip>
 #include <limits>
 #include <set>
+#include <sstream>
+#include <system_error>
 #include <unordered_set>
 #include <utility>
 
@@ -1060,6 +1063,42 @@ namespace Pyramid::Font
             return winding != 0;
         }
 
+        f32 DistanceToSegmentSquared(const Point2& point, const Point2& a, const Point2& b)
+        {
+            const f32 dx = b.x - a.x;
+            const f32 dy = b.y - a.y;
+            const f32 lengthSquared = dx * dx + dy * dy;
+            if (!(lengthSquared > 0.0f))
+            {
+                const f32 px = point.x - a.x;
+                const f32 py = point.y - a.y;
+                return px * px + py * py;
+            }
+            const f32 projection = ((point.x - a.x) * dx + (point.y - a.y) * dy) /
+                lengthSquared;
+            const f32 t = (std::max)(0.0f, (std::min)(projection, 1.0f));
+            const f32 px = point.x - (a.x + dx * t);
+            const f32 py = point.y - (a.y + dy * t);
+            return px * px + py * py;
+        }
+
+        f32 DistanceToOutline(const std::vector<std::vector<Point2>>& polygons, f32 x, f32 y)
+        {
+            f32 minimumSquared = (std::numeric_limits<f32>::max)();
+            const Point2 point{x, y};
+            for (const auto& polygon : polygons)
+            {
+                for (std::size_t index = 1; index < polygon.size(); ++index)
+                {
+                    minimumSquared = (std::min)(minimumSquared,
+                        DistanceToSegmentSquared(point, polygon[index - 1], polygon[index]));
+                }
+            }
+            return minimumSquared == (std::numeric_limits<f32>::max)()
+                ? 0.0f
+                : std::sqrt(minimumSquared);
+        }
+
         void PutU16(std::vector<u8>& output, u16 value)
         {
             output.push_back(static_cast<u8>(value & 0xFFU));
@@ -1091,6 +1130,35 @@ namespace Pyramid::Font
                 hash *= 16777619U;
             }
             return hash;
+        }
+
+        void HashByte(u64& hash, u8 value)
+        {
+            hash ^= static_cast<u64>(value);
+            hash *= 1099511628211ULL;
+        }
+
+        void HashU32(u64& hash, u32 value)
+        {
+            for (u32 shift = 0; shift < 32; shift += 8)
+            {
+                HashByte(hash, static_cast<u8>((value >> shift) & 0xFFU));
+            }
+        }
+
+        void HashF32(u64& hash, f32 value)
+        {
+            u32 bits = 0;
+            static_assert(sizeof(bits) == sizeof(value), "unexpected float size");
+            std::memcpy(&bits, &value, sizeof(bits));
+            HashU32(hash, bits);
+        }
+
+        std::string HexU64(u64 value)
+        {
+            std::ostringstream stream;
+            stream << std::hex << std::setfill('0') << std::setw(16) << value;
+            return stream.str();
         }
 
         class LittleReader final
@@ -1384,8 +1452,13 @@ namespace Pyramid::Font
 
     bool RasterOptions::IsValid() const
     {
+        const bool validMode = mode == RasterMode::Coverage ||
+            mode == RasterMode::SignedDistanceField;
+        const bool validDistance = mode == RasterMode::Coverage ||
+            (std::isfinite(distanceRange) && distanceRange >= 1.0f && distanceRange <= 64.0f);
         return std::isfinite(pixelHeight) && pixelHeight > 0.0f && pixelHeight <= 1024.0f &&
-            oversample > 0 && oversample <= 16 && padding <= 64 && maximumBitmapDimension > 0;
+            oversample > 0 && oversample <= 16 && padding <= 64 &&
+            maximumBitmapDimension > 0 && validMode && validDistance;
     }
 
     bool RasterizedGlyph::IsValid() const
@@ -1413,14 +1486,18 @@ namespace Pyramid::Font
             return result;
         }
 
+        const u32 fieldPadding = options.mode == RasterMode::SignedDistanceField
+            ? static_cast<u32>(std::ceil(options.distanceRange))
+            : 0U;
+        const i32 totalPadding = static_cast<i32>(options.padding + fieldPadding);
         const i32 left = static_cast<i32>(std::floor(static_cast<f32>(outline.xMin) * scale)) -
-            static_cast<i32>(options.padding);
+            totalPadding;
         const i32 right = static_cast<i32>(std::ceil(static_cast<f32>(outline.xMax) * scale)) +
-            static_cast<i32>(options.padding);
+            totalPadding;
         const i32 bottom = static_cast<i32>(std::floor(static_cast<f32>(outline.yMin) * scale)) -
-            static_cast<i32>(options.padding);
+            totalPadding;
         const i32 top = static_cast<i32>(std::ceil(static_cast<f32>(outline.yMax) * scale)) +
-            static_cast<i32>(options.padding);
+            totalPadding;
         if (right <= left || top <= bottom)
         {
             return result;
@@ -1439,6 +1516,30 @@ namespace Pyramid::Font
         result.alphaPixels.assign(static_cast<std::size_t>(width) * height, 0);
 
         const auto polygons = FlattenOutline(outline);
+        if (options.mode == RasterMode::SignedDistanceField)
+        {
+            for (u32 y = 0; y < height; ++y)
+            {
+                for (u32 x = 0; x < width; ++x)
+                {
+                    const f32 pixelX = static_cast<f32>(left) + static_cast<f32>(x) + 0.5f;
+                    const f32 pixelY = static_cast<f32>(top) - static_cast<f32>(y) - 0.5f;
+                    const f32 outlineX = pixelX / scale;
+                    const f32 outlineY = pixelY / scale;
+                    const f32 distancePixels =
+                        DistanceToOutline(polygons, outlineX, outlineY) * scale;
+                    const f32 signedDistance = PointInside(polygons, outlineX, outlineY)
+                        ? distancePixels
+                        : -distancePixels;
+                    const f32 normalized = (std::max)(0.0f, (std::min)(1.0f,
+                        0.5f + signedDistance / (2.0f * options.distanceRange)));
+                    result.alphaPixels[static_cast<std::size_t>(y) * width + x] =
+                        static_cast<u8>(std::lround(normalized * 255.0f));
+                }
+            }
+            return result;
+        }
+
         const u32 samples = options.oversample * options.oversample;
         for (u32 y = 0; y < height; ++y)
         {
@@ -1470,9 +1571,16 @@ namespace Pyramid::Font
 
     bool BakeOptions::IsValid() const
     {
+        const bool validMode = mode == RasterMode::Coverage ||
+            mode == RasterMode::SignedDistanceField;
+        const bool validDistance = mode == RasterMode::Coverage ||
+            (std::isfinite(distanceRange) && distanceRange >= 1.0f && distanceRange <= 64.0f);
+        const bool validMissingPolicy = missingGlyphPolicy == MissingGlyphPolicy::UseFallback ||
+            missingGlyphPolicy == MissingGlyphPolicy::Skip;
         if (!std::isfinite(pixelHeight) || pixelHeight <= 0.0f || pixelHeight > 1024.0f ||
             atlasWidth == 0 || atlasHeight == 0 || atlasWidth > 16384 || atlasHeight > 16384 ||
-            oversample == 0 || oversample > 16 || padding > 64 || ranges.empty())
+            oversample == 0 || oversample > 16 || padding > 64 || ranges.empty() ||
+            !validMode || !validDistance || !validMissingPolicy)
         {
             return false;
         }
@@ -1488,8 +1596,14 @@ namespace Pyramid::Font
 
     bool BakedFont::IsValid() const
     {
+        const bool validMode = rasterMode == RasterMode::Coverage ||
+            rasterMode == RasterMode::SignedDistanceField;
+        const bool validDistance = rasterMode == RasterMode::Coverage
+            ? distanceRange == 0.0f
+            : std::isfinite(distanceRange) && distanceRange >= 1.0f && distanceRange <= 64.0f;
         return atlasWidth > 0 && atlasHeight > 0 && std::isfinite(pixelHeight) &&
             pixelHeight > 0.0f && std::isfinite(lineHeight) && lineHeight > 0.0f &&
+            validMode && validDistance &&
             rgbaPixels.size() == static_cast<std::size_t>(atlasWidth) * atlasHeight * 4U &&
             !glyphs.empty() && FindGlyph(fallbackCodepoint) != nullptr;
     }
@@ -1553,6 +1667,10 @@ namespace Pyramid::Font
         {
             font.lineHeight = options.pixelHeight;
         }
+        font.rasterMode = options.mode;
+        font.distanceRange = options.mode == RasterMode::SignedDistanceField
+            ? options.distanceRange
+            : 0.0f;
         font.fallbackCodepoint = options.fallbackCodepoint;
         font.rgbaPixels.assign(
             static_cast<std::size_t>(font.atlasWidth) * font.atlasHeight * 4U,
@@ -1566,11 +1684,17 @@ namespace Pyramid::Font
         u32 y = 0;
         u32 rowHeight = 1;
         std::unordered_map<GlyphId, RasterizedGlyph> rasterCache;
+        u32 skippedMissingCodepoints = 0;
         for (char32_t codepoint : codepoints)
         {
             GlyphId glyphId = face.GetGlyphId(codepoint);
             if (glyphId == 0 && codepoint != 0 && codepoint != options.fallbackCodepoint)
             {
+                if (options.missingGlyphPolicy == MissingGlyphPolicy::Skip)
+                {
+                    ++skippedMissingCodepoints;
+                    continue;
+                }
                 glyphId = face.GetGlyphId(options.fallbackCodepoint);
                 AddDiagnostic(result.diagnostics, DiagnosticSeverity::Warning,
                     "codepoint mapped to fallback glyph");
@@ -1583,6 +1707,8 @@ namespace Pyramid::Font
                 rasterOptions.oversample = options.oversample;
                 rasterOptions.padding = options.padding;
                 rasterOptions.maximumBitmapDimension = (std::max)(options.atlasWidth, options.atlasHeight);
+                rasterOptions.mode = options.mode;
+                rasterOptions.distanceRange = options.distanceRange;
                 found = rasterCache.emplace(glyphId, RasterizeGlyph(face, glyphId, rasterOptions)).first;
             }
             const RasterizedGlyph& raster = found->second;
@@ -1631,6 +1757,15 @@ namespace Pyramid::Font
             x += raster.width + 1U;
             rowHeight = (std::max)(rowHeight, raster.height + 1U);
         }
+        if (skippedMissingCodepoints > 0)
+        {
+            AddDiagnostic(
+                result.diagnostics,
+                DiagnosticSeverity::Warning,
+                std::to_string(skippedMissingCodepoints) +
+                    " unsupported codepoints were omitted from the processed font");
+        }
+
         std::sort(font.glyphs.begin(), font.glyphs.end(), [](const BakedGlyph& a, const BakedGlyph& b)
         {
             return a.codepoint < b.codepoint;
@@ -1673,6 +1808,125 @@ namespace Pyramid::Font
         return result;
     }
 
+    std::string BuildProcessedFontCacheKey(
+        const u8* data,
+        std::size_t size,
+        const BakeOptions& options)
+    {
+        if (!data || size == 0 || !options.IsValid())
+        {
+            return {};
+        }
+
+        u64 hash = 14695981039346656037ULL;
+        constexpr char signature[] = "PyramidFontCache-v1";
+        for (char value : signature)
+        {
+            HashByte(hash, static_cast<u8>(value));
+        }
+        for (std::size_t index = 0; index < size; ++index)
+        {
+            HashByte(hash, data[index]);
+        }
+        HashF32(hash, options.pixelHeight);
+        HashU32(hash, options.atlasWidth);
+        HashU32(hash, options.atlasHeight);
+        HashU32(hash, options.oversample);
+        HashU32(hash, options.padding);
+        HashU32(hash, static_cast<u32>(options.mode));
+        HashF32(hash, options.distanceRange);
+        HashU32(hash, static_cast<u32>(options.fallbackCodepoint));
+        HashU32(hash, static_cast<u32>(options.missingGlyphPolicy));
+        HashU32(hash, static_cast<u32>(options.ranges.size()));
+        for (const CharacterRange& range : options.ranges)
+        {
+            HashU32(hash, static_cast<u32>(range.first));
+            HashU32(hash, static_cast<u32>(range.last));
+        }
+        return HexU64(hash);
+    }
+
+    CachedBakeResult LoadOrBakeProcessedFont(
+        const u8* data,
+        std::size_t size,
+        const BakeOptions& options,
+        const std::filesystem::path& cacheDirectory)
+    {
+        CachedBakeResult result;
+        result.cacheKey = BuildProcessedFontCacheKey(data, size, options);
+        if (result.cacheKey.empty() || cacheDirectory.empty())
+        {
+            AddDiagnostic(result.diagnostics, DiagnosticSeverity::Error,
+                "invalid source font, bake options, or cache directory");
+            return result;
+        }
+
+        result.cachePath = cacheDirectory /
+            (std::string("pyramid-font-") + result.cacheKey + ".pfont");
+        if (LoadProcessedFontFile(result.cachePath.generic_string(), result.font, nullptr))
+        {
+            result.cacheHit = true;
+            return result;
+        }
+        result.font = {};
+
+        LoadResult loaded = LoadTrueType(data, size);
+        result.diagnostics.insert(
+            result.diagnostics.end(), loaded.diagnostics.begin(), loaded.diagnostics.end());
+        if (!loaded.Succeeded())
+        {
+            return result;
+        }
+
+        BakeResult baked = BakeFont(loaded.face, options);
+        result.diagnostics.insert(
+            result.diagnostics.end(), baked.diagnostics.begin(), baked.diagnostics.end());
+        if (!baked.Succeeded())
+        {
+            return result;
+        }
+        result.font = std::move(baked.font);
+
+        std::error_code filesystemError;
+        std::filesystem::create_directories(cacheDirectory, filesystemError);
+        if (filesystemError)
+        {
+            AddDiagnostic(result.diagnostics, DiagnosticSeverity::Warning,
+                "processed-font cache directory could not be created");
+            return result;
+        }
+
+        std::filesystem::path temporaryPath = result.cachePath;
+        temporaryPath += ".tmp";
+        std::filesystem::remove(temporaryPath, filesystemError);
+        filesystemError.clear();
+        std::string saveError;
+        if (!SaveProcessedFontFile(result.font, temporaryPath.generic_string(), &saveError))
+        {
+            AddDiagnostic(result.diagnostics, DiagnosticSeverity::Warning,
+                "processed-font cache write failed: " + saveError);
+            return result;
+        }
+
+        std::filesystem::rename(temporaryPath, result.cachePath, filesystemError);
+        if (filesystemError)
+        {
+            BakedFont concurrent;
+            if (!LoadProcessedFontFile(
+                    result.cachePath.generic_string(), concurrent, nullptr))
+            {
+                std::filesystem::remove(temporaryPath, filesystemError);
+                AddDiagnostic(result.diagnostics, DiagnosticSeverity::Warning,
+                    "processed-font cache could not be published");
+            }
+            else
+            {
+                std::filesystem::remove(temporaryPath, filesystemError);
+            }
+        }
+        return result;
+    }
+
     bool SaveProcessedFont(const BakedFont& font, std::vector<u8>& output, std::string* error)
     {
         output.clear();
@@ -1688,14 +1942,15 @@ namespace Pyramid::Font
             return false;
         }
         output.insert(output.end(), {'P', 'F', 'N', 'T'});
-        PutU16(output, 1);
-        PutU16(output, 0);
+        PutU16(output, 2);
+        PutU16(output, font.rasterMode == RasterMode::SignedDistanceField ? 1U : 0U);
         PutU32(output, font.atlasWidth);
         PutU32(output, font.atlasHeight);
         PutF32(output, font.pixelHeight);
         PutF32(output, font.lineHeight);
         PutF32(output, font.ascent);
         PutF32(output, font.descent);
+        PutF32(output, font.distanceRange);
         PutU32(output, static_cast<u32>(font.fallbackCodepoint));
         PutU32(output, static_cast<u32>(font.glyphs.size()));
         PutU32(output, static_cast<u32>(font.kerning.size()));
@@ -1786,11 +2041,39 @@ namespace Pyramid::Font
         u32 kerningCount = 0;
         u32 pixelCount = 0;
         u16 familyLength = 0;
-        if (!reader.U16(cursor, version) || !reader.U16(cursor, flags) || version != 1 || flags != 0 ||
+        if (!reader.U16(cursor, version) || !reader.U16(cursor, flags) ||
+            (version != 1 && version != 2) ||
+            (version == 1 && flags != 0) || (version == 2 && (flags & ~1U) != 0) ||
             !reader.U32(cursor, output.atlasWidth) || !reader.U32(cursor, output.atlasHeight) ||
             !reader.F32(cursor, output.pixelHeight) || !reader.F32(cursor, output.lineHeight) ||
-            !reader.F32(cursor, output.ascent) || !reader.F32(cursor, output.descent) ||
-            !reader.U32(cursor, fallback) || !reader.U32(cursor, glyphCount) ||
+            !reader.F32(cursor, output.ascent) || !reader.F32(cursor, output.descent))
+        {
+            if (error)
+            {
+                *error = "invalid processed-font metadata";
+            }
+            return false;
+        }
+        if (version == 2)
+        {
+            if (!reader.F32(cursor, output.distanceRange))
+            {
+                if (error)
+                {
+                    *error = "truncated processed-font distance metadata";
+                }
+                return false;
+            }
+            output.rasterMode = (flags & 1U) != 0
+                ? RasterMode::SignedDistanceField
+                : RasterMode::Coverage;
+        }
+        else
+        {
+            output.rasterMode = RasterMode::Coverage;
+            output.distanceRange = 0.0f;
+        }
+        if (!reader.U32(cursor, fallback) || !reader.U32(cursor, glyphCount) ||
             !reader.U32(cursor, kerningCount) || !reader.U32(cursor, pixelCount) ||
             !reader.U16(cursor, familyLength) || glyphCount > 1000000U ||
             kerningCount > 4000000U || pixelCount > 1024U * 1024U * 1024U)

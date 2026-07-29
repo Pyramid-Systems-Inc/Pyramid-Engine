@@ -274,7 +274,7 @@ Close running examples and any terminal/debugger using the output files, then re
 
 ## Compile a processed font
 
-After a normal build, regenerate both Ruqoom-owned reference TTFs and their 48-pixel processed atlases with:
+After a normal build, regenerate both Ruqoom-owned reference TTFs and their deterministic 64-pixel SDF processed atlases with:
 
 ```powershell
 python .\scripts\regenerate-reference-fonts.py `
@@ -289,4 +289,4 @@ python .\scripts\regenerate-reference-fonts.py `
     --check
 ```
 
-The reference atlases are baked at 48 pixels and scaled down by the UI so CPU-rasterized grayscale coverage remains smooth at the 16–20 pixel logical sizes used by `BasicGame`.
+The reference atlases are baked as 64-pixel signed-distance fields. `UIRenderer` uses screen-space derivatives and semantic optical weights so the same atlas remains crisp at the 16–25 pixel logical sizes used by `BasicGame`. On Windows, BasicGame may also create a content-addressed SDF cache from installed Segoe UI, Tahoma, or Arial outlines under the per-user cache directory; delete that cache only when intentionally forcing a rebuild.

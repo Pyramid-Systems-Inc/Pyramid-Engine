@@ -4,10 +4,18 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### Scalable typography and native font sources
+
+- Added signed-distance-field glyph rasterization, version-2 `.pfont` metadata, derivative-smoothed GPU rendering, and per-vertex optical-weight control while retaining compatibility with coverage atlases.
+- Added content-addressed processed-font caching with atomic publication, deterministic cache keys, missing-glyph skipping, and corruption-safe rebuilding through `Pyramid::Font`.
+- Added a Win32 system-font source that extracts installed Segoe UI, Tahoma, or Arial TrueType bytes through GDI while keeping parsing, Arabic shaping, rasterization, caching, fallback, and rendering inside Pyramid-owned libraries.
+- Added heading, body, label, button, input, and caption typography roles plus public heading/caption widgets; BasicGame now prefers native professional outlines and retains Ruqoom-owned 64-pixel SDF fonts as deterministic fallbacks.
+- Added `UI.ScalableTypography`, SDF shader assertions, cache tests, and 64-pixel deterministic asset checks; CTest now registers 56 targets.
+
 ### Reference typography quality hotfix
 
 - Replaced the diagnostic 7x7 Arabic pixel-cell outlines with original continuous geometric contours, explicit joining edges, clearer bowls/loops/tails, stable baselines, larger dots and hamza/madda marks, and standalone base-Arabic coverage while preserving the owned presentation-form shaping contract.
-- Rebuilt Pyramid Sans and Pyramid Arabic as 48-pixel supersampled `.pfont` atlases and scaled them to stable logical UI sizes, reducing small-text stair stepping without changing layout dimensions.
+- Rebuilt Pyramid Sans and Pyramid Arabic as 64-pixel signed-distance `.pfont` atlases and scaled them to stable logical UI sizes, reducing small-text stair stepping without changing layout dimensions.
 - Changed the UI font-atlas sampler from nearest to linear filtering so grayscale CPU-rasterized coverage survives downscaling; solid UI geometry continues to use the atlas white texel.
 - Added deterministic `scripts/regenerate-reference-fonts.py`, `Font.ReferenceTypography`, contextual-join/coverage/antialiasing assertions, and font-sampler regression coverage; CTest now registers 55 targets.
 

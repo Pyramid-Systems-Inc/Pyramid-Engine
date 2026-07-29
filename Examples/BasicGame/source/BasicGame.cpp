@@ -11,7 +11,9 @@
 #include <Pyramid/Graphics/CameraController.hpp>
 #include <Pyramid/Examples/RTSReference/RTSInteractionController.hpp>
 #include <Pyramid/Math/Math.hpp>
+#include <Pyramid/Font/Font.hpp>
 #include <Pyramid/Platform/RuntimePath.hpp>
+#include <Pyramid/Platform/SystemFont.hpp>
 #include <Pyramid/Util/Log.hpp>
 #include <Pyramid/UI/GameUI.hpp>
 
@@ -41,6 +43,81 @@ namespace
     constexpr std::string_view kSelectAction = "Select";
     constexpr std::string_view kCommandAction = "Command";
     constexpr std::string_view kToggleDebugUIAction = "ToggleDebugUI";
+
+    bool TryLoadSystemUIFont(
+        Pyramid::Text::FontAtlas& output,
+        std::string& description,
+        std::string& error)
+    {
+        output = {};
+        description.clear();
+        error.clear();
+
+        Pyramid::Font::BakeOptions bake;
+        bake.pixelHeight = 64.0f;
+        bake.atlasWidth = 2048;
+        bake.atlasHeight = 2048;
+        bake.oversample = 1;
+        bake.padding = 1;
+        bake.mode = Pyramid::Font::RasterMode::SignedDistanceField;
+        bake.distanceRange = 10.0f;
+        bake.fallbackCodepoint = U'?';
+        bake.missingGlyphPolicy = Pyramid::Font::MissingGlyphPolicy::Skip;
+        bake.ranges = {
+            {U' ', static_cast<char32_t>(0x017F)},
+            {static_cast<char32_t>(0x0370), static_cast<char32_t>(0x03FF)},
+            {static_cast<char32_t>(0x0600), static_cast<char32_t>(0x06FF)},
+            {static_cast<char32_t>(0x2000), static_cast<char32_t>(0x206F)},
+            {static_cast<char32_t>(0x20AC), static_cast<char32_t>(0x20AC)},
+            {static_cast<char32_t>(0x2190), static_cast<char32_t>(0x21FF)},
+            {static_cast<char32_t>(0x2713), static_cast<char32_t>(0x2713)},
+            {static_cast<char32_t>(0xFE70), static_cast<char32_t>(0xFEFF)}};
+
+        const std::filesystem::path cacheDirectory =
+            Pyramid::Platform::GetUserCacheDirectory("PyramidEngine/Fonts");
+        if (cacheDirectory.empty())
+        {
+            error = "no writable per-user font cache is available";
+            return false;
+        }
+
+        const std::array<std::string_view, 3> candidates = {
+            "Segoe UI", "Tahoma", "Arial"};
+        for (const std::string_view candidate : candidates)
+        {
+            Pyramid::Platform::SystemFontRequest request;
+            request.preferredFamilies.emplace_back(candidate);
+            Pyramid::Platform::SystemFontData source;
+            std::string sourceError;
+            if (!Pyramid::Platform::LoadSystemFont(request, source, &sourceError))
+            {
+                error = sourceError;
+                continue;
+            }
+
+            Pyramid::Font::CachedBakeResult cached =
+                Pyramid::Font::LoadOrBakeProcessedFont(
+                    source.bytes.data(), source.bytes.size(), bake, cacheDirectory);
+            if (!cached.Succeeded())
+            {
+                error = "Pyramid could not parse or bake system family `" +
+                    source.resolvedFamily + "`";
+                continue;
+            }
+
+            output = Pyramid::Text::CreateFontAtlas(cached.font);
+            if (!output.IsValid())
+            {
+                error = "system font produced an invalid renderer atlas";
+                output = {};
+                continue;
+            }
+            description = source.resolvedFamily +
+                (cached.cacheHit ? " (processed cache hit)" : " (processed and cached)");
+            return true;
+        }
+        return false;
+    }
 
     std::string FormatFloat(float value, int precision = 2)
     {
@@ -123,8 +200,8 @@ namespace
                     m_settings();
                 }
                 ui.Spacer();
-                ui.Label("F1  DEBUG OVERLAY");
-                ui.Label("ESC  PAUSE DURING GAMEPLAY");
+                ui.Caption("F1  DEBUG OVERLAY");
+                ui.Caption("ESC  PAUSE DURING GAMEPLAY");
                 ui.Label(u8"UNICODE  é  Ω  ✓");
                 ui.Label(u8"ARABIC  مملكة الهرم ١٢٣");
                 ui.WrappedLabel(u8"MIXED BIDI  Kingdom 123 - مملكة الهرم");
@@ -477,20 +554,40 @@ void BasicGame::onCreate()
     SetRenderSystem(m_renderSystem.get());
 
     const std::filesystem::path latinFontPath =
-        Pyramid::Platform::ResolveRuntimePath("Fonts/PyramidSans-48.pfont");
+        Pyramid::Platform::ResolveRuntimePath("Fonts/PyramidSans-64-sdf.pfont");
     const std::filesystem::path arabicFontPath =
-        Pyramid::Platform::ResolveRuntimePath("Fonts/PyramidArabic-48.pfont");
+        Pyramid::Platform::ResolveRuntimePath("Fonts/PyramidArabic-64-sdf.pfont");
 
-    std::string fontError;
-    m_runtimeFontLoaded = Pyramid::Text::LoadFontAtlas(
-        latinFontPath.generic_string(),
-        m_runtimeFont,
-        &fontError);
+    std::string systemFontDescription;
+    std::string systemFontError;
+    m_runtimeFontLoaded = TryLoadSystemUIFont(
+        m_runtimeFont, systemFontDescription, systemFontError);
+    if (m_runtimeFontLoaded)
+    {
+        PYRAMID_LOG_INFO(
+            "Loaded native UI outlines through Pyramid font pipeline: " +
+            systemFontDescription);
+    }
+    else
+    {
+        std::string bundledError;
+        m_runtimeFontLoaded = Pyramid::Text::LoadFontAtlas(
+            latinFontPath.generic_string(), m_runtimeFont, &bundledError);
+        if (m_runtimeFontLoaded)
+        {
+            PYRAMID_LOG_WARN(
+                "Native UI font unavailable; loaded owned PyramidSans fallback: " +
+                systemFontError);
+        }
+        else
+        {
+            systemFontError += "; bundled fallback failed: " + bundledError;
+        }
+    }
+
     std::string arabicFontError;
     m_runtimeArabicFontLoaded = Pyramid::Text::LoadFontAtlas(
-        arabicFontPath.generic_string(),
-        m_runtimeArabicFont,
-        &arabicFontError);
+        arabicFontPath.generic_string(), m_runtimeArabicFont, &arabicFontError);
     if (m_runtimeFontLoaded)
     {
         std::vector<Pyramid::Text::FontAtlas> familyFonts{m_runtimeFont};
@@ -505,8 +602,7 @@ void BasicGame::onCreate()
             (void)m_gameUI.SetFontFamily(m_runtimeFontFamily);
             (void)m_debugUI.SetFontFamily(m_runtimeFontFamily);
             PYRAMID_LOG_INFO(
-                "Loaded UI font family from `" + latinFontPath.generic_string() +
-                "`: " + m_runtimeFontFamily.atlas.familyName + " (" +
+                "UI font family ready: " + m_runtimeFontFamily.atlas.familyName + " (" +
                 std::to_string(m_runtimeFontFamily.atlas.glyphs.size()) +
                 " resolved glyphs)");
         }
@@ -519,16 +615,15 @@ void BasicGame::onCreate()
         if (!m_runtimeArabicFontLoaded)
         {
             PYRAMID_LOG_WARN(
-                "Arabic fallback font unavailable at `" +
-                arabicFontPath.generic_string() +
-                "`; Latin UI remains active: " + arabicFontError);
+                "Owned Arabic fallback unavailable at `" +
+                arabicFontPath.generic_string() + "`: " + arabicFontError);
         }
     }
     else
     {
         PYRAMID_LOG_WARN(
-            "Processed UI font unavailable at `" + latinFontPath.generic_string() +
-            "`; using embedded debug font: " + fontError);
+            "Production UI fonts unavailable; using embedded debug font: " +
+            systemFontError);
     }
 
     const float runtimePixelHeight = m_runtimeFontLoaded

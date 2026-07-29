@@ -46,7 +46,7 @@ Runtime assets deployed beside an executable should be resolved through the plat
 #include <Pyramid/Platform/RuntimePath.hpp>
 
 const auto fontPath = Pyramid::Platform::ResolveRuntimePath(
-    "Fonts/PyramidArabic-48.pfont");
+    "Fonts/PyramidArabic-64-sdf.pfont");
 ```
 
 `GetExecutableDirectory()` returns the running binary's directory. `ResolveRuntimePath()` preserves absolute paths, prefers executable-relative assets, falls back to the current working directory for development inputs, and returns the executable-relative candidate for useful missing-file diagnostics. This prevents terminal, shortcut, IDE, or file-manager launch context from changing which packaged asset is loaded.
@@ -188,6 +188,8 @@ Include the owned font pipeline with:
 
 ```cpp
 #include <Pyramid/Font/Font.hpp>
+#include <Pyramid/Platform/RuntimePath.hpp>
+#include <Pyramid/Platform/SystemFont.hpp>
 ```
 
 Development tools may parse a TrueType-outline `.ttf`, rasterize selected Unicode ranges, and save a deterministic processed asset:
@@ -195,16 +197,50 @@ Development tools may parse a TrueType-outline `.ttf`, rasterize selected Unicod
 ```cpp
 auto loaded = Pyramid::Font::LoadTrueTypeFile("Fonts/MyFont.ttf");
 Pyramid::Font::BakeOptions options;
-options.pixelHeight = 24.0f;
-options.atlasWidth = 512;
-options.atlasHeight = 512;
+options.pixelHeight = 64.0f;
+options.atlasWidth = 1024;
+options.atlasHeight = 1024;
+options.mode = Pyramid::Font::RasterMode::SignedDistanceField;
+options.distanceRange = 10.0f;
 
 auto baked = Pyramid::Font::BakeFont(loaded.face, options);
 Pyramid::Font::SaveProcessedFontFile(
-    baked.font, "Fonts/MyFont-24.pfont");
+    baked.font, "Fonts/MyFont-64-sdf.pfont");
 ```
 
-The first parser supports TrueType quadratic `glyf` outlines, compound glyphs, `cmap` formats 4/12, horizontal metrics, classic `kern` format 0, and bounded malformed-input rejection. CFF/OpenType outlines, collections, WOFF/WOFF2, variable/color fonts, bytecode hinting, and complex-script shaping are explicitly outside this version. Runtime applications should prefer the checksummed version-1 `.pfont` loader instead of reparsing source fonts. `PyramidFontCompiler` exposes the same pipeline from the command line.
+The first parser supports TrueType quadratic `glyf` outlines, compound glyphs, `cmap` formats 4/12, horizontal metrics, classic `kern` format 0, coverage/SDF rasterization, and bounded malformed-input rejection. CFF/OpenType outlines, collections, WOFF/WOFF2, variable/color fonts, bytecode hinting, and complex-script shaping are explicitly outside this version. Runtime applications should prefer checksummed version-2 `.pfont` assets; the loader remains compatible with version-1 coverage files. `PyramidFontCompiler` exposes `--sdf` and `--distance=N` for the same pipeline.
+
+For runtime-provided font bytes, use the content-addressed cache so parsing and SDF generation occur only when the source or bake options change:
+
+```cpp
+Pyramid::Font::BakeOptions bake;
+bake.pixelHeight = 64.0f;
+bake.atlasWidth = 2048;
+bake.atlasHeight = 2048;
+bake.mode = Pyramid::Font::RasterMode::SignedDistanceField;
+bake.distanceRange = 10.0f;
+bake.missingGlyphPolicy = Pyramid::Font::MissingGlyphPolicy::Skip;
+
+auto cached = Pyramid::Font::LoadOrBakeProcessedFont(
+    fontBytes.data(), fontBytes.size(), bake, cacheDirectory);
+if (cached.Succeeded())
+    auto atlas = Pyramid::Text::CreateFontAtlas(cached.font);
+```
+
+On Windows, `Pyramid::Platform::LoadSystemFont()` extracts installed TrueType bytes only; it does not delegate parsing or rendering to GDI:
+
+```cpp
+Pyramid::Platform::SystemFontRequest request;
+request.preferredFamilies = {"Segoe UI", "Tahoma", "Arial"};
+Pyramid::Platform::SystemFontData source;
+std::string error;
+if (Pyramid::Platform::LoadSystemFont(request, source, &error))
+{
+    const auto cache = Pyramid::Platform::GetUserCacheDirectory(
+        "PyramidEngine/Fonts");
+    // Pass source.bytes to LoadOrBakeProcessedFont as above.
+}
+```
 
 ## Text and UI
 
@@ -222,8 +258,8 @@ Include the renderer-independent APIs with:
 ```cpp
 Pyramid::Text::FontAtlas latin;
 Pyramid::Text::FontAtlas arabic;
-Pyramid::Text::LoadFontAtlas("Fonts/PyramidSans-48.pfont", latin);
-Pyramid::Text::LoadFontAtlas("Fonts/PyramidArabic-48.pfont", arabic);
+Pyramid::Text::LoadFontAtlas("Fonts/PyramidSans-64-sdf.pfont", latin);
+Pyramid::Text::LoadFontAtlas("Fonts/PyramidArabic-64-sdf.pfont", arabic);
 
 Pyramid::Text::FontFamily family;
 std::string familyError;
@@ -232,6 +268,8 @@ if (Pyramid::Text::BuildFontFamily({latin, arabic}, family, &familyError))
 ```
 
 `Text::LayoutInternational()` accepts UTF-32 and `LayoutInternationalUtf8()` strictly decodes UTF-8. They resolve paragraph direction, build common Latin/Arabic/numeric visual runs, contextually shape the core Arabic alphabet, mirror common RTL punctuation, wrap at owned international word/CJK opportunities, and emit renderer-neutral glyphs plus logical ranges, visual clusters, caret stops, and selection geometry. `GetCaretLocation()`, `HitTestInternational()`, `MoveCaretVisual()`, and `BuildSelectionSpans()` expose that mapping to UI and future editor code. `Text::Layout()`, `Measure()`, and `BuildGlyphQuads()` remain compact legacy/convenience APIs.
+
+`UI::Theme::typography` defines separate `TextStyle` values for headings, body copy, field labels, buttons, inputs, and captions. Each role controls relative scale and SDF optical weight. `UI::Context::Heading()` and `Caption()` expose explicit semantic roles; existing labels, buttons, panel titles, and editable controls select the appropriate role automatically.
 
 `Text::TextBuffer` stores Unicode scalar values as logical indices, but cursor and selection mutations are constrained to extended-grapheme boundaries independently from UI rendering:
 

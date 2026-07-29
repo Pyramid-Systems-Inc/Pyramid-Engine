@@ -14,7 +14,7 @@ add_executable(PyramidReferenceTypographyTests ReferenceTypographyTests.cpp)
 target_link_libraries(PyramidReferenceTypographyTests PRIVATE Pyramid::Font)
 target_compile_definitions(PyramidReferenceTypographyTests PRIVATE
     PYRAMID_FONT_TEST_ARABIC_SOURCE="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidArabic.ttf"
-    PYRAMID_FONT_TEST_ARABIC_PROCESSED="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidArabic-48.pfont"
+    PYRAMID_FONT_TEST_ARABIC_PROCESSED="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidArabic-64-sdf.pfont"
 )
 set_target_properties(PyramidReferenceTypographyTests PROPERTIES FOLDER "Tests/Libraries")
 add_test(NAME Font.ReferenceTypography COMMAND $<TARGET_FILE:PyramidReferenceTypographyTests>)

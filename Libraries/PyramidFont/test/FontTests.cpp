@@ -2,6 +2,8 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -18,6 +20,15 @@ namespace
 int main()
 {
     using namespace Pyramid::Font;
+
+    std::ifstream sourceStream(PYRAMID_FONT_TEST_ASSET, std::ios::binary);
+    const std::vector<Pyramid::u8> sourceBytes(
+        (std::istreambuf_iterator<char>(sourceStream)),
+        std::istreambuf_iterator<char>());
+    if (sourceBytes.empty())
+    {
+        return Fail("owned TrueType test asset could not be read");
+    }
 
     const LoadResult loaded = LoadTrueTypeFile(PYRAMID_FONT_TEST_ASSET);
     if (!loaded.Succeeded() || loaded.face.familyName != "Pyramid Sans" ||
@@ -53,6 +64,31 @@ int main()
         return Fail("rasterized glyph has no coverage");
     }
 
+    RasterOptions distanceOptions;
+    distanceOptions.pixelHeight = 64.0f;
+    distanceOptions.mode = RasterMode::SignedDistanceField;
+    distanceOptions.distanceRange = 8.0f;
+    const RasterizedGlyph distanceGlyph = RasterizeGlyph(
+        loaded.face, loaded.face.GetGlyphId(U'A'), distanceOptions);
+    if (!distanceGlyph.IsValid() || distanceGlyph.width <= letter.width ||
+        distanceGlyph.height <= letter.height)
+    {
+        return Fail("signed-distance rasterization did not preserve an exterior field");
+    }
+    bool hasInside = false;
+    bool hasOutside = false;
+    bool hasBoundary = false;
+    for (Pyramid::u8 sample : distanceGlyph.alphaPixels)
+    {
+        hasInside = hasInside || sample > 160U;
+        hasOutside = hasOutside || sample < 96U;
+        hasBoundary = hasBoundary || (sample >= 112U && sample <= 144U);
+    }
+    if (!hasInside || !hasOutside || !hasBoundary)
+    {
+        return Fail("signed-distance rasterization has an invalid value field");
+    }
+
     BakeOptions bakeOptions;
     bakeOptions.pixelHeight = 24.0f;
     bakeOptions.atlasWidth = 256;
@@ -80,10 +116,71 @@ int main()
     if (!LoadProcessedFont(bytes.data(), bytes.size(), roundTrip, &error) ||
         roundTrip.familyName != baked.font.familyName ||
         roundTrip.glyphs.size() != baked.font.glyphs.size() ||
-        roundTrip.rgbaPixels != baked.font.rgbaPixels)
+        roundTrip.rgbaPixels != baked.font.rgbaPixels ||
+        roundTrip.rasterMode != RasterMode::Coverage ||
+        roundTrip.distanceRange != 0.0f)
     {
         return Fail("processed font round trip failed");
     }
+
+    BakeOptions distanceBake = bakeOptions;
+    distanceBake.pixelHeight = 64.0f;
+    distanceBake.atlasWidth = 1024;
+    distanceBake.atlasHeight = 1024;
+    distanceBake.mode = RasterMode::SignedDistanceField;
+    distanceBake.distanceRange = 10.0f;
+    const BakeResult distanceBaked = BakeFont(loaded.face, distanceBake);
+    std::vector<Pyramid::u8> distanceBytes;
+    BakedFont distanceRoundTrip;
+    if (!distanceBaked.Succeeded() ||
+        !SaveProcessedFont(distanceBaked.font, distanceBytes, &error) ||
+        !LoadProcessedFont(
+            distanceBytes.data(), distanceBytes.size(), distanceRoundTrip, &error) ||
+        distanceRoundTrip.rasterMode != RasterMode::SignedDistanceField ||
+        std::fabs(distanceRoundTrip.distanceRange - 10.0f) > 0.001f ||
+        distanceRoundTrip.rgbaPixels != distanceBaked.font.rgbaPixels)
+    {
+        return Fail("signed-distance processed font round trip failed");
+    }
+
+    BakeOptions cachedOptions;
+    cachedOptions.pixelHeight = 32.0f;
+    cachedOptions.atlasWidth = 512;
+    cachedOptions.atlasHeight = 512;
+    cachedOptions.mode = RasterMode::SignedDistanceField;
+    cachedOptions.distanceRange = 6.0f;
+    cachedOptions.missingGlyphPolicy = MissingGlyphPolicy::Skip;
+    cachedOptions.ranges = {{U' ', U'~'}, {U'☃', U'☃'}};
+    const std::string cacheKey = BuildProcessedFontCacheKey(
+        sourceBytes.data(), sourceBytes.size(), cachedOptions);
+    BakeOptions changedCachedOptions = cachedOptions;
+    changedCachedOptions.distanceRange = 7.0f;
+    if (cacheKey.size() != 16U || cacheKey != BuildProcessedFontCacheKey(
+            sourceBytes.data(), sourceBytes.size(), cachedOptions) ||
+        cacheKey == BuildProcessedFontCacheKey(
+            sourceBytes.data(), sourceBytes.size(), changedCachedOptions))
+    {
+        return Fail("processed-font cache key is not deterministic or option-sensitive");
+    }
+
+    const std::filesystem::path cacheDirectory =
+        std::filesystem::temp_directory_path() / "pyramid-font-cache-test";
+    std::error_code filesystemError;
+    std::filesystem::remove_all(cacheDirectory, filesystemError);
+    const CachedBakeResult firstCached = LoadOrBakeProcessedFont(
+        sourceBytes.data(), sourceBytes.size(), cachedOptions, cacheDirectory);
+    const CachedBakeResult secondCached = LoadOrBakeProcessedFont(
+        sourceBytes.data(), sourceBytes.size(), cachedOptions, cacheDirectory);
+    if (!firstCached.Succeeded() || firstCached.cacheHit ||
+        firstCached.font.FindGlyph(U'☃') != nullptr ||
+        !secondCached.Succeeded() || !secondCached.cacheHit ||
+        firstCached.cachePath != secondCached.cachePath ||
+        firstCached.font.rgbaPixels != secondCached.font.rgbaPixels)
+    {
+        std::filesystem::remove_all(cacheDirectory, filesystemError);
+        return Fail("content-addressed processed-font cache failed");
+    }
+    std::filesystem::remove_all(cacheDirectory, filesystemError);
 
     bytes[bytes.size() / 2] ^= 0x01U;
     if (LoadProcessedFont(bytes.data(), bytes.size(), roundTrip, &error))

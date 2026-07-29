@@ -1,7 +1,7 @@
 add_executable(PyramidTextTests TextTests.cpp)
 target_link_libraries(PyramidTextTests PRIVATE Pyramid::Text)
 target_compile_definitions(PyramidTextTests PRIVATE
-    PYRAMID_TEXT_TEST_FONT="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidSans-48.pfont"
+    PYRAMID_TEXT_TEST_FONT="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidSans-64-sdf.pfont"
 )
 set_target_properties(PyramidTextTests PROPERTIES FOLDER "Tests/Libraries")
 add_test(NAME Text.DebugFont COMMAND $<TARGET_FILE:PyramidTextTests>)
@@ -10,8 +10,8 @@ add_test(NAME Text.DebugFont COMMAND $<TARGET_FILE:PyramidTextTests>)
 add_executable(PyramidInternationalTextTests InternationalTextTests.cpp)
 target_link_libraries(PyramidInternationalTextTests PRIVATE Pyramid::Text)
 target_compile_definitions(PyramidInternationalTextTests PRIVATE
-    PYRAMID_TEXT_TEST_FONT="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidSans-48.pfont"
-    PYRAMID_TEXT_TEST_ARABIC_FONT="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidArabic-48.pfont"
+    PYRAMID_TEXT_TEST_FONT="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidSans-64-sdf.pfont"
+    PYRAMID_TEXT_TEST_ARABIC_FONT="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidArabic-64-sdf.pfont"
 )
 set_target_properties(PyramidInternationalTextTests PROPERTIES FOLDER "Tests/Libraries")
 add_test(NAME Text.International COMMAND $<TARGET_FILE:PyramidInternationalTextTests>)

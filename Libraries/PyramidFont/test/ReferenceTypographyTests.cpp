@@ -132,14 +132,16 @@ int main()
     if (!LoadProcessedFontFile(
             PYRAMID_FONT_TEST_ARABIC_PROCESSED, processed, &error) ||
         processed.familyName != "Pyramid Arabic" ||
-        std::fabs(processed.pixelHeight - 48.0f) > 0.001f ||
-        processed.atlasWidth != 512U || processed.atlasHeight != 512U ||
+        std::fabs(processed.pixelHeight - 64.0f) > 0.001f ||
+        processed.atlasWidth != 1024U || processed.atlasHeight != 1024U ||
+        processed.rasterMode != RasterMode::SignedDistanceField ||
+        std::fabs(processed.distanceRange - 10.0f) > 0.001f ||
         processed.glyphs.size() < 260U ||
         !processed.FindGlyph(U'\u0645') ||
         !processed.FindGlyph(U'\uFEE3') ||
         !processed.FindGlyph(U'\uFEEC'))
     {
-        return Fail("high-resolution processed Arabic atlas is invalid");
+        return Fail("scalable SDF processed Arabic atlas is invalid");
     }
 
     std::cout << "Reference typography tests passed\n";

@@ -685,6 +685,13 @@ namespace Pyramid::Text
                 SetError(error, "font family contains an invalid atlas");
                 return false;
             }
+            if (font.rasterMode != fonts.front().rasterMode ||
+                std::fabs(font.distanceRange - fonts.front().distanceRange) > 0.001f ||
+                std::fabs(font.pixelHeight - fonts.front().pixelHeight) > 0.001f)
+            {
+                SetError(error, "font family atlases use incompatible raster settings");
+                return false;
+            }
         }
 
         u32 width = 0;
@@ -710,6 +717,8 @@ namespace Pyramid::Text
         family.atlas.height = static_cast<u32>(totalHeight);
         family.atlas.pixelHeight = fonts.front().pixelHeight;
         family.atlas.lineHeight = fonts.front().lineHeight;
+        family.atlas.rasterMode = fonts.front().rasterMode;
+        family.atlas.distanceRange = fonts.front().distanceRange;
         family.atlas.fallbackCodepoint = fonts.front().fallbackCodepoint;
         family.atlas.rgbaPixels.assign(
             static_cast<std::size_t>(family.atlas.width) * family.atlas.height * 4U,

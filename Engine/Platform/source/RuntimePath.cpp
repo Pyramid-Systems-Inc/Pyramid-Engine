@@ -1,5 +1,6 @@
 #include <Pyramid/Platform/RuntimePath.hpp>
 
+#include <cstdlib>
 #include <system_error>
 #include <vector>
 
@@ -26,6 +27,22 @@ namespace Pyramid::Platform
             const std::filesystem::path canonical =
                 std::filesystem::weakly_canonical(candidate, error);
             return error ? candidate.lexically_normal() : canonical;
+        }
+
+
+        std::filesystem::path CreateCacheDirectory(
+            const std::filesystem::path& root,
+            std::string_view applicationName)
+        {
+            if (root.empty() || applicationName.empty())
+            {
+                return {};
+            }
+            const std::filesystem::path directory =
+                root / "Ruqoom" / std::filesystem::path(applicationName);
+            std::error_code error;
+            std::filesystem::create_directories(directory, error);
+            return error ? std::filesystem::path{} : directory.lexically_normal();
         }
     } // namespace
 
@@ -77,6 +94,40 @@ namespace Pyramid::Platform
 #else
         return {};
 #endif
+    }
+
+    std::filesystem::path GetUserCacheDirectory(std::string_view applicationName)
+    {
+#ifdef _WIN32
+        const DWORD required = ::GetEnvironmentVariableW(L"LOCALAPPDATA", nullptr, 0U);
+        if (required > 1U)
+        {
+            std::vector<wchar_t> buffer(required);
+            const DWORD written = ::GetEnvironmentVariableW(
+                L"LOCALAPPDATA", buffer.data(), static_cast<DWORD>(buffer.size()));
+            if (written > 0U && written < buffer.size())
+            {
+                return CreateCacheDirectory(
+                    std::filesystem::path(buffer.data(), buffer.data() + written),
+                    applicationName);
+            }
+        }
+#elif defined(__linux__)
+        if (const char* xdg = std::getenv("XDG_CACHE_HOME"); xdg && *xdg)
+        {
+            return CreateCacheDirectory(std::filesystem::path(xdg), applicationName);
+        }
+        if (const char* home = std::getenv("HOME"); home && *home)
+        {
+            return CreateCacheDirectory(
+                std::filesystem::path(home) / ".cache", applicationName);
+        }
+#endif
+        std::error_code error;
+        const std::filesystem::path temporary =
+            std::filesystem::temp_directory_path(error);
+        return error ? std::filesystem::path{} :
+            CreateCacheDirectory(temporary, applicationName);
     }
 
     std::filesystem::path ResolveRuntimePath(const std::filesystem::path& path)

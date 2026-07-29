@@ -18,9 +18,9 @@ install(TARGETS BasicGame RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONEN
 
 set(PYRAMID_BASIC_GAME_FONT_ASSETS
     "${CMAKE_CURRENT_SOURCE_DIR}/Assets/Fonts/PyramidSans.ttf"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Assets/Fonts/PyramidSans-48.pfont"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Assets/Fonts/PyramidSans-64-sdf.pfont"
     "${CMAKE_CURRENT_SOURCE_DIR}/Assets/Fonts/PyramidArabic.ttf"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Assets/Fonts/PyramidArabic-48.pfont"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Assets/Fonts/PyramidArabic-64-sdf.pfont"
 )
 add_custom_command(TARGET BasicGame POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_FILE_DIR:BasicGame>/Fonts"

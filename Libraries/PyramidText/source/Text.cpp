@@ -126,7 +126,13 @@ namespace Pyramid::Text
 
     bool FontAtlas::IsValid() const
     {
+        const bool validMode = rasterMode == Font::RasterMode::Coverage ||
+            rasterMode == Font::RasterMode::SignedDistanceField;
+        const bool validDistance = rasterMode == Font::RasterMode::Coverage
+            ? distanceRange == 0.0f
+            : std::isfinite(distanceRange) && distanceRange >= 1.0f;
         return width > 0 && height > 0 && std::isfinite(lineHeight) && lineHeight > 0.0f &&
+            validMode && validDistance &&
             rgbaPixels.size() == static_cast<std::size_t>(width) * height * 4U &&
             !glyphs.empty() &&
             std::is_sorted(glyphs.begin(), glyphs.end(), [](const Glyph& a, const Glyph& b)
@@ -189,6 +195,8 @@ namespace Pyramid::Text
         atlas.height = kRows * kCellHeight;
         atlas.pixelHeight = static_cast<f32>(kGlyphHeight);
         atlas.lineHeight = static_cast<f32>(kCellHeight);
+        atlas.rasterMode = Font::RasterMode::Coverage;
+        atlas.distanceRange = 0.0f;
         atlas.fallbackCodepoint = U'?';
         atlas.rgbaPixels.assign(
             static_cast<std::size_t>(atlas.width) * atlas.height * 4U,
@@ -250,6 +258,8 @@ namespace Pyramid::Text
         atlas.height = font.atlasHeight;
         atlas.pixelHeight = font.pixelHeight;
         atlas.lineHeight = font.lineHeight;
+        atlas.rasterMode = font.rasterMode;
+        atlas.distanceRange = font.distanceRange;
         atlas.rgbaPixels = font.rgbaPixels;
         atlas.kerning = font.kerning;
         atlas.fallbackCodepoint = font.fallbackCodepoint;

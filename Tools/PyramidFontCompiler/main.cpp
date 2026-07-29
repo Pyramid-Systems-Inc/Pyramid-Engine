@@ -12,7 +12,8 @@ namespace
     {
         std::cerr
             << "Usage: PyramidFontCompiler <input.ttf> <output.pfont> "
-               "[pixel-height] [atlas-size] [U+XXXX[-U+YYYY] ...]\n";
+               "[pixel-height] [atlas-size] [--sdf] [--distance=N] "
+               "[U+XXXX[-U+YYYY] ...]\n";
     }
 
     bool ParseCodepoint(std::string_view text, char32_t& output)
@@ -103,10 +104,30 @@ int main(int argc, char** argv)
     }
     for (int argument = 5; argument < argc; ++argument)
     {
-        Pyramid::Font::CharacterRange range;
-        if (!ParseRange(argv[argument], range))
+        const std::string_view value(argv[argument]);
+        if (value == "--sdf")
         {
-            std::cerr << "Invalid Unicode range: " << argv[argument] << '\n';
+            options.mode = Pyramid::Font::RasterMode::SignedDistanceField;
+            continue;
+        }
+        constexpr std::string_view distancePrefix = "--distance=";
+        if (value.substr(0, distancePrefix.size()) == distancePrefix)
+        {
+            try
+            {
+                options.distanceRange = std::stof(std::string(value.substr(distancePrefix.size())));
+            }
+            catch (...)
+            {
+                std::cerr << "Invalid signed-distance range\n";
+                return EXIT_FAILURE;
+            }
+            continue;
+        }
+        Pyramid::Font::CharacterRange range;
+        if (!ParseRange(value, range))
+        {
+            std::cerr << "Invalid Unicode range: " << value << '\n';
             PrintUsage();
             return EXIT_FAILURE;
         }
@@ -143,7 +164,10 @@ int main(int argc, char** argv)
     }
 
     std::cout << "Compiled " << loaded.face.familyName << " at "
-              << options.pixelHeight << " px into " << argv[2] << " ("
+              << options.pixelHeight << " px "
+              << (options.mode == Pyramid::Font::RasterMode::SignedDistanceField
+                    ? "SDF" : "coverage")
+              << " into " << argv[2] << " ("
               << baked.font.glyphs.size() << " glyphs, "
               << baked.font.kerning.size() << " kerning pairs)\n";
     return EXIT_SUCCESS;

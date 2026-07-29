@@ -23,7 +23,7 @@ Demonstrates:
 - a retained main menu starts the reference runtime; `Escape` opens/closes the modal pause menu, `F10` quits, `Space` toggles cube animation during gameplay, and `F1` toggles the runtime debug overlay;
 - a modal profile-settings form demonstrates Unicode player/kingdom names, multiline notes, clipboard copy/cut/paste, keyboard selection/navigation, validation, save, and Escape/cancel rollback;
 - responsive retained main-menu/HUD/pause screens plus collapsible diagnostics, wrapped help text, runtime controls, and a scrollable severity-colored in-memory log console;
-- the Ruqoom-owned `Pyramid Sans` and `Pyramid Arabic` TrueType sources, deterministic high-resolution 48-pixel `.pfont` runtime assets with linear downsampling, an ordered fallback family, grapheme/bidirectional/Arabic-aware `Pyramid::Text` layout, bilingual validation labels, automatic copied font assets, executable-relative runtime resolution for direct launches, and embedded-font fallback when processed files are genuinely unavailable;
+- the Ruqoom-owned `Pyramid Sans` and `Pyramid Arabic` TrueType sources, deterministic 64-pixel SDF `.pfont` fallbacks, optional installed Windows UI outlines processed and cached by Pyramid-owned code, semantic typography roles, an ordered fallback family, grapheme/bidirectional/Arabic-aware layout, bilingual validation labels, executable-relative runtime resolution, and embedded-font fallback when all production sources are unavailable;
 - explicit final-surface viewport restoration after fixed-resolution shadow/off-screen passes;
 - UI pointer capture that blocks both named actions and raw RTS edge scrolling/selection/commands;
 - automatic default-viewport updates and active-camera projection resizing;

@@ -323,7 +323,7 @@ namespace Pyramid::UI
                     const Text::InternationalLayoutResult visual = BuildEditLayout(
                         m_fontFamily,
                         state.buffer.GetText(),
-                        m_theme.textScale,
+                        (m_theme.textScale * m_theme.typography.input.scale),
                         options.password,
                         (std::max)(0.0f, fieldRect.width - 10.0f));
                     state.buffer.SetCursor(Text::MoveCaretVisual(
@@ -342,7 +342,7 @@ namespace Pyramid::UI
                     const Text::InternationalLayoutResult visual = BuildEditLayout(
                         m_fontFamily,
                         state.buffer.GetText(),
-                        m_theme.textScale,
+                        (m_theme.textScale * m_theme.typography.input.scale),
                         options.password,
                         (std::max)(0.0f, fieldRect.width - 10.0f));
                     state.buffer.SetCursor(Text::MoveCaretVisual(
@@ -404,7 +404,7 @@ namespace Pyramid::UI
             state.verticalOffset = (std::max)(
                 0.0f,
                 state.verticalOffset - m_input->GetMouseWheelDelta() *
-                    m_font.lineHeight * m_theme.textScale * 3.0f);
+                    m_font.lineHeight * (m_theme.textScale * m_theme.typography.input.scale) * 3.0f);
         }
 
         if (changed)
@@ -426,8 +426,12 @@ namespace Pyramid::UI
             options.enabled,
             true,
             true);
-        DrawText(label, Math::Vec2(rect.x, rect.y),
-            options.enabled ? m_theme.mutedText : m_theme.disabled, clip);
+        DrawTextStyled(
+            label,
+            Math::Vec2(rect.x, rect.y),
+            options.enabled ? m_theme.mutedText : m_theme.disabled,
+            clip,
+            m_theme.typography.label);
         DrawEditableText(
             id,
             state,
@@ -475,10 +479,10 @@ namespace Pyramid::UI
             (std::max)(0.0f, rect.height - 8.0f)};
         const std::u32string& display = state.buffer.GetText();
         const Text::InternationalLayoutResult layout = BuildEditLayout(
-            m_fontFamily, display, m_theme.textScale, password, content.width);
+            m_fontFamily, display, (m_theme.textScale * m_theme.typography.input.scale), password, content.width);
         const Text::CaretLocation caret = Text::GetCaretLocation(
             layout, state.buffer.GetCursor());
-        const f32 lineHeight = m_font.lineHeight * m_theme.textScale;
+        const f32 lineHeight = m_font.lineHeight * (m_theme.textScale * m_theme.typography.input.scale);
         const f32 caretX = caret.x;
         const f32 caretY = static_cast<f32>(caret.lineIndex) * lineHeight;
 
@@ -540,11 +544,12 @@ namespace Pyramid::UI
 
         if (display.empty() && !placeholder.empty())
         {
-            DrawText(
+            DrawTextStyled(
                 placeholder,
                 Math::Vec2(content.x, content.y),
                 enabled ? m_theme.mutedText : m_theme.disabled,
-                content.Intersect(clip));
+                content.Intersect(clip),
+                m_theme.typography.input);
         }
         else
         {
@@ -560,7 +565,12 @@ namespace Pyramid::UI
                      quad.uvMaximum.y - quad.uvMinimum.y},
                     enabled ? m_theme.text : m_theme.disabled,
                     DebugFontTextureId,
-                    content.Intersect(clip));
+                    content.Intersect(clip),
+                    Math::Vec2(
+                        m_font.rasterMode == Font::RasterMode::SignedDistanceField
+                            ? 1.0f : 0.0f,
+                        m_font.rasterMode == Font::RasterMode::SignedDistanceField
+                            ? m_theme.typography.input.weight : 0.0f));
             }
         }
 
@@ -591,8 +601,8 @@ namespace Pyramid::UI
             (std::max)(0.0f, contentRect.height - 8.0f)};
         const std::u32string& display = state.buffer.GetText();
         const Text::InternationalLayoutResult layout = BuildEditLayout(
-            m_fontFamily, display, m_theme.textScale, password, content.width);
-        const f32 lineHeight = m_font.lineHeight * m_theme.textScale;
+            m_fontFamily, display, (m_theme.textScale * m_theme.typography.input.scale), password, content.width);
+        const f32 lineHeight = m_font.lineHeight * (m_theme.textScale * m_theme.typography.input.scale);
         u32 lineIndex = 0;
         if (multiline && lineHeight > 0.0f)
         {

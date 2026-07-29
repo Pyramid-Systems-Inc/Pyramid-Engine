@@ -134,6 +134,8 @@ namespace Pyramid::Text
         u32 height = 0;
         f32 pixelHeight = 0.0f;
         f32 lineHeight = 0.0f;
+        Font::RasterMode rasterMode = Font::RasterMode::Coverage;
+        f32 distanceRange = 0.0f;
         std::vector<u8> rgbaPixels;
         std::vector<Glyph> glyphs;
         std::vector<Font::BakedKerning> kerning;

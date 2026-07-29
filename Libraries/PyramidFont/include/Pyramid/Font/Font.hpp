@@ -2,6 +2,7 @@
 
 #include <Pyramid/Core/Prerequisites.hpp>
 
+#include <filesystem>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -100,12 +101,20 @@ namespace Pyramid::Font
         std::string_view path,
         const LoadOptions& options = {});
 
+    enum class RasterMode : u8
+    {
+        Coverage = 0,
+        SignedDistanceField
+    };
+
     struct RasterOptions
     {
         f32 pixelHeight = 24.0f;
         u32 oversample = 4;
         u32 padding = 1;
         u32 maximumBitmapDimension = 4096;
+        RasterMode mode = RasterMode::Coverage;
+        f32 distanceRange = 8.0f;
 
         [[nodiscard]] bool IsValid() const;
     };
@@ -134,6 +143,12 @@ namespace Pyramid::Font
         char32_t last = U'~';
     };
 
+    enum class MissingGlyphPolicy : u8
+    {
+        UseFallback = 0,
+        Skip
+    };
+
     struct BakeOptions
     {
         f32 pixelHeight = 24.0f;
@@ -141,7 +156,10 @@ namespace Pyramid::Font
         u32 atlasHeight = 512;
         u32 oversample = 4;
         u32 padding = 1;
+        RasterMode mode = RasterMode::Coverage;
+        f32 distanceRange = 8.0f;
         char32_t fallbackCodepoint = U'?';
+        MissingGlyphPolicy missingGlyphPolicy = MissingGlyphPolicy::UseFallback;
         std::vector<CharacterRange> ranges = {{U' ', U'~'}};
 
         [[nodiscard]] bool IsValid() const;
@@ -178,6 +196,8 @@ namespace Pyramid::Font
         f32 lineHeight = 0.0f;
         f32 ascent = 0.0f;
         f32 descent = 0.0f;
+        RasterMode rasterMode = RasterMode::Coverage;
+        f32 distanceRange = 0.0f;
         char32_t fallbackCodepoint = U'?';
         std::vector<u8> rgbaPixels;
         std::vector<BakedGlyph> glyphs;
@@ -199,6 +219,38 @@ namespace Pyramid::Font
     [[nodiscard]] BakeResult BakeFont(
         const FontFace& face,
         const BakeOptions& options = {});
+
+    struct CachedBakeResult
+    {
+        BakedFont font;
+        std::vector<Diagnostic> diagnostics;
+        std::string cacheKey;
+        std::filesystem::path cachePath;
+        bool cacheHit = false;
+
+        [[nodiscard]] bool Succeeded() const { return font.IsValid(); }
+    };
+
+    /**
+     * Returns a deterministic cache key for a TrueType payload and bake options.
+     * The key is stable across processes and includes every option that affects
+     * processed output.
+     */
+    [[nodiscard]] std::string BuildProcessedFontCacheKey(
+        const u8* data,
+        std::size_t size,
+        const BakeOptions& options);
+
+    /**
+     * Loads a processed font from a content-addressed cache or builds it through
+     * Pyramid's owned TrueType parser and rasterizer. Cache writes are staged and
+     * atomically published when the host filesystem supports rename.
+     */
+    [[nodiscard]] CachedBakeResult LoadOrBakeProcessedFont(
+        const u8* data,
+        std::size_t size,
+        const BakeOptions& options,
+        const std::filesystem::path& cacheDirectory);
 
     [[nodiscard]] bool SaveProcessedFont(
         const BakedFont& font,

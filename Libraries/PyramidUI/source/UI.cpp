@@ -92,7 +92,8 @@ namespace Pyramid::UI
         const Rect& uv,
         const Color& color,
         TextureId texture,
-        const Rect& clip)
+        const Rect& clip,
+        const Math::Vec2& textParameters)
     {
         if (!rect.IsValid() || !clip.IsValid() || texture == 0 ||
             !IsFiniteRect(rect) || !IsFiniteRect(uv) || !IsFiniteRect(clip) ||
@@ -108,19 +109,23 @@ namespace Pyramid::UI
         }
 
         const u32 base = static_cast<u32>(m_vertices.size());
-        m_vertices.push_back({Math::Vec2(rect.x, rect.y), Math::Vec2(uv.x, uv.y), color});
+        m_vertices.push_back({
+            Math::Vec2(rect.x, rect.y), Math::Vec2(uv.x, uv.y), color, textParameters});
         m_vertices.push_back({
             Math::Vec2(rect.x + rect.width, rect.y),
             Math::Vec2(uv.x + uv.width, uv.y),
-            color});
+            color,
+            textParameters});
         m_vertices.push_back({
             Math::Vec2(rect.x + rect.width, rect.y + rect.height),
             Math::Vec2(uv.x + uv.width, uv.y + uv.height),
-            color});
+            color,
+            textParameters});
         m_vertices.push_back({
             Math::Vec2(rect.x, rect.y + rect.height),
             Math::Vec2(uv.x, uv.y + uv.height),
-            color});
+            color,
+            textParameters});
 
         m_indices.insert(
             m_indices.end(),
@@ -470,11 +475,12 @@ namespace Pyramid::UI
         DrawBorder(rect, m_theme.border, clip);
 
         const f32 headerHeight = m_theme.defaultRowHeight + m_theme.padding;
-        DrawText(
+        DrawTextStyled(
             label,
-            Math::Vec2(rect.x + m_theme.padding, rect.y + m_theme.padding),
+            Math::Vec2(rect.x + m_theme.padding, rect.y + m_theme.padding * 0.5f),
             options.enabled ? m_theme.text : m_theme.disabled,
-            clip);
+            clip,
+            m_theme.typography.heading);
         DrawSolid(
             {rect.x + m_theme.padding, rect.y + headerHeight,
              rect.width - m_theme.padding * 2.0f, m_theme.borderWidth},
@@ -564,7 +570,7 @@ namespace Pyramid::UI
     {
         const f32 rowHeight = options.height > 0.0f
             ? options.height
-            : m_font.lineHeight * m_theme.textScale + 2.0f;
+            : m_font.lineHeight * m_theme.textScale * m_theme.typography.body.scale + 2.0f;
         const Rect rect = Allocate(options, rowHeight);
         if (!rect.IsValid())
         {
@@ -580,6 +586,50 @@ namespace Pyramid::UI
             clip);
     }
 
+    void Context::Heading(std::string_view text, const ItemOptions& options)
+    {
+        const TextStyle& style = m_theme.typography.heading;
+        const f32 rowHeight = options.height > 0.0f
+            ? options.height
+            : m_font.lineHeight * m_theme.textScale * style.scale + 4.0f;
+        const Rect rect = Allocate(options, rowHeight);
+        if (!rect.IsValid())
+        {
+            return;
+        }
+        const WidgetId id = MakeId(text);
+        const Rect clip = m_layoutStack.back().clip;
+        RecordElement(id, ElementKind::Label, rect, clip, options.enabled, false, false);
+        DrawTextStyled(
+            text,
+            Math::Vec2(rect.x, rect.y + 1.0f),
+            options.enabled ? m_theme.text : m_theme.disabled,
+            clip,
+            style);
+    }
+
+    void Context::Caption(std::string_view text, const ItemOptions& options)
+    {
+        const TextStyle& style = m_theme.typography.caption;
+        const f32 rowHeight = options.height > 0.0f
+            ? options.height
+            : m_font.lineHeight * m_theme.textScale * style.scale + 2.0f;
+        const Rect rect = Allocate(options, rowHeight);
+        if (!rect.IsValid())
+        {
+            return;
+        }
+        const WidgetId id = MakeId(text);
+        const Rect clip = m_layoutStack.back().clip;
+        RecordElement(id, ElementKind::Label, rect, clip, options.enabled, false, false);
+        DrawTextStyled(
+            text,
+            Math::Vec2(rect.x, rect.y + 1.0f),
+            options.enabled ? m_theme.mutedText : m_theme.disabled,
+            clip,
+            style);
+    }
+
     void Context::LabelColored(
         std::string_view text,
         const Color& color,
@@ -587,7 +637,7 @@ namespace Pyramid::UI
     {
         const f32 rowHeight = options.height > 0.0f
             ? options.height
-            : m_font.lineHeight * m_theme.textScale + 2.0f;
+            : m_font.lineHeight * m_theme.textScale * m_theme.typography.body.scale + 2.0f;
         const Rect rect = Allocate(options, rowHeight);
         if (!rect.IsValid())
         {
@@ -649,7 +699,7 @@ namespace Pyramid::UI
     {
         const f32 rowHeight = options.height > 0.0f
             ? options.height
-            : m_font.lineHeight * m_theme.textScale + 2.0f;
+            : m_font.lineHeight * m_theme.textScale * m_theme.typography.body.scale + 2.0f;
         const Rect rect = Allocate(options, rowHeight);
         if (!rect.IsValid())
         {
@@ -659,7 +709,12 @@ namespace Pyramid::UI
         const Rect clip = m_layoutStack.back().clip;
         RecordElement(id, ElementKind::Label, rect, clip, options.enabled, false, false);
         const Color color = options.enabled ? m_theme.text : m_theme.disabled;
-        DrawText(label, Math::Vec2(rect.x, rect.y + 1.0f), m_theme.mutedText, clip);
+        DrawTextStyled(
+            label,
+            Math::Vec2(rect.x, rect.y + 1.0f),
+            m_theme.mutedText,
+            clip,
+            m_theme.typography.label);
         DrawTextRight(value, rect.x + rect.width, rect.y + 1.0f, color, clip);
     }
 
@@ -726,11 +781,12 @@ namespace Pyramid::UI
             Math::Vec2(rect.x + 5.0f, rect.y + 6.0f),
             options.enabled ? m_theme.accent : m_theme.disabled,
             clip);
-        DrawText(
+        DrawTextStyled(
             label,
             Math::Vec2(rect.x + 18.0f, rect.y + 6.0f),
             options.enabled ? m_theme.text : m_theme.disabled,
-            clip);
+            clip,
+            m_theme.typography.button);
         return toggled;
     }
 
@@ -908,14 +964,18 @@ namespace Pyramid::UI
             : m_theme.background;
         DrawSolid(rect, fill, clip);
         DrawBorder(rect, m_focusedId == id ? m_theme.accent : m_theme.border, clip);
-        const Text::TextMetrics metrics = Text::Measure(m_font, label, m_theme.textScale);
-        DrawText(
+        Text::InternationalLayoutOptions textOptions;
+        textOptions.scale = m_theme.textScale * m_theme.typography.button.scale;
+        const Text::TextMetrics metrics = Text::LayoutInternationalUtf8(
+            m_fontFamily, label, Math::Vec2::Zero, textOptions).metrics;
+        DrawTextStyled(
             label,
             Math::Vec2(
                 rect.x + (rect.width - metrics.width) * 0.5f,
                 rect.y + (rect.height - metrics.height) * 0.5f),
             enabled ? m_theme.text : m_theme.disabled,
-            clip);
+            clip,
+            m_theme.typography.button);
         return clicked;
     }
 
@@ -1021,7 +1081,12 @@ namespace Pyramid::UI
         value = (std::max)(minimum, (std::min)(value, maximum));
 
         RecordElement(id, ElementKind::Slider, rect, clip, options.enabled, true, true);
-        DrawText(label, Math::Vec2(rect.x, rect.y), m_theme.mutedText, clip);
+        DrawTextStyled(
+            label,
+            Math::Vec2(rect.x, rect.y),
+            m_theme.mutedText,
+            clip,
+            m_theme.typography.label);
         DrawSolid(track, m_theme.background, clip);
         DrawBorder(track, m_focusedId == id ? m_theme.accent : m_theme.border, clip);
         const f32 fraction = (value - minimum) / (maximum - minimum);
@@ -1218,12 +1283,24 @@ namespace Pyramid::UI
         const Color& color,
         const Rect& clip)
     {
+        DrawTextStyled(text, position, color, clip, m_theme.typography.body);
+    }
+
+    void Context::DrawTextStyled(
+        std::string_view text,
+        const Math::Vec2& position,
+        const Color& color,
+        const Rect& clip,
+        const TextStyle& style)
+    {
+        const TextStyle safeStyle = style.IsValid() ? style : TextStyle{};
         Text::InternationalLayoutOptions options;
-        options.scale = m_theme.textScale;
+        options.scale = m_theme.textScale * safeStyle.scale;
         DrawTextLayout(
             Text::LayoutInternationalUtf8(m_fontFamily, text, position, options),
             color,
-            clip);
+            clip,
+            safeStyle.weight);
     }
 
     void Context::DrawTextRight(
@@ -1256,8 +1333,14 @@ namespace Pyramid::UI
     void Context::DrawTextLayout(
         const Text::InternationalLayoutResult& layout,
         const Color& color,
-        const Rect& clip)
+        const Rect& clip,
+        f32 weight)
     {
+        const bool signedDistance =
+            m_font.rasterMode == Font::RasterMode::SignedDistanceField;
+        const Math::Vec2 textParameters(
+            signedDistance ? 1.0f : 0.0f,
+            signedDistance ? (std::max)(-0.20f, (std::min)(weight, 0.20f)) : 0.0f);
         for (const Text::GlyphQuad& quad : layout.glyphs)
         {
             m_drawList.AddQuad(
@@ -1269,7 +1352,8 @@ namespace Pyramid::UI
                  quad.uvMaximum.y - quad.uvMinimum.y},
                 color,
                 DebugFontTextureId,
-                clip);
+                clip,
+                textParameters);
         }
     }
 

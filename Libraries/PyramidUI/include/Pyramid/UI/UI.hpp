@@ -6,6 +6,7 @@
 #include <Pyramid/Platform/Clipboard.hpp>
 #include <Pyramid/Text/Text.hpp>
 
+#include <cmath>
 #include <cstddef>
 #include <limits>
 #include <string>
@@ -54,6 +55,28 @@ namespace Pyramid::UI
         [[nodiscard]] bool IsValid() const;
     };
 
+    struct TextStyle
+    {
+        f32 scale = 1.0f;
+        f32 weight = 0.0f;
+
+        [[nodiscard]] bool IsValid() const
+        {
+            return std::isfinite(scale) && scale > 0.0f && scale <= 8.0f &&
+                std::isfinite(weight) && weight >= -0.20f && weight <= 0.20f;
+        }
+    };
+
+    struct Typography
+    {
+        TextStyle heading{1.25f, 0.025f};
+        TextStyle body{1.0f, 0.0f};
+        TextStyle label{0.78f, 0.005f};
+        TextStyle button{1.0f, 0.018f};
+        TextStyle input{1.0f, 0.0f};
+        TextStyle caption{0.78f, 0.0f};
+    };
+
     struct Theme
     {
         Color background = Color(0.055f, 0.065f, 0.085f, 0.96f);
@@ -70,6 +93,7 @@ namespace Pyramid::UI
         f32 borderWidth = 1.0f;
         f32 defaultRowHeight = 22.0f;
         f32 textScale = 1.0f;
+        Typography typography;
     };
 
     struct Vertex
@@ -77,6 +101,7 @@ namespace Pyramid::UI
         Math::Vec2 position = Math::Vec2::Zero;
         Math::Vec2 uv = Math::Vec2::Zero;
         Color color = Color::White;
+        Math::Vec2 textParameters = Math::Vec2::Zero;
     };
 
     struct DrawBatch
@@ -96,7 +121,8 @@ namespace Pyramid::UI
             const Rect& uv,
             const Color& color,
             TextureId texture,
-            const Rect& clip);
+            const Rect& clip,
+            const Math::Vec2& textParameters = Math::Vec2::Zero);
         void AddNineSlice(
             const Rect& rect,
             const Rect& uv,
@@ -243,6 +269,8 @@ namespace Pyramid::UI
         void PopId();
 
         void Label(std::string_view text, const ItemOptions& options = {});
+        void Heading(std::string_view text, const ItemOptions& options = {});
+        void Caption(std::string_view text, const ItemOptions& options = {});
         void LabelColored(
             std::string_view text,
             const Color& color,
@@ -403,6 +431,12 @@ namespace Pyramid::UI
             const Math::Vec2& position,
             const Color& color,
             const Rect& clip);
+        void DrawTextStyled(
+            std::string_view text,
+            const Math::Vec2& position,
+            const Color& color,
+            const Rect& clip,
+            const TextStyle& style);
         void DrawTextRight(
             std::string_view text,
             f32 right,
@@ -416,7 +450,8 @@ namespace Pyramid::UI
         void DrawTextLayout(
             const Text::InternationalLayoutResult& layout,
             const Color& color,
-            const Rect& clip);
+            const Rect& clip,
+            f32 weight = 0.0f);
         [[nodiscard]] TextEditResult EditText(
             std::string_view label,
             std::string& utf8Value,

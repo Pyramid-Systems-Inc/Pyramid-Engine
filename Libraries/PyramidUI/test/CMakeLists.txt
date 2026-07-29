@@ -1,10 +1,18 @@
 add_executable(PyramidUITests UITests.cpp)
 target_link_libraries(PyramidUITests PRIVATE Pyramid::UI)
 target_compile_definitions(PyramidUITests PRIVATE
-    PYRAMID_UI_LIBRARY_TEST_FONT="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidSans-48.pfont"
+    PYRAMID_UI_LIBRARY_TEST_FONT="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidSans-64-sdf.pfont"
 )
 set_target_properties(PyramidUITests PROPERTIES FOLDER "Tests/Libraries")
 add_test(NAME UI.Context COMMAND $<TARGET_FILE:PyramidUITests>)
+
+add_executable(PyramidScalableTypographyTests ScalableTypographyTests.cpp)
+target_link_libraries(PyramidScalableTypographyTests PRIVATE Pyramid::UI)
+target_compile_definitions(PyramidScalableTypographyTests PRIVATE
+    PYRAMID_UI_SCALABLE_FONT="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidSans-64-sdf.pfont"
+)
+set_target_properties(PyramidScalableTypographyTests PROPERTIES FOLDER "Tests/Libraries")
+add_test(NAME UI.ScalableTypography COMMAND $<TARGET_FILE:PyramidScalableTypographyTests>)
 
 add_executable(PyramidGameUITests GameUITests.cpp)
 target_link_libraries(PyramidGameUITests PRIVATE Pyramid::UI)
@@ -14,8 +22,8 @@ add_test(NAME UI.GameScreens COMMAND $<TARGET_FILE:PyramidGameUITests>)
 add_executable(PyramidUITextEditingTests TextEditingTests.cpp)
 target_link_libraries(PyramidUITextEditingTests PRIVATE Pyramid::UI)
 target_compile_definitions(PyramidUITextEditingTests PRIVATE
-    PYRAMID_UI_TEST_FONT="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidSans-48.pfont"
-    PYRAMID_UI_TEST_ARABIC_FONT="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidArabic-48.pfont"
+    PYRAMID_UI_TEST_FONT="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidSans-64-sdf.pfont"
+    PYRAMID_UI_TEST_ARABIC_FONT="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidArabic-64-sdf.pfont"
 )
 set_target_properties(PyramidUITextEditingTests PROPERTIES FOLDER "Tests/Libraries")
 add_test(NAME UI.TextEditing COMMAND $<TARGET_FILE:PyramidUITextEditingTests>)

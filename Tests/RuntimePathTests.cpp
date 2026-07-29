@@ -70,6 +70,10 @@ int main()
         const std::string token = std::to_string(
             std::chrono::steady_clock::now().time_since_epoch().count());
         const fs::path fixtureName = "PyramidRuntimePathTests-" + token;
+        const fs::path userCache = Pyramid::Platform::GetUserCacheDirectory(
+            std::string("PyramidRuntimePathTests-") + token);
+        Require(!userCache.empty(), "per-user cache directory was not resolved");
+        Require(fs::is_directory(userCache), "per-user cache directory was not created");
         const fs::path executableFixtureDirectory = executableDirectory / fixtureName;
         const fs::path executableAsset = executableFixtureDirectory / "asset.bin";
         const fs::path unrelatedWorkingDirectory =
@@ -117,6 +121,7 @@ int main()
         std::error_code ignored;
         fs::remove_all(executableFixtureDirectory, ignored);
         fs::remove_all(unrelatedWorkingDirectory, ignored);
+        fs::remove_all(userCache, ignored);
     }
     catch (const std::exception& error)
     {

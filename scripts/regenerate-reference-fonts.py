@@ -15,9 +15,9 @@ LATIN_SCRIPT = Path(__file__).with_name("generate-pyramid-font.py")
 ARABIC_SCRIPT = Path(__file__).with_name("generate-pyramid-arabic-font.py")
 ASSET_NAMES = (
     "PyramidSans.ttf",
-    "PyramidSans-48.pfont",
+    "PyramidSans-64-sdf.pfont",
     "PyramidArabic.ttf",
-    "PyramidArabic-48.pfont",
+    "PyramidArabic-64-sdf.pfont",
 )
 
 
@@ -36,16 +36,17 @@ def compile_assets(compiler: Path, output: Path) -> None:
     arabic["build"](arabic_ttf)
 
     subprocess.run([
-        str(compiler), str(latin_ttf), str(output / "PyramidSans-48.pfont"),
-        "48", "512", "U+00E9", "U+03A9", "U+2713"], check=True)
+        str(compiler), str(latin_ttf), str(output / "PyramidSans-64-sdf.pfont"),
+        "64", "1024", "--sdf", "--distance=10",
+        "U+00E9", "U+03A9", "U+2713"], check=True)
 
     arabic_extras = [
         codepoint for codepoint in arabic["SUPPORTED_CODEPOINTS"]
         if not 32 <= codepoint <= 126
     ]
     subprocess.run([
-        str(compiler), str(arabic_ttf), str(output / "PyramidArabic-48.pfont"),
-        "48", "512",
+        str(compiler), str(arabic_ttf), str(output / "PyramidArabic-64-sdf.pfont"),
+        "64", "1024", "--sdf", "--distance=10",
         *(f"U+{codepoint:04X}" for codepoint in arabic_extras)], check=True)
 
 

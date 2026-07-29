@@ -25,11 +25,13 @@ namespace Pyramid
 layout(location = 0) in vec2 a_Position;
 layout(location = 1) in vec2 a_UV;
 layout(location = 2) in vec4 a_Color;
+layout(location = 3) in vec2 a_TextParameters;
 
 uniform vec2 u_SurfaceSize;
 
 out vec2 v_UV;
 out vec4 v_Color;
+out vec2 v_TextParameters;
 
 void main()
 {
@@ -38,6 +40,7 @@ void main()
     gl_Position = vec4(clip, 0.0, 1.0);
     v_UV = a_UV;
     v_Color = a_Color;
+    v_TextParameters = a_TextParameters;
 }
 )";
 
@@ -45,6 +48,7 @@ void main()
 #version 330 core
 in vec2 v_UV;
 in vec4 v_Color;
+in vec2 v_TextParameters;
 
 uniform sampler2D u_Texture;
 
@@ -52,7 +56,18 @@ out vec4 FragColor;
 
 void main()
 {
-    FragColor = texture(u_Texture, v_UV) * v_Color;
+    vec4 texel = texture(u_Texture, v_UV);
+    if (v_TextParameters.x > 0.5)
+    {
+        float signedDistance = texel.a + v_TextParameters.y;
+        float smoothing = max(fwidth(signedDistance), 1.0 / 255.0);
+        float coverage = smoothstep(0.5 - smoothing, 0.5 + smoothing, signedDistance);
+        FragColor = vec4(v_Color.rgb, v_Color.a * coverage);
+    }
+    else
+    {
+        FragColor = texel * v_Color;
+    }
 }
 )";
 
@@ -177,6 +192,7 @@ void main()
             {ShaderDataType::Float2, "a_Position"},
             {ShaderDataType::Float2, "a_UV"},
             {ShaderDataType::Float4, "a_Color"},
+            {ShaderDataType::Float2, "a_TextParameters"},
         };
         vertexArray->AddVertexBuffer(vertexBuffer, layout);
         vertexArray->SetIndexBuffer(indexBuffer);

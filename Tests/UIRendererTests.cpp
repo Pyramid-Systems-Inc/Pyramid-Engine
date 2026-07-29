@@ -25,7 +25,12 @@ namespace
     public:
         void Bind() override { bound = true; }
         void Unbind() override { bound = false; }
-        bool Compile(const std::string&, const std::string&) override { return true; }
+        bool Compile(const std::string& vertex, const std::string& fragment) override
+        {
+            vertexSource = vertex;
+            fragmentSource = fragment;
+            return true;
+        }
         bool CompileWithGeometry(
             const std::string&, const std::string&, const std::string&) override { return true; }
         bool CompileWithTessellation(
@@ -51,6 +56,8 @@ namespace
         void SetShaderStorageBlockBinding(const std::string&, Pyramid::u32) override {}
 
         bool bound = false;
+        std::string vertexSource;
+        std::string fragmentSource;
     };
 
     class TestTexture final : public Pyramid::ITexture2D
@@ -142,7 +149,12 @@ int main()
     }
 
     Tests::TestGraphicsDevice device;
-    device.shaderFactory = []() { return std::make_shared<TestShader>(); };
+    std::shared_ptr<TestShader> compiledShader;
+    device.shaderFactory = [&]()
+    {
+        compiledShader = std::make_shared<TestShader>();
+        return compiledShader;
+    };
     TextureSpecification createdFontTextureSpecification;
     bool createdFontTexture = false;
     device.textureFactory = [&](const TextureSpecification& specification, const void*)
@@ -160,7 +172,8 @@ int main()
     {
         return Fail("processed font atlas failed to load");
     }
-    if (font.width != 512 || font.height != 512 || font.glyphs.size() != 98)
+    if (font.width != 1024 || font.height != 1024 || font.glyphs.size() != 98 ||
+        font.rasterMode != Font::RasterMode::SignedDistanceField)
     {
         return Fail("processed font atlas metadata mismatch");
     }
@@ -173,6 +186,13 @@ int main()
         createdFontTextureSpecification.MagFilter != TextureFilter::Linear)
     {
         return Fail("font atlas did not use antialiased linear sampling");
+    }
+    if (!compiledShader ||
+        compiledShader->vertexSource.find("a_TextParameters") == std::string::npos ||
+        compiledShader->fragmentSource.find("fwidth") == std::string::npos ||
+        compiledShader->fragmentSource.find("smoothstep") == std::string::npos)
+    {
+        return Fail("UI shader did not compile the scalable SDF text path");
     }
 
     auto customTexture = std::make_shared<TestTexture>(TextureSpecification{});
