@@ -31,6 +31,16 @@ namespace Pyramid::Text
         [[nodiscard]] std::size_t Length() const { return end >= begin ? end - begin : 0; }
     };
 
+    /** Returns extended grapheme-cluster ranges using the owned Unicode segmenter. */
+    [[nodiscard]] std::vector<TextRange> SegmentGraphemes(std::u32string_view text);
+    [[nodiscard]] bool IsGraphemeBoundary(std::u32string_view text, std::size_t index);
+    [[nodiscard]] std::size_t PreviousGraphemeBoundary(
+        std::u32string_view text,
+        std::size_t index);
+    [[nodiscard]] std::size_t NextGraphemeBoundary(
+        std::u32string_view text,
+        std::size_t index);
+
     enum class CursorMove : u8
     {
         PreviousCodepoint = 0,
@@ -136,6 +146,32 @@ namespace Pyramid::Text
         [[nodiscard]] f32 GetKerning(char32_t left, char32_t right) const;
     };
 
+    struct FontFamilyGlyphSource
+    {
+        char32_t codepoint = 0;
+        u32 fontIndex = 0;
+    };
+
+    /**
+     * Ordered fallback family compiled into one renderer-ready atlas. Earlier
+     * fonts win duplicate code points; missing glyphs resolve through the first
+     * font's replacement glyph.
+     */
+    struct FontFamily
+    {
+        std::vector<std::string> familyNames;
+        FontAtlas atlas;
+        std::vector<FontFamilyGlyphSource> glyphSources;
+
+        [[nodiscard]] bool IsValid() const;
+        [[nodiscard]] u32 ResolveFontIndex(char32_t codepoint) const;
+    };
+
+    [[nodiscard]] bool BuildFontFamily(
+        const std::vector<FontAtlas>& fonts,
+        FontFamily& output,
+        std::string* error = nullptr);
+
     struct GlyphQuad
     {
         Math::Vec2 minimum = Math::Vec2::Zero;
@@ -193,6 +229,123 @@ namespace Pyramid::Text
         u32 invalidUtf8Sequences = 0;
         u32 fallbackGlyphs = 0;
     };
+
+    enum class TextDirection : u8
+    {
+        Auto = 0,
+        LeftToRight,
+        RightToLeft
+    };
+
+    enum class ResolvedDirection : u8
+    {
+        LeftToRight = 0,
+        RightToLeft
+    };
+
+    struct InternationalLayoutOptions
+    {
+        f32 scale = 1.0f;
+        f32 maximumWidth = 0.0f;
+        f32 lineSpacing = 0.0f;
+        u32 tabWidth = 4;
+        HorizontalAlignment alignment = HorizontalAlignment::Left;
+        WrapMode wrap = WrapMode::None;
+        TextDirection direction = TextDirection::Auto;
+        char32_t maskCharacter = 0;
+
+        [[nodiscard]] bool IsValid() const;
+    };
+
+    struct BidiRun
+    {
+        TextRange logicalRange;
+        u32 lineIndex = 0;
+        ResolvedDirection direction = ResolvedDirection::LeftToRight;
+    };
+
+    struct VisualCluster
+    {
+        TextRange logicalRange;
+        u32 lineIndex = 0;
+        f32 minimumX = 0.0f;
+        f32 maximumX = 0.0f;
+        ResolvedDirection direction = ResolvedDirection::LeftToRight;
+        u32 firstGlyph = 0;
+        u32 glyphCount = 0;
+    };
+
+    struct CaretStop
+    {
+        std::size_t logicalIndex = 0;
+        u32 lineIndex = 0;
+        f32 x = 0.0f;
+    };
+
+    struct CaretLocation
+    {
+        u32 lineIndex = 0;
+        f32 x = 0.0f;
+    };
+
+    struct SelectionSpan
+    {
+        u32 lineIndex = 0;
+        f32 minimumX = 0.0f;
+        f32 maximumX = 0.0f;
+    };
+
+    struct InternationalLayoutResult
+    {
+        TextMetrics metrics;
+        std::vector<GlyphQuad> glyphs;
+        std::vector<LineMetrics> lines;
+        std::vector<BidiRun> runs;
+        std::vector<VisualCluster> clusters;
+        std::vector<CaretStop> carets;
+        ResolvedDirection paragraphDirection = ResolvedDirection::LeftToRight;
+        u32 invalidUtf8Sequences = 0;
+        u32 fallbackGlyphs = 0;
+    };
+
+    [[nodiscard]] InternationalLayoutResult LayoutInternational(
+        const FontAtlas& font,
+        std::u32string_view text,
+        const Math::Vec2& origin,
+        const InternationalLayoutOptions& options = {});
+
+    [[nodiscard]] InternationalLayoutResult LayoutInternational(
+        const FontFamily& family,
+        std::u32string_view text,
+        const Math::Vec2& origin,
+        const InternationalLayoutOptions& options = {});
+
+    [[nodiscard]] InternationalLayoutResult LayoutInternationalUtf8(
+        const FontAtlas& font,
+        std::string_view utf8Text,
+        const Math::Vec2& origin,
+        const InternationalLayoutOptions& options = {});
+
+    [[nodiscard]] InternationalLayoutResult LayoutInternationalUtf8(
+        const FontFamily& family,
+        std::string_view utf8Text,
+        const Math::Vec2& origin,
+        const InternationalLayoutOptions& options = {});
+
+    [[nodiscard]] CaretLocation GetCaretLocation(
+        const InternationalLayoutResult& layout,
+        std::size_t logicalIndex);
+    [[nodiscard]] std::size_t HitTestInternational(
+        const InternationalLayoutResult& layout,
+        u32 lineIndex,
+        f32 x);
+    [[nodiscard]] std::size_t MoveCaretVisual(
+        const InternationalLayoutResult& layout,
+        std::size_t logicalIndex,
+        bool moveRight);
+    [[nodiscard]] std::vector<SelectionSpan> BuildSelectionSpans(
+        const InternationalLayoutResult& layout,
+        TextRange selection);
 
     /**
      * Built-in deterministic debug font. It is intentionally small and ASCII-only;

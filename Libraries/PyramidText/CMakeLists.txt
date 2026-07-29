@@ -13,6 +13,8 @@ target_sources(PyramidText
     PRIVATE
         source/Text.cpp
         source/TextEditing.cpp
+        source/Unicode.cpp
+        source/International.cpp
     PRIVATE
         include/Pyramid/Text/Text.hpp
 )

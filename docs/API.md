@@ -206,9 +206,23 @@ Include the renderer-independent APIs with:
 #include <Pyramid/Util/Log.hpp>
 ```
 
-`Text::CreateDebugFontAtlas()` returns a deterministic embedded ASCII atlas. `Text::LoadFontAtlas()` converts a processed `.pfont` into the same renderer-neutral atlas contract, and `UI::Context::SetFontAtlas()` switches an idle context to that atlas. `Text::Layout()` strictly decodes UTF-8, substitutes unsupported code points through the atlas fallback glyph, reports malformed-sequence counts, expands tabs, wraps by word or character, aligns lines, and emits renderer-neutral glyph geometry plus line metrics. `Text::Measure()` and `Text::BuildGlyphQuads()` remain compact convenience APIs.
+`Text::CreateDebugFontAtlas()` returns a deterministic embedded ASCII atlas. `Text::LoadFontAtlas()` converts a processed `.pfont` into the same renderer-neutral atlas contract. `Text::BuildFontFamily()` combines an ordered list of atlases into one renderer-ready fallback atlas; earlier fonts win duplicate code points, and `ResolveFontIndex()` reports the selected source. `UI::Context::SetFontAtlas()` selects one atlas, while `SetFontFamily()` enables the merged fallback family.
 
-`Text::TextBuffer` stores Unicode scalar values and exposes code-point-based cursor and selection operations independently from UI rendering:
+```cpp
+Pyramid::Text::FontAtlas latin;
+Pyramid::Text::FontAtlas arabic;
+Pyramid::Text::LoadFontAtlas("Fonts/PyramidSans-24.pfont", latin);
+Pyramid::Text::LoadFontAtlas("Fonts/PyramidArabic-24.pfont", arabic);
+
+Pyramid::Text::FontFamily family;
+std::string familyError;
+if (Pyramid::Text::BuildFontFamily({latin, arabic}, family, &familyError))
+    ui.SetFontFamily(family);
+```
+
+`Text::LayoutInternational()` accepts UTF-32 and `LayoutInternationalUtf8()` strictly decodes UTF-8. They resolve paragraph direction, build common Latin/Arabic/numeric visual runs, contextually shape the core Arabic alphabet, mirror common RTL punctuation, wrap at owned international word/CJK opportunities, and emit renderer-neutral glyphs plus logical ranges, visual clusters, caret stops, and selection geometry. `GetCaretLocation()`, `HitTestInternational()`, `MoveCaretVisual()`, and `BuildSelectionSpans()` expose that mapping to UI and future editor code. `Text::Layout()`, `Measure()`, and `BuildGlyphQuads()` remain compact legacy/convenience APIs.
+
+`Text::TextBuffer` stores Unicode scalar values as logical indices, but cursor and selection mutations are constrained to extended-grapheme boundaries independently from UI rendering:
 
 ```cpp
 Pyramid::Text::TextBuffer buffer(U"Kingdom");
@@ -219,7 +233,7 @@ buffer.SelectWordAt(buffer.GetCursor() - 1);
 const std::string utf8 = buffer.GetUtf8();
 ```
 
-It supports insertion, backspace/delete, word/line/document movement, line-up/down movement, selection replacement, single-line normalization, read-only mode, and character limits. `Text::DecodeUtf8()` and `EncodeUtf8()` provide strict conversion at application boundaries.
+It supports insertion, cluster-safe backspace/delete and previous/next movement, word/line/document movement, line-up/down movement, selection replacement, single-line normalization, read-only mode, and character limits. `Text::SegmentGraphemes()` and the boundary-navigation helpers expose the same owned segmentation contract. `Text::DecodeUtf8()` and `EncodeUtf8()` provide strict conversion at application boundaries.
 
 A `UI::Context` owns retained widget state and accepts immediate calls between `BeginFrame()` and `EndFrame()`:
 
@@ -268,7 +282,7 @@ notesOptions.maximumCharacters = 1024;
 const auto notesResult = ui.MultilineTextArea("NOTES", notes, notesOptions);
 ```
 
-`TextField`, `PasswordField`, `SearchField`, and `MultilineTextArea` support pointer caret placement, drag selection, double-click word selection, triple-click line selection, Shift selection, Ctrl+A/C/X/V, word navigation, Home/End, Enter submission, Escape rollback, placeholder/error states, and caret/selection rendering. A focused editor consumes character-producing and editing controls before gameplay actions, but leaves unrelated function keys available. Full IME composition presentation, bidirectional editing, and complex-script shaping remain later work.
+`TextField`, `PasswordField`, `SearchField`, and `MultilineTextArea` support pointer caret placement, drag selection, double-click word selection, triple-click line selection, Shift selection, Ctrl+A/C/X/V, word navigation, Home/End, Enter submission, Escape rollback, placeholder/error states, and caret/selection rendering. They use international cluster maps for RTL-aware hit testing, visual Left/Right movement, selection geometry, wrapping, and password masking. A focused editor consumes character-producing and editing controls before gameplay actions, but leaves unrelated function keys available. The current owned subset does not yet implement explicit bidi controls/isolates, complete UAX #14, OpenType GSUB/GPOS, general complex scripts, advanced Arabic ligatures/mark positioning, or native IME composition/candidate presentation.
 
 Persistent game flow uses the retained screen stack:
 

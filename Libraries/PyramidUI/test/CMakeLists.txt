@@ -13,6 +13,10 @@ add_test(NAME UI.GameScreens COMMAND $<TARGET_FILE:PyramidGameUITests>)
 
 add_executable(PyramidUITextEditingTests TextEditingTests.cpp)
 target_link_libraries(PyramidUITextEditingTests PRIVATE Pyramid::UI)
+target_compile_definitions(PyramidUITextEditingTests PRIVATE
+    PYRAMID_UI_TEST_FONT="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidSans-24.pfont"
+    PYRAMID_UI_TEST_ARABIC_FONT="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidArabic-24.pfont"
+)
 set_target_properties(PyramidUITextEditingTests PROPERTIES FOLDER "Tests/Libraries")
 add_test(NAME UI.TextEditing COMMAND $<TARGET_FILE:PyramidUITextEditingTests>)
 

@@ -217,7 +217,9 @@ namespace Pyramid::UI
         [[nodiscard]] Clipboard* GetClipboard() const { return m_clipboard; }
         [[nodiscard]] const Theme& GetTheme() const { return m_theme; }
         [[nodiscard]] bool SetFontAtlas(const Text::FontAtlas& font);
+        [[nodiscard]] bool SetFontFamily(const Text::FontFamily& family);
         [[nodiscard]] const Text::FontAtlas& GetFontAtlas() const { return m_font; }
+        [[nodiscard]] const Text::FontFamily& GetFontFamily() const { return m_fontFamily; }
         [[nodiscard]] const Text::FontAtlas& GetDebugFont() const { return m_font; }
 
         /** Hit-tests the previous retained frame before action contexts evaluate. */
@@ -407,12 +409,12 @@ namespace Pyramid::UI
             f32 y,
             const Color& color,
             const Rect& clip);
-        [[nodiscard]] Text::LayoutResult BuildWrappedText(
+        [[nodiscard]] Text::InternationalLayoutResult BuildWrappedText(
             std::string_view text,
             const Math::Vec2& position,
             f32 maximumWidth) const;
         void DrawTextLayout(
-            const Text::LayoutResult& layout,
+            const Text::InternationalLayoutResult& layout,
             const Color& color,
             const Rect& clip);
         [[nodiscard]] TextEditResult EditText(
@@ -442,6 +444,7 @@ namespace Pyramid::UI
 
         Theme m_theme;
         Text::FontAtlas m_font;
+        Text::FontFamily m_fontFamily;
         DrawList m_drawList;
         FrameInfo m_frame;
         const InputState* m_input = nullptr;

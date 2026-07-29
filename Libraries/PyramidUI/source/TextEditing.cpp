@@ -8,109 +8,19 @@ namespace Pyramid::UI
 {
     namespace
     {
-        struct EditLine
-        {
-            std::size_t start = 0;
-            std::size_t end = 0;
-            std::vector<f32> carets;
-            f32 width = 0.0f;
-        };
-
-        struct EditLayout
-        {
-            std::vector<EditLine> lines;
-            f32 lineHeight = 0.0f;
-        };
-
-        std::u32string DisplayText(const Text::TextBuffer& buffer, bool password)
-        {
-            if (!password)
-            {
-                return buffer.GetText();
-            }
-            std::u32string masked;
-            masked.reserve(buffer.Size());
-            for (char32_t codepoint : buffer.GetText())
-            {
-                masked.push_back(codepoint == U'\n' ? U'\n' : U'*');
-            }
-            return masked;
-        }
-
-        EditLayout BuildEditLayout(
-            const Text::FontAtlas& font,
+        Text::InternationalLayoutResult BuildEditLayout(
+            const Text::FontFamily& family,
             std::u32string_view text,
-            f32 scale)
+            f32 scale,
+            bool password,
+            f32 maximumWidth)
         {
-            EditLayout result;
-            result.lineHeight = font.lineHeight * scale;
-            std::size_t lineStart = 0;
-            while (lineStart <= text.size())
-            {
-                std::size_t lineEnd = lineStart;
-                while (lineEnd < text.size() && text[lineEnd] != U'\n')
-                {
-                    ++lineEnd;
-                }
-
-                EditLine line;
-                line.start = lineStart;
-                line.end = lineEnd;
-                line.carets.reserve(lineEnd - lineStart + 1U);
-                line.carets.push_back(0.0f);
-                f32 x = 0.0f;
-                char32_t previous = 0;
-                for (std::size_t index = lineStart; index < lineEnd; ++index)
-                {
-                    const char32_t codepoint = text[index];
-                    if (previous != 0)
-                    {
-                        x += font.GetKerning(previous, codepoint) * scale;
-                    }
-                    x += font.GetGlyph(codepoint).advance * scale;
-                    line.carets.push_back(x);
-                    previous = codepoint;
-                }
-                line.width = x;
-                result.lines.push_back(std::move(line));
-
-                if (lineEnd >= text.size())
-                {
-                    break;
-                }
-                lineStart = lineEnd + 1U;
-            }
-            if (result.lines.empty())
-            {
-                result.lines.push_back({});
-            }
-            return result;
-        }
-
-        std::pair<std::size_t, std::size_t> LocateCursor(
-            const EditLayout& layout,
-            std::size_t cursor)
-        {
-            for (std::size_t lineIndex = 0; lineIndex < layout.lines.size(); ++lineIndex)
-            {
-                const EditLine& line = layout.lines[lineIndex];
-                if (cursor <= line.end || lineIndex + 1U == layout.lines.size())
-                {
-                    const std::size_t local = cursor <= line.start
-                        ? 0U
-                        : (std::min)(cursor - line.start, line.end - line.start);
-                    return {lineIndex, local};
-                }
-            }
-            return {layout.lines.size() - 1U, layout.lines.back().carets.size() - 1U};
-        }
-
-        f32 CaretX(const EditLine& line, std::size_t cursor)
-        {
-            const std::size_t local = cursor <= line.start
-                ? 0
-                : (std::min)(cursor - line.start, line.carets.size() - 1U);
-            return line.carets[local];
+            Text::InternationalLayoutOptions options;
+            options.scale = scale;
+            options.maximumWidth = maximumWidth;
+            options.wrap = Text::WrapMode::None;
+            options.maskCharacter = password ? U'*' : 0;
+            return Text::LayoutInternational(family, text, Math::Vec2::Zero, options);
         }
 
         bool IsControlDown(const InputState& input)
@@ -404,16 +314,40 @@ namespace Pyramid::UI
             }
             if (m_input->WasKeyPressed(Key::Left))
             {
-                (void)state.buffer.MoveCursor(
-                    control ? Text::CursorMove::PreviousWord : Text::CursorMove::PreviousCodepoint,
-                    shift);
+                if (control)
+                {
+                    (void)state.buffer.MoveCursor(Text::CursorMove::PreviousWord, shift);
+                }
+                else
+                {
+                    const Text::InternationalLayoutResult visual = BuildEditLayout(
+                        m_fontFamily,
+                        state.buffer.GetText(),
+                        m_theme.textScale,
+                        options.password,
+                        (std::max)(0.0f, fieldRect.width - 10.0f));
+                    state.buffer.SetCursor(Text::MoveCaretVisual(
+                        visual, state.buffer.GetCursor(), false), shift);
+                }
                 state.caretTimer = 0.0f;
             }
             if (m_input->WasKeyPressed(Key::Right))
             {
-                (void)state.buffer.MoveCursor(
-                    control ? Text::CursorMove::NextWord : Text::CursorMove::NextCodepoint,
-                    shift);
+                if (control)
+                {
+                    (void)state.buffer.MoveCursor(Text::CursorMove::NextWord, shift);
+                }
+                else
+                {
+                    const Text::InternationalLayoutResult visual = BuildEditLayout(
+                        m_fontFamily,
+                        state.buffer.GetText(),
+                        m_theme.textScale,
+                        options.password,
+                        (std::max)(0.0f, fieldRect.width - 10.0f));
+                    state.buffer.SetCursor(Text::MoveCaretVisual(
+                        visual, state.buffer.GetCursor(), true), shift);
+                }
                 state.caretTimer = 0.0f;
             }
             if (m_input->WasKeyPressed(Key::Home))
@@ -539,31 +473,47 @@ namespace Pyramid::UI
             rect.y + 4.0f,
             (std::max)(0.0f, rect.width - 10.0f),
             (std::max)(0.0f, rect.height - 8.0f)};
-        const std::u32string display = DisplayText(state.buffer, password);
-        const EditLayout layout = BuildEditLayout(m_font, display, m_theme.textScale);
-        const auto [caretLineIndex, unusedLocal] = LocateCursor(layout, state.buffer.GetCursor());
-        (void)unusedLocal;
-        const EditLine& caretLine = layout.lines[caretLineIndex];
-        const f32 caretX = CaretX(caretLine, state.buffer.GetCursor());
-        const f32 caretY = static_cast<f32>(caretLineIndex) * layout.lineHeight;
+        const std::u32string& display = state.buffer.GetText();
+        const Text::InternationalLayoutResult layout = BuildEditLayout(
+            m_fontFamily, display, m_theme.textScale, password, content.width);
+        const Text::CaretLocation caret = Text::GetCaretLocation(
+            layout, state.buffer.GetCursor());
+        const f32 lineHeight = m_font.lineHeight * m_theme.textScale;
+        const f32 caretX = caret.x;
+        const f32 caretY = static_cast<f32>(caret.lineIndex) * lineHeight;
 
-        if (!multiline)
+        f32 lineMinimumX = caretX;
+        f32 lineMaximumX = caretX;
+        for (const Text::CaretStop& stop : layout.carets)
         {
-            if (caretX - state.horizontalOffset > content.width - 2.0f)
+            if (stop.lineIndex == caret.lineIndex)
             {
-                state.horizontalOffset = caretX - content.width + 2.0f;
+                lineMinimumX = (std::min)(lineMinimumX, stop.x);
+                lineMaximumX = (std::max)(lineMaximumX, stop.x);
             }
-            if (caretX - state.horizontalOffset < 0.0f)
-            {
-                state.horizontalOffset = caretX;
-            }
-            state.horizontalOffset = (std::max)(0.0f, state.horizontalOffset);
         }
-        else
+        if (caretX - state.horizontalOffset > content.width - 2.0f)
         {
-            if (caretY - state.verticalOffset + layout.lineHeight > content.height)
+            state.horizontalOffset = caretX - content.width + 2.0f;
+        }
+        if (caretX - state.horizontalOffset < 0.0f)
+        {
+            state.horizontalOffset = caretX;
+        }
+        const f32 minimumHorizontalOffset = (std::min)(0.0f, lineMinimumX);
+        const f32 maximumHorizontalOffset = (std::max)(
+            minimumHorizontalOffset,
+            lineMaximumX - content.width);
+        state.horizontalOffset = (std::clamp)(
+            state.horizontalOffset,
+            minimumHorizontalOffset,
+            maximumHorizontalOffset);
+
+        if (multiline)
+        {
+            if (caretY - state.verticalOffset + lineHeight > content.height)
             {
-                state.verticalOffset = caretY + layout.lineHeight - content.height;
+                state.verticalOffset = caretY + lineHeight - content.height;
             }
             if (caretY - state.verticalOffset < 0.0f)
             {
@@ -571,32 +521,21 @@ namespace Pyramid::UI
             }
             const f32 maximumOffset = (std::max)(
                 0.0f,
-                static_cast<f32>(layout.lines.size()) * layout.lineHeight - content.height);
+                static_cast<f32>(layout.lines.size()) * lineHeight - content.height);
             state.verticalOffset = (std::min)(state.verticalOffset, maximumOffset);
         }
 
         const Text::TextRange selection = state.buffer.GetSelection();
-        if (!selection.Empty())
+        for (const Text::SelectionSpan& span : Text::BuildSelectionSpans(layout, selection))
         {
-            for (std::size_t lineIndex = 0; lineIndex < layout.lines.size(); ++lineIndex)
-            {
-                const EditLine& line = layout.lines[lineIndex];
-                const std::size_t begin = (std::max)(selection.begin, line.start);
-                const std::size_t end = (std::min)(selection.end, line.end);
-                if (end <= begin)
-                {
-                    continue;
-                }
-                const f32 left = CaretX(line, begin);
-                const f32 right = CaretX(line, end);
-                DrawSolid(
-                    {content.x + left - state.horizontalOffset,
-                     content.y + static_cast<f32>(lineIndex) * layout.lineHeight - state.verticalOffset,
-                     (std::max)(1.0f, right - left),
-                     layout.lineHeight},
-                    WithAlpha(m_theme.accent, 0.42f),
-                    content.Intersect(clip));
-            }
+            DrawSolid(
+                {content.x + span.minimumX - state.horizontalOffset,
+                 content.y + static_cast<f32>(span.lineIndex) * lineHeight -
+                    state.verticalOffset,
+                 (std::max)(1.0f, span.maximumX - span.minimumX),
+                 lineHeight},
+                WithAlpha(m_theme.accent, 0.42f),
+                content.Intersect(clip));
         }
 
         if (display.empty() && !placeholder.empty())
@@ -609,19 +548,18 @@ namespace Pyramid::UI
         }
         else
         {
-            for (std::size_t lineIndex = 0; lineIndex < layout.lines.size(); ++lineIndex)
+            for (const Text::GlyphQuad& quad : layout.glyphs)
             {
-                const EditLine& line = layout.lines[lineIndex];
-                const std::u32string_view lineText(
-                    display.data() + line.start,
-                    line.end - line.start);
-                DrawText(
-                    Text::EncodeUtf8(lineText),
-                    Math::Vec2(
-                        content.x - state.horizontalOffset,
-                        content.y + static_cast<f32>(lineIndex) * layout.lineHeight -
-                            state.verticalOffset),
+                m_drawList.AddQuad(
+                    {content.x + quad.minimum.x - state.horizontalOffset,
+                     content.y + quad.minimum.y - state.verticalOffset,
+                     quad.maximum.x - quad.minimum.x,
+                     quad.maximum.y - quad.minimum.y},
+                    {quad.uvMinimum.x, quad.uvMinimum.y,
+                     quad.uvMaximum.x - quad.uvMinimum.x,
+                     quad.uvMaximum.y - quad.uvMinimum.y},
                     enabled ? m_theme.text : m_theme.disabled,
+                    DebugFontTextureId,
                     content.Intersect(clip));
             }
         }
@@ -633,7 +571,7 @@ namespace Pyramid::UI
                 {content.x + caretX - state.horizontalOffset,
                  content.y + caretY - state.verticalOffset,
                  1.5f,
-                 layout.lineHeight},
+                 lineHeight},
                 enabled ? m_theme.text : m_theme.disabled,
                 content.Intersect(clip));
         }
@@ -651,27 +589,19 @@ namespace Pyramid::UI
             contentRect.y + 4.0f,
             (std::max)(0.0f, contentRect.width - 10.0f),
             (std::max)(0.0f, contentRect.height - 8.0f)};
-        const std::u32string display = DisplayText(state.buffer, password);
-        const EditLayout layout = BuildEditLayout(m_font, display, m_theme.textScale);
-        std::size_t lineIndex = 0;
-        if (multiline && layout.lineHeight > 0.0f)
+        const std::u32string& display = state.buffer.GetText();
+        const Text::InternationalLayoutResult layout = BuildEditLayout(
+            m_fontFamily, display, m_theme.textScale, password, content.width);
+        const f32 lineHeight = m_font.lineHeight * m_theme.textScale;
+        u32 lineIndex = 0;
+        if (multiline && lineHeight > 0.0f)
         {
             const f32 localY = pointer.y - content.y + state.verticalOffset;
-            lineIndex = static_cast<std::size_t>((std::max)(0.0f, localY) / layout.lineHeight);
-            lineIndex = (std::min)(lineIndex, layout.lines.size() - 1U);
+            lineIndex = static_cast<u32>((std::max)(0.0f, localY) / lineHeight);
+            lineIndex = (std::min)(lineIndex,
+                layout.lines.empty() ? 0U : static_cast<u32>(layout.lines.size() - 1U));
         }
-        const EditLine& line = layout.lines[lineIndex];
         const f32 localX = pointer.x - content.x + state.horizontalOffset;
-        std::size_t local = 0;
-        for (std::size_t index = 1; index < line.carets.size(); ++index)
-        {
-            const f32 midpoint = (line.carets[index - 1U] + line.carets[index]) * 0.5f;
-            if (localX < midpoint)
-            {
-                break;
-            }
-            local = index;
-        }
-        return line.start + local;
+        return Text::HitTestInternational(layout, lineIndex, localX);
     }
 } // namespace Pyramid::UI

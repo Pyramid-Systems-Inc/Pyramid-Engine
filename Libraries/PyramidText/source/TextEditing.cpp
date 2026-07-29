@@ -148,8 +148,8 @@ namespace Pyramid::Text
     {
         m_text = std::move(text);
         Normalize();
-        m_cursor = (std::min)(m_cursor, m_text.size());
-        m_anchor = (std::min)(m_anchor, m_text.size());
+        m_cursor = ClampIndex(m_cursor);
+        m_anchor = ClampIndex(m_anchor);
     }
 
     std::string TextBuffer::GetUtf8() const
@@ -281,7 +281,12 @@ namespace Pyramid::Text
             : 0;
         if (filtered.size() > available)
         {
-            filtered.resize(available);
+            std::size_t complete = available;
+            if (!IsGraphemeBoundary(filtered, complete))
+            {
+                complete = PreviousGraphemeBoundary(filtered, complete);
+            }
+            filtered.resize(complete);
         }
         if (filtered.empty() && selection.Empty())
         {
@@ -317,8 +322,9 @@ namespace Pyramid::Text
         {
             return false;
         }
-        m_text.erase(m_cursor - 1U, 1U);
-        --m_cursor;
+        const std::size_t previous = PreviousGraphemeBoundary(m_text, m_cursor);
+        m_text.erase(previous, m_cursor - previous);
+        m_cursor = previous;
         m_anchor = m_cursor;
         return true;
     }
@@ -333,7 +339,8 @@ namespace Pyramid::Text
         {
             return false;
         }
-        m_text.erase(m_cursor, 1U);
+        const std::size_t next = NextGraphemeBoundary(m_text, m_cursor);
+        m_text.erase(m_cursor, next - m_cursor);
         m_anchor = m_cursor;
         return true;
     }
@@ -344,10 +351,10 @@ namespace Pyramid::Text
         switch (move)
         {
             case CursorMove::PreviousCodepoint:
-                target = target > 0 ? target - 1U : 0;
+                target = PreviousGraphemeBoundary(m_text, target);
                 break;
             case CursorMove::NextCodepoint:
-                target = (std::min)(target + 1U, m_text.size());
+                target = NextGraphemeBoundary(m_text, target);
                 break;
             case CursorMove::PreviousWord:
                 while (target > 0 && !IsWordCharacter(m_text[target - 1U]))
@@ -418,7 +425,12 @@ namespace Pyramid::Text
 
     std::size_t TextBuffer::ClampIndex(std::size_t index) const
     {
-        return (std::min)(index, m_text.size());
+        index = (std::min)(index, m_text.size());
+        if (index == 0 || index == m_text.size() || IsGraphemeBoundary(m_text, index))
+        {
+            return index;
+        }
+        return PreviousGraphemeBoundary(m_text, index);
     }
 
     std::size_t TextBuffer::FindLineStart(std::size_t index) const
@@ -458,13 +470,9 @@ namespace Pyramid::Text
     void TextBuffer::Normalize()
     {
         std::u32string normalized;
-        normalized.reserve((std::min)(m_text.size(), m_maximumCharacters));
+        normalized.reserve(m_text.size());
         for (char32_t codepoint : m_text)
         {
-            if (normalized.size() >= m_maximumCharacters)
-            {
-                break;
-            }
             if (!IsScalar(codepoint))
             {
                 codepoint = kReplacement;
@@ -479,8 +487,17 @@ namespace Pyramid::Text
             }
             normalized.push_back(codepoint);
         }
+        if (normalized.size() > m_maximumCharacters)
+        {
+            std::size_t complete = m_maximumCharacters;
+            if (!IsGraphemeBoundary(normalized, complete))
+            {
+                complete = PreviousGraphemeBoundary(normalized, complete);
+            }
+            normalized.resize(complete);
+        }
         m_text.swap(normalized);
-        m_cursor = (std::min)(m_cursor, m_text.size());
-        m_anchor = (std::min)(m_anchor, m_text.size());
+        m_cursor = ClampIndex(m_cursor);
+        m_anchor = ClampIndex(m_anchor);
     }
 } // namespace Pyramid::Text

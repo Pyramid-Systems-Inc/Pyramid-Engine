@@ -6,7 +6,7 @@ Priorities are based on technical risk. They are not delivery dates.
 
 Pyramid is a general-purpose engine whose first proving game will be a Ruqoom RTS. The authoritative runtime model is a stable-ID entity/component scene with hierarchical transforms. The first playable milestone remains Windows-only; Linux follows after it. A full editor is planned. Baa is the long-term scripting language and eventual engine implementation language, but the C++ engine remains the behavioral reference until the Baa toolchain/runtime can reproduce it. New engine/editor/gameplay subsystems should be owned by the Pyramid ecosystem. GLAD is the sole approved bundled third-party runtime library; the former JPEG middleware dependency has been removed.
 
-## Stabilization completed through July 27, 2026
+## Stabilization completed through July 29, 2026
 
 The current `0.6.0-pre-alpha` baseline includes:
 
@@ -17,7 +17,7 @@ The current `0.6.0-pre-alpha` baseline includes:
 - strict required window operations with Win32 implementations;
 - relocatable install/export package and external-consumer test;
 - Windows Debug/Release CI for build, CTest, install, and package consumption;
-- 52 registered tests, including standalone foundation, math, input, image, model, font, text, and UI validation, pre-action UI input consumption, command-buffer statistics, OpenGL UI batching and clipping, platform input, action mapping, reusable camera controllers, game-side RTS interaction, engine-owned mesh resources, transactional OBJ-to-mesh/texture/material publication, immutable geometry bounds, real PNG/JPEG decoding, transactional texture loading, OpenGL diagnostics, window events, camera resize/frustum behavior, framebuffer resize, scene-hierarchy transforms, spatial queries, resource caches, and scene serialization;
+- 53 registered tests, including standalone foundation, math, input, image, model, font, international text, and UI validation, pre-action UI input consumption, command-buffer statistics, OpenGL UI batching and clipping, platform input, action mapping, reusable camera controllers, game-side RTS interaction, engine-owned mesh resources, transactional OBJ-to-mesh/texture/material publication, immutable geometry bounds, real PNG/JPEG decoding, transactional texture loading, OpenGL diagnostics, window events, camera resize/frustum behavior, framebuffer resize, scene-hierarchy transforms, spatial queries, resource caches, and scene serialization;
 - extracted primitive types/logging, math, physical/action input, image codecs, CPU model importing, TrueType/font assets, text, and UI into independently installable `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, `Pyramid::Model`, `Pyramid::Font`, `Pyramid::Text`, and `Pyramid::UI` packages;
 - completed the previously stubbed `Mat4` determinant and inverse operations with pivoted elimination;
 - corrected standards-invalid PNG, zlib, and JPEG test fixtures;
@@ -133,7 +133,8 @@ A full editor follows the validated runtime model. Baa integration starts as gam
 
 - [x] Runtime TrueType import, CPU rasterization, and owned versioned `.pfont` asset format.
 - [x] Strict UTF-8 decoding, malformed-sequence diagnostics, tab expansion, word/character wrapping, and horizontal alignment for the embedded debug atlas.
-- Bidirectional layout, Arabic/complex-script shaping, fallback font chains, and full IME composition presentation. Committed Unicode text editing and Win32 clipboard integration are complete.
+- [x] Owned extended-grapheme boundaries, common Latin/Arabic/numeric bidirectional visual runs, core Arabic contextual presentation-form shaping, ordered fallback font families, international word/CJK break opportunities, and cluster-aware UI hit testing/caret/selection.
+- Complete Unicode bidi controls/isolates, full UAX #14 line breaking, OpenType GSUB/GPOS, general complex-script shaping, advanced Arabic ligatures/mark positioning, and Win32 IME pre-edit/candidate presentation. Committed Unicode editing and clipboard integration are complete; IME remains the next isolated text-input step.
 - [x] Retained opaque/transparent/modal screen routing, deferred lifecycle operations, responsive anchors/docking, safe events, transition state, nine-slice geometry, and reference main-menu/HUD/pause composition.
 - Style classes, visual transition application, controller navigation, and reusable list/tree widgets.
 - Editor widgets including tree views, property grids, splitters, menus, dialogs, docking, and scene/resource inspectors.

@@ -189,16 +189,28 @@ namespace Pyramid::UI
     Context::Context()
         : m_font(Text::CreateDebugFontAtlas())
     {
+        (void)Text::BuildFontFamily({m_font}, m_fontFamily);
         m_idStack.push_back(kFnvOffset);
     }
 
     bool Context::SetFontAtlas(const Text::FontAtlas& font)
     {
-        if (m_frameActive || !font.IsValid())
+        Text::FontFamily family;
+        if (!Text::BuildFontFamily({font}, family))
         {
             return false;
         }
-        m_font = font;
+        return SetFontFamily(family);
+    }
+
+    bool Context::SetFontFamily(const Text::FontFamily& family)
+    {
+        if (m_frameActive || !family.IsValid())
+        {
+            return false;
+        }
+        m_fontFamily = family;
+        m_font = family.atlas;
         m_elements.clear();
         m_textEditStates.clear();
         m_drawOrder.clear();
@@ -603,7 +615,7 @@ namespace Pyramid::UI
         const f32 width = options.width > 0.0f
             ? (std::min)(options.width, m_layoutStack.back().content.width)
             : m_layoutStack.back().content.width;
-        const Text::LayoutResult measured =
+        const Text::InternationalLayoutResult measured =
             BuildWrappedText(text, Math::Vec2::Zero, width);
         const f32 height = options.height > 0.0f
             ? options.height
@@ -620,7 +632,7 @@ namespace Pyramid::UI
         const WidgetId id = MakeId(text);
         const Rect clip = m_layoutStack.back().clip;
         RecordElement(id, ElementKind::Label, rect, clip, options.enabled, false, false);
-        const Text::LayoutResult layout = BuildWrappedText(
+        const Text::InternationalLayoutResult layout = BuildWrappedText(
             text,
             Math::Vec2(rect.x, rect.y + 1.0f),
             rect.width);
@@ -1206,22 +1218,12 @@ namespace Pyramid::UI
         const Color& color,
         const Rect& clip)
     {
-        std::vector<Text::GlyphQuad> quads;
-        quads.reserve(text.size());
-        Text::BuildGlyphQuads(m_font, text, position, m_theme.textScale, quads);
-        for (const Text::GlyphQuad& quad : quads)
-        {
-            m_drawList.AddQuad(
-                {quad.minimum.x, quad.minimum.y,
-                 quad.maximum.x - quad.minimum.x,
-                 quad.maximum.y - quad.minimum.y},
-                {quad.uvMinimum.x, quad.uvMinimum.y,
-                 quad.uvMaximum.x - quad.uvMinimum.x,
-                 quad.uvMaximum.y - quad.uvMinimum.y},
-                color,
-                DebugFontTextureId,
-                clip);
-        }
+        Text::InternationalLayoutOptions options;
+        options.scale = m_theme.textScale;
+        DrawTextLayout(
+            Text::LayoutInternationalUtf8(m_fontFamily, text, position, options),
+            color,
+            clip);
     }
 
     void Context::DrawTextRight(
@@ -1231,25 +1233,28 @@ namespace Pyramid::UI
         const Color& color,
         const Rect& clip)
     {
-        const Text::TextMetrics metrics = Text::Measure(m_font, text, m_theme.textScale);
+        Text::InternationalLayoutOptions options;
+        options.scale = m_theme.textScale;
+        const Text::TextMetrics metrics = Text::LayoutInternationalUtf8(
+            m_fontFamily, text, Math::Vec2::Zero, options).metrics;
         DrawText(text, Math::Vec2(right - metrics.width, y), color, clip);
     }
 
-    Text::LayoutResult Context::BuildWrappedText(
+    Text::InternationalLayoutResult Context::BuildWrappedText(
         std::string_view text,
         const Math::Vec2& position,
         f32 maximumWidth) const
     {
-        Text::LayoutOptions options;
+        Text::InternationalLayoutOptions options;
         options.scale = m_theme.textScale;
         options.maximumWidth = (std::max)(0.0f, maximumWidth);
         options.wrap = Text::WrapMode::Word;
         options.lineSpacing = 1.0f;
-        return Text::Layout(m_font, text, position, options);
+        return Text::LayoutInternationalUtf8(m_fontFamily, text, position, options);
     }
 
     void Context::DrawTextLayout(
-        const Text::LayoutResult& layout,
+        const Text::InternationalLayoutResult& layout,
         const Color& color,
         const Rect& clip)
     {

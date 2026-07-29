@@ -102,6 +102,21 @@ namespace
         &Pyramid::Text::CreateFontAtlas;
     volatile decltype(&Pyramid::Text::LoadFontAtlas) g_loadFontAtlas =
         &Pyramid::Text::LoadFontAtlas;
+    volatile decltype(&Pyramid::Text::SegmentGraphemes) g_segmentGraphemes =
+        &Pyramid::Text::SegmentGraphemes;
+    volatile decltype(&Pyramid::Text::BuildFontFamily) g_buildFontFamily =
+        &Pyramid::Text::BuildFontFamily;
+    using LayoutInternationalAtlas = Pyramid::Text::InternationalLayoutResult (*)(
+        const Pyramid::Text::FontAtlas&,
+        std::u32string_view,
+        const Pyramid::Math::Vec2&,
+        const Pyramid::Text::InternationalLayoutOptions&);
+    volatile LayoutInternationalAtlas g_layoutInternational =
+        static_cast<LayoutInternationalAtlas>(&Pyramid::Text::LayoutInternational);
+    volatile decltype(&Pyramid::Text::HitTestInternational) g_hitTestInternational =
+        &Pyramid::Text::HitTestInternational;
+    volatile decltype(&Pyramid::Text::MoveCaretVisual) g_moveCaretVisual =
+        &Pyramid::Text::MoveCaretVisual;
     volatile decltype(&Pyramid::Text::Measure) g_measureText =
         &Pyramid::Text::Measure;
     volatile decltype(&Pyramid::Text::BuildGlyphQuads) g_buildGlyphQuads =
@@ -120,6 +135,8 @@ namespace
         &Pyramid::ClipboardEncoding::Utf32ToUtf16;
     volatile decltype(&Pyramid::ClipboardEncoding::Utf16ToUtf32) g_utf16ToUtf32 =
         &Pyramid::ClipboardEncoding::Utf16ToUtf32;
+    volatile decltype(&Pyramid::UI::Context::SetFontFamily) g_setUIFontFamily =
+        &Pyramid::UI::Context::SetFontFamily;
     volatile decltype(&Pyramid::UI::Context::PrepareInput) g_prepareUIInput =
         &Pyramid::UI::Context::PrepareInput;
     volatile decltype(&Pyramid::UI::Context::BeginFrame) g_beginUIFrame =
@@ -564,6 +581,11 @@ int main()
                    g_createDebugFontAtlas &&
                    g_createFontAtlas &&
                    g_loadFontAtlas &&
+                   g_segmentGraphemes &&
+                   g_buildFontFamily &&
+                   g_layoutInternational &&
+                   g_hitTestInternational &&
+                   g_moveCaretVisual &&
                    g_measureText &&
                    g_buildGlyphQuads &&
                    g_layoutText &&
@@ -573,6 +595,7 @@ int main()
                    g_moveTextCursor &&
                    g_utf32ToUtf16 &&
                    g_utf16ToUtf32 &&
+                   g_setUIFontFamily &&
                    g_prepareUIInput &&
                    g_beginUIFrame &&
                    g_endUIFrame &&

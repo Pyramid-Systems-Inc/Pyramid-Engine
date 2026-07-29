@@ -124,6 +124,8 @@ namespace
                 ui.Label("F1  DEBUG OVERLAY");
                 ui.Label("ESC  PAUSE DURING GAMEPLAY");
                 ui.Label(u8"UNICODE  é  Ω  ✓");
+                ui.Label(u8"ARABIC  مملكة الهرم ١٢٣");
+                ui.WrappedLabel(u8"MIXED BIDI  Kingdom 123 - مملكة الهرم");
                 ui.Spacer();
                 if (ui.Button("QUIT") && m_quit)
                 {
@@ -211,7 +213,8 @@ namespace
             else
             {
                 ui.WrappedLabel(
-                    "Supports Unicode typing, selection, Ctrl+C/X/V, and multiline notes.");
+                    u8"Unicode editing: Kingdom 123 - مملكة الهرم. "
+                    "Selection and caret movement stay on grapheme boundaries.");
             }
 
             if (ui.BeginHorizontal("SETTINGS ACTIONS", 30.0f))
@@ -476,13 +479,41 @@ void BasicGame::onCreate()
         "Fonts/PyramidSans-24.pfont",
         m_runtimeFont,
         &fontError);
+    std::string arabicFontError;
+    m_runtimeArabicFontLoaded = Pyramid::Text::LoadFontAtlas(
+        "Fonts/PyramidArabic-24.pfont",
+        m_runtimeArabicFont,
+        &arabicFontError);
     if (m_runtimeFontLoaded)
     {
-        (void)m_gameUI.SetFontAtlas(m_runtimeFont);
-        (void)m_debugUI.SetFontAtlas(m_runtimeFont);
-        PYRAMID_LOG_INFO(
-            "Loaded processed UI font: " + m_runtimeFont.familyName +
-            " (" + std::to_string(m_runtimeFont.glyphs.size()) + " glyphs)");
+        std::vector<Pyramid::Text::FontAtlas> familyFonts{m_runtimeFont};
+        if (m_runtimeArabicFontLoaded)
+        {
+            familyFonts.push_back(m_runtimeArabicFont);
+        }
+        std::string familyError;
+        if (Pyramid::Text::BuildFontFamily(
+                familyFonts, m_runtimeFontFamily, &familyError))
+        {
+            (void)m_gameUI.SetFontFamily(m_runtimeFontFamily);
+            (void)m_debugUI.SetFontFamily(m_runtimeFontFamily);
+            PYRAMID_LOG_INFO(
+                "Loaded UI font family: " + m_runtimeFontFamily.atlas.familyName +
+                " (" + std::to_string(m_runtimeFontFamily.atlas.glyphs.size()) +
+                " resolved glyphs)");
+        }
+        else
+        {
+            (void)m_gameUI.SetFontAtlas(m_runtimeFont);
+            (void)m_debugUI.SetFontAtlas(m_runtimeFont);
+            PYRAMID_LOG_WARN("UI font family merge failed: " + familyError);
+        }
+        if (!m_runtimeArabicFontLoaded)
+        {
+            PYRAMID_LOG_WARN(
+                "Arabic fallback font unavailable; Latin UI remains active: " +
+                arabicFontError);
+        }
     }
     else
     {

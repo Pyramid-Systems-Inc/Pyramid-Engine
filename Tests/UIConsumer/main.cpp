@@ -42,6 +42,12 @@ int main()
     input.BeginFrame();
 
     Pyramid::UI::Context ui;
+    Pyramid::Text::FontFamily family;
+    if (!Pyramid::Text::BuildFontFamily({ui.GetDebugFont()}, family) ||
+        !ui.SetFontFamily(family))
+    {
+        return EXIT_FAILURE;
+    }
     MemoryClipboard clipboard;
     ui.SetClipboard(&clipboard);
     Pyramid::UI::ScreenStack screens;
@@ -71,7 +77,7 @@ int main()
     (void)ui.CollapsingHeader("DETAILS", detailsOpen);
     if (detailsOpen)
     {
-        ui.WrappedLabel("PYRAMID UI PACKAGE WITH OWNED UTF-8 LAYOUT");
+        ui.WrappedLabel("PYRAMID UI PACKAGE WITH OWNED INTERNATIONAL LAYOUT");
         std::string profileName = "Pyramid user";
         Pyramid::UI::TextFieldOptions field;
         field.maximumCharacters = 64;
@@ -87,8 +93,8 @@ int main()
     }
     ui.EndPanel();
     const auto& drawList = ui.EndFrame();
-    const auto textLayout = Pyramid::Text::Layout(
-        ui.GetDebugFont(),
+    const auto textLayout = Pyramid::Text::LayoutInternationalUtf8(
+        ui.GetFontFamily(),
         "Pyramid UTF-8: \xE2\x9C\x93",
         Pyramid::Math::Vec2::Zero);
     if (drawList.Empty() || textLayout.glyphs.empty() ||

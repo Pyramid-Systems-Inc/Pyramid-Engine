@@ -21,10 +21,10 @@ The project is intended for engine development and experimentation. It is not ye
 | Input | Standalone `Pyramid::Input` physical state, Unicode text events, clipboard abstraction, and named action mapping |
 | Images | Standalone `Pyramid::Image` library with TGA/BMP subsets, custom non-interlaced PNG, and owned baseline/progressive JPEG decoding |
 | Models | Standalone `Pyramid::Model` OBJ/MTL parser with bounded diagnostics, triangulation, indexing, generated normals, and normalized dependencies |
-| Text | Standalone `Pyramid::Text` Unicode editing buffers, UTF-8 conversion, wrapping/alignment, glyph-run generation, and deterministic embedded fallback atlas |
+| Text | Standalone `Pyramid::Text` UTF conversion, grapheme-safe editing, owned Arabic contextual shaping, common bidirectional visual runs, fallback font families, international wrapping, and renderer-neutral glyph placement |
 | Font | Standalone `Pyramid::Font` TrueType-outline parsing, CPU rasterization, deterministic `.pfont` assets, kerning, and bounded malformed-input rejection |
 | UI | Standalone hybrid `Pyramid::UI` runtime with retained screens, immediate debug tools, editable text controls, modal input blocking, clipping, responsive layout, and renderer-independent draw lists |
-| Tests | 52 CTest targets, including standalone foundation, math, input, image, model, font, text, and UI coverage plus focused engine/reference-game tests |
+| Tests | 53 CTest targets, including standalone foundation, math, input, image, model, font, text, and UI coverage plus focused engine/reference-game tests |
 | CI | GCC and Clang, Debug and Release, package install, and external-consumer validation |
 
 ## Implemented
@@ -46,9 +46,10 @@ The project is intended for engine development and experimentation. It is not ye
 - Dependency-free OBJ/MTL import supports positive/negative indices, polygon triangulation, material groups, common MTL properties, generated smooth or hard-edge normals, vertex deduplication, bounds, file/memory input, and bounded malformed-input diagnostics.
 - `ModelResourceImporter` transactionally publishes imported meshes, diffuse textures, and immutable materials through the existing caches using a configurable shader/material profile; repeated content is reused and failed imports roll back only resources introduced by that operation.
 - Hybrid `Pyramid::UI` contexts reconcile immediate widgets into retained state, while `ScreenStack` owns persistent opaque, transparent, and modal game screens with deferred lifecycle-safe routing.
-- `Pyramid::Text::TextBuffer` and retained UI text fields provide code-point-based cursor/selection editing, Unicode insertion, copy/cut/paste, password masking, multiline scrolling, submission, cancellation, and gameplay-input isolation.
-- `UIRenderer` uploads batched quads through the graphics device, renders either the processed `Pyramid::Font` atlas or the embedded `Pyramid::Text` fallback atlas, supports registered image textures, explicitly restores the final DPI-scaled surface viewport after off-screen passes, applies scissor clipping, and restores the engine render-state baseline.
-- `BasicGame` includes a retained main menu, modal profile-settings form with Unicode text editing, responsive gameplay HUD, modal pause menu, and an F1 runtime overlay with collapsible diagnostics and a scrollable runtime log.
+- `Pyramid::Text::TextBuffer` keeps logical Unicode scalar offsets on extended grapheme boundaries, so caret movement and deletion do not split combining sequences, emoji ZWJ sequences, Hangul clusters, or regional-indicator pairs.
+- `Pyramid::Text` builds ordered fallback font families into one renderer-ready atlas and emits cluster, caret, selection, bidi-run, and glyph geometry for common Arabic/Latin mixed text. `Pyramid::UI` uses that mapping for visual RTL caret movement, hit testing, selection, wrapping, password masking, and retained text controls.
+- `UIRenderer` uploads batched quads through the graphics device, renders the active processed/fallback-family atlas or the embedded `Pyramid::Text` emergency atlas, supports registered image textures, explicitly restores the final DPI-scaled surface viewport after off-screen passes, applies scissor clipping, and restores the engine render-state baseline.
+- `BasicGame` includes a retained main menu with Arabic and mixed-direction validation text, a modal profile-settings form with Unicode text editing, responsive gameplay HUD, modal pause menu, and an F1 runtime overlay with collapsible diagnostics and a scrollable runtime log. It ships Ruqoom-owned Pyramid Sans and Pyramid Arabic processed assets.
 - Installable CMake packages export `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, `Pyramid::Model`, `Pyramid::Font`, `Pyramid::Text`, `Pyramid::UI`, and `Pyramid::Engine`.
 
 ## Important limitations
@@ -59,7 +60,7 @@ The project is intended for engine development and experimentation. It is not ye
 - `SceneSerializer` version 2 persists stable entities, hierarchy, transforms, mesh-renderer components, light components, and the primary light. Cameras, environment settings, gameplay components, and editor metadata are not serialized yet; the legacy `SceneManager` JSON/XML/Binary methods remain unsupported.
 - Occlusion culling remains a placeholder and is disabled by default.
 - `ITexture2D::CreateDepthTarget` fails explicitly; use the framebuffer API for depth attachments.
-- Audio and physics modules are not part of the current source tree. Text editing/input, OpenType shaping, bidirectional/Arabic shaping, font fallback families, style sheets, controller navigation, raw relative mouse mode, collision-aware cameras, camera blending, and persisted user bindings are not implemented yet. The reference edge-scrolling/selection/command layer is example support rather than an installed engine API. Model import currently supports OBJ/MTL and diffuse `map_Kd` material publication only; additional material maps, model formats, asset packaging, and scene-hierarchy instantiation remain later steps.
+- Audio and physics modules are not part of the current source tree. The owned international-text foundation is intentionally bounded: it does not yet implement complete Unicode Bidirectional Algorithm controls/isolates, full UAX #14 line breaking, OpenType GSUB/GPOS, general complex-script shaping, advanced Arabic ligatures/mark positioning, or native IME pre-edit/candidate presentation. Style sheets, controller navigation, raw relative mouse mode, collision-aware cameras, camera blending, and persisted user bindings are also not implemented yet. The reference edge-scrolling/selection/command layer is example support rather than an installed engine API. Model import currently supports OBJ/MTL and diffuse `map_Kd` material publication only; additional material maps, model formats, asset packaging, and scene-hierarchy instantiation remain later steps.
 
 See [Roadmap and known issues](docs/ROADMAP.md) before building new systems on top of the engine.
 

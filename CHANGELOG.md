@@ -4,6 +4,16 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### International text layout foundation
+
+- Added an owned extended-grapheme segmenter for combining sequences, emoji ZWJ sequences, Hangul syllable clusters, and regional-indicator pairs; `TextBuffer` caret placement and deletion now preserve those boundaries.
+- Added renderer-neutral international layout with paragraph-direction resolution, common Latin/Arabic/numeric bidirectional runs, logical/visual cluster maps, cluster-aware caret and hit testing, visual RTL movement, selection spans, and international word/CJK break opportunities.
+- Added owned contextual Arabic presentation-form shaping for the core Arabic alphabet and mirrored RTL punctuation without FreeType, HarfBuzz, ICU, or other runtime middleware.
+- Added ordered fallback font families that merge owned processed atlases into one renderer-ready atlas while preserving primary-font precedence, source-font lookup, and same-font kerning.
+- Migrated retained UI labels and editors to cluster-aware international layout, including RTL natural alignment, password masking, wrapping, selection geometry, and caret placement.
+- Added the Ruqoom-owned `Pyramid Arabic` source and deterministic processed atlas plus Arabic/mixed-direction validation text in `BasicGame`.
+- Added `Text.International` and expanded UI text-editing coverage; CTest now registers 53 targets. Full Unicode bidi controls/isolates, complete UAX #14, OpenType GSUB/GPOS, general complex scripts, advanced Arabic ligatures/mark positioning, and native IME presentation remain future work.
+
 ### Unicode text editing and clipboard input
 
 - Added platform-neutral committed/composition-ready text events to `Pyramid::Input`, including UTF-16 surrogate assembly, focus-safe reset behavior, and pre-action text-input consumption.

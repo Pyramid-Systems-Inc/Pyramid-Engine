@@ -59,6 +59,20 @@ namespace
 int main()
 {
     Pyramid::UI::Context ui;
+    Pyramid::Text::FontAtlas latinFont;
+    Pyramid::Text::FontAtlas arabicFont;
+    Pyramid::Text::FontFamily fontFamily;
+    std::string fontError;
+    Require(Pyramid::Text::LoadFontAtlas(PYRAMID_UI_TEST_FONT, latinFont, &fontError),
+        "Latin UI test font did not load");
+    Require(Pyramid::Text::LoadFontAtlas(
+            PYRAMID_UI_TEST_ARABIC_FONT, arabicFont, &fontError),
+        "Arabic UI test font did not load");
+    Require(Pyramid::Text::BuildFontFamily({latinFont, arabicFont}, fontFamily, &fontError),
+        "UI fallback font family did not build");
+    Require(ui.SetFontFamily(fontFamily), "UI fallback font family was rejected");
+    Require(ui.GetFontFamily().ResolveFontIndex(0xFEE1) == 1,
+        "UI context did not retain the Arabic fallback source");
     MemoryClipboard clipboard;
     ui.SetClipboard(&clipboard);
     Pyramid::InputState input;
@@ -105,6 +119,19 @@ int main()
         "committed Unicode text was suppressed while Control was held");
 
     input.BeginFrame();
+    input.ProcessKey(Pyramid::Key::LeftControl, false);
+    input.ProcessTextCodepoint(U'\u0645');
+    input.ProcessTextCodepoint(U'\u0644');
+    input.ProcessTextCodepoint(U'\u0643');
+    Require(ui.BeginFrame(frame, input), "Arabic typing frame failed");
+    result = BuildField(ui, value);
+    const auto& arabicDrawList = ui.EndFrame();
+    Require(result.changed && value.find("\xD9\x85\xD9\x84\xD9\x83") != std::string::npos,
+        "Arabic committed text did not update the bound value");
+    Require(!arabicDrawList.Empty(), "Arabic editor frame produced no draw data");
+
+    input.BeginFrame();
+    input.ProcessKey(Pyramid::Key::LeftControl, true);
     input.ProcessKey(Pyramid::Key::A, true);
     Require(ui.BeginFrame(frame, input), "select-all frame failed");
     (void)BuildField(ui, value);
