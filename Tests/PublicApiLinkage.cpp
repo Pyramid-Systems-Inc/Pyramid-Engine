@@ -1,5 +1,6 @@
 #include <Pyramid/Core/Game.hpp>
 #include <Pyramid/Platform/Input.hpp>
+#include <Pyramid/Platform/RuntimePath.hpp>
 #include <Pyramid/Platform/Clipboard.hpp>
 #include <Pyramid/Input/InputActions.hpp>
 #include <Pyramid/Graphics/Texture.hpp>
@@ -51,6 +52,11 @@ namespace
         using Pyramid::Game::UnregisterUIContext;
     };
 
+
+    volatile decltype(&Pyramid::Platform::GetExecutableDirectory)
+        g_getExecutableDirectory = &Pyramid::Platform::GetExecutableDirectory;
+    volatile decltype(&Pyramid::Platform::ResolveRuntimePath)
+        g_resolveRuntimePath = &Pyramid::Platform::ResolveRuntimePath;
 
     volatile decltype(&Pyramid::InputActionSystem::CreateContext) g_createInputContext =
         &Pyramid::InputActionSystem::CreateContext;

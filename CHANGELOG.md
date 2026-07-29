@@ -4,6 +4,19 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### Reference typography quality hotfix
+
+- Replaced the diagnostic 7x7 Arabic pixel-cell outlines with original continuous geometric contours, explicit joining edges, clearer bowls/loops/tails, stable baselines, larger dots and hamza/madda marks, and standalone base-Arabic coverage while preserving the owned presentation-form shaping contract.
+- Rebuilt Pyramid Sans and Pyramid Arabic as 48-pixel supersampled `.pfont` atlases and scaled them to stable logical UI sizes, reducing small-text stair stepping without changing layout dimensions.
+- Changed the UI font-atlas sampler from nearest to linear filtering so grayscale CPU-rasterized coverage survives downscaling; solid UI geometry continues to use the atlas white texel.
+- Added deterministic `scripts/regenerate-reference-fonts.py`, `Font.ReferenceTypography`, contextual-join/coverage/antialiasing assertions, and font-sampler regression coverage; CTest now registers 55 targets.
+
+### Runtime asset path hotfix
+
+- Added `Pyramid::Platform::GetExecutableDirectory()` and `ResolveRuntimePath()` so bundled assets are resolved beside the running executable instead of depending on the caller's current working directory.
+- Fixed direct `BasicGame.exe` launches from repository roots, terminals, shortcuts, and external tools so the bundled Pyramid Sans/Arabic family loads instead of silently falling back to the ASCII debug atlas.
+- Migrated `BasicRenderingExample` model lookup to the same runtime-path contract and added `Platform.RuntimePaths`; CTest now registers 54 targets.
+
 ### International text layout foundation
 
 - Added an owned extended-grapheme segmenter for combining sequences, emoji ZWJ sequences, Hangul syllable clusters, and regional-indicator pairs; `TextBuffer` caret placement and deletion now preserve those boundaries.

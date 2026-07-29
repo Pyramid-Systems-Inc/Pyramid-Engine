@@ -113,8 +113,10 @@ void main()
         textureSpecification.texture.Width = debugFont.width;
         textureSpecification.texture.Height = debugFont.height;
         textureSpecification.texture.Format = TextureFormat::RGBA8;
-        textureSpecification.texture.MinFilter = TextureFilter::Nearest;
-        textureSpecification.texture.MagFilter = TextureFilter::Nearest;
+        // Processed font atlases contain grayscale coverage. Linear sampling preserves
+        // that antialiasing when a high-resolution atlas is scaled to UI text size.
+        textureSpecification.texture.MinFilter = TextureFilter::Linear;
+        textureSpecification.texture.MagFilter = TextureFilter::Linear;
         textureSpecification.texture.WrapS = TextureWrap::ClampToEdge;
         textureSpecification.texture.WrapT = TextureWrap::ClampToEdge;
         textureSpecification.texture.GenerateMips = false;

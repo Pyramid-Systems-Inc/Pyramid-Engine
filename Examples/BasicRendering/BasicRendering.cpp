@@ -5,8 +5,8 @@
 #include <Pyramid/Graphics/CameraController.hpp>
 #include <Pyramid/Graphics/Model/ModelResourceImporter.hpp>
 #include <Pyramid/Model/ObjImporter.hpp>
+#include <Pyramid/Platform/RuntimePath.hpp>
 
-#include <array>
 #include <Pyramid/Graphics/GraphicsDevice.hpp>
 #include <Pyramid/Graphics/Buffer/BufferLayout.hpp>
 #include <Pyramid/Util/Log.hpp>
@@ -14,7 +14,6 @@
 #include <filesystem>
 #include <string_view>
 #include <utility>
-#include <windows.h>
 
 namespace
 {
@@ -206,20 +205,8 @@ void BasicRendering::CreateGeometry()
         return;
     }
 
-    std::array<wchar_t, 32768> executablePath{};
-    const DWORD pathLength = GetModuleFileNameW(
-        nullptr,
-        executablePath.data(),
-        static_cast<DWORD>(executablePath.size()));
-    if (pathLength == 0 || pathLength >= executablePath.size())
-    {
-        PYRAMID_LOG_ERROR("Could not resolve the BasicRendering executable directory");
-        return;
-    }
-
-    const std::filesystem::path modelPath =
-        std::filesystem::path(executablePath.data()).parent_path() /
-        "Assets" / "Models" / "pyramid.obj";
+    const std::filesystem::path modelPath = Pyramid::Platform::ResolveRuntimePath(
+        std::filesystem::path("Assets") / "Models" / "pyramid.obj");
     const auto importedModel = Pyramid::Model::ObjImporter::ImportFile(
         modelPath.generic_string());
     for (const auto& diagnostic : importedModel.diagnostics)

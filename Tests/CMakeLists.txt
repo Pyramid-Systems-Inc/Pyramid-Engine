@@ -29,6 +29,11 @@ target_link_libraries(ClipboardEncodingTests PRIVATE Pyramid::Input)
 set_target_properties(ClipboardEncodingTests PROPERTIES FOLDER "Tests/Platform")
 add_test(NAME Platform.ClipboardEncoding COMMAND $<TARGET_FILE:ClipboardEncodingTests>)
 
+add_executable(RuntimePathTests RuntimePathTests.cpp)
+target_link_libraries(RuntimePathTests PRIVATE Pyramid::Engine)
+set_target_properties(RuntimePathTests PROPERTIES FOLDER "Tests/Platform")
+add_test(NAME Platform.RuntimePaths COMMAND $<TARGET_FILE:RuntimePathTests>)
+
 add_executable(WindowResizeEventTests WindowResizeEventTests.cpp)
 target_link_libraries(WindowResizeEventTests PRIVATE Pyramid::Input)
 target_include_directories(WindowResizeEventTests
@@ -163,7 +168,7 @@ add_test(NAME Graphics.ModelResourceImport COMMAND $<TARGET_FILE:ModelResourceIm
 add_executable(UIRendererTests UIRendererTests.cpp)
 target_link_libraries(UIRendererTests PRIVATE Pyramid::Engine)
 target_compile_definitions(UIRendererTests PRIVATE
-    PYRAMID_UI_TEST_FONT="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidSans-24.pfont"
+    PYRAMID_UI_TEST_FONT="${PROJECT_SOURCE_DIR}/Examples/BasicGame/Assets/Fonts/PyramidSans-48.pfont"
 )
 set_target_properties(UIRendererTests PROPERTIES FOLDER "Tests/Graphics")
 add_test(NAME Graphics.UIRenderer COMMAND $<TARGET_FILE:UIRendererTests>)

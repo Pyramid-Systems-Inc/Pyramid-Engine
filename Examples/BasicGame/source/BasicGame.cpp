@@ -11,12 +11,14 @@
 #include <Pyramid/Graphics/CameraController.hpp>
 #include <Pyramid/Examples/RTSReference/RTSInteractionController.hpp>
 #include <Pyramid/Math/Math.hpp>
+#include <Pyramid/Platform/RuntimePath.hpp>
 #include <Pyramid/Util/Log.hpp>
 #include <Pyramid/UI/GameUI.hpp>
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <filesystem>
 #include <vector>
 #include <string_view>
 #include <utility>
@@ -474,14 +476,19 @@ void BasicGame::onCreate()
     }
     SetRenderSystem(m_renderSystem.get());
 
+    const std::filesystem::path latinFontPath =
+        Pyramid::Platform::ResolveRuntimePath("Fonts/PyramidSans-48.pfont");
+    const std::filesystem::path arabicFontPath =
+        Pyramid::Platform::ResolveRuntimePath("Fonts/PyramidArabic-48.pfont");
+
     std::string fontError;
     m_runtimeFontLoaded = Pyramid::Text::LoadFontAtlas(
-        "Fonts/PyramidSans-24.pfont",
+        latinFontPath.generic_string(),
         m_runtimeFont,
         &fontError);
     std::string arabicFontError;
     m_runtimeArabicFontLoaded = Pyramid::Text::LoadFontAtlas(
-        "Fonts/PyramidArabic-24.pfont",
+        arabicFontPath.generic_string(),
         m_runtimeArabicFont,
         &arabicFontError);
     if (m_runtimeFontLoaded)
@@ -498,8 +505,9 @@ void BasicGame::onCreate()
             (void)m_gameUI.SetFontFamily(m_runtimeFontFamily);
             (void)m_debugUI.SetFontFamily(m_runtimeFontFamily);
             PYRAMID_LOG_INFO(
-                "Loaded UI font family: " + m_runtimeFontFamily.atlas.familyName +
-                " (" + std::to_string(m_runtimeFontFamily.atlas.glyphs.size()) +
+                "Loaded UI font family from `" + latinFontPath.generic_string() +
+                "`: " + m_runtimeFontFamily.atlas.familyName + " (" +
+                std::to_string(m_runtimeFontFamily.atlas.glyphs.size()) +
                 " resolved glyphs)");
         }
         else
@@ -511,25 +519,34 @@ void BasicGame::onCreate()
         if (!m_runtimeArabicFontLoaded)
         {
             PYRAMID_LOG_WARN(
-                "Arabic fallback font unavailable; Latin UI remains active: " +
-                arabicFontError);
+                "Arabic fallback font unavailable at `" +
+                arabicFontPath.generic_string() +
+                "`; Latin UI remains active: " + arabicFontError);
         }
     }
     else
     {
         PYRAMID_LOG_WARN(
-            "Processed UI font unavailable; using embedded debug font: " + fontError);
+            "Processed UI font unavailable at `" + latinFontPath.generic_string() +
+            "`; using embedded debug font: " + fontError);
     }
 
+    const float runtimePixelHeight = m_runtimeFontLoaded
+        ? m_gameUI.GetFontAtlas().pixelHeight
+        : 0.0f;
     auto gameTheme = m_gameUI.GetTheme();
-    gameTheme.textScale = m_runtimeFontLoaded ? 0.82f : 1.5f;
+    gameTheme.textScale = runtimePixelHeight > 0.0f
+        ? 20.0f / runtimePixelHeight
+        : 1.5f;
     gameTheme.defaultRowHeight = 30.0f;
     gameTheme.spacing = 8.0f;
     gameTheme.padding = 10.0f;
     m_gameUI.SetTheme(gameTheme);
 
     auto debugTheme = m_debugUI.GetTheme();
-    debugTheme.textScale = m_runtimeFontLoaded ? 0.66f : 1.5f;
+    debugTheme.textScale = runtimePixelHeight > 0.0f
+        ? 16.0f / runtimePixelHeight
+        : 1.5f;
     debugTheme.defaultRowHeight = 28.0f;
     debugTheme.spacing = 7.0f;
     m_debugUI.SetTheme(debugTheme);

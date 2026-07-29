@@ -143,8 +143,12 @@ int main()
 
     Tests::TestGraphicsDevice device;
     device.shaderFactory = []() { return std::make_shared<TestShader>(); };
-    device.textureFactory = [](const TextureSpecification& specification, const void*)
+    TextureSpecification createdFontTextureSpecification;
+    bool createdFontTexture = false;
+    device.textureFactory = [&](const TextureSpecification& specification, const void*)
     {
+        createdFontTextureSpecification = specification;
+        createdFontTexture = true;
         return std::make_shared<TestTexture>(specification);
     };
 
@@ -156,13 +160,19 @@ int main()
     {
         return Fail("processed font atlas failed to load");
     }
-    if (font.width != 256 || font.height != 256 || font.glyphs.size() != 98)
+    if (font.width != 512 || font.height != 512 || font.glyphs.size() != 98)
     {
         return Fail("processed font atlas metadata mismatch");
     }
     if (!renderer.Initialize(device, resources, font) || !renderer.IsInitialized())
     {
         return Fail("initialization failed");
+    }
+    if (!createdFontTexture ||
+        createdFontTextureSpecification.MinFilter != TextureFilter::Linear ||
+        createdFontTextureSpecification.MagFilter != TextureFilter::Linear)
+    {
+        return Fail("font atlas did not use antialiased linear sampling");
     }
 
     auto customTexture = std::make_shared<TestTexture>(TextureSpecification{});

@@ -126,7 +126,7 @@ ctest --test-dir build/manual --output-on-failure
 
 ## Tests
 
-CTest registers 47 executables: seven standalone image tests plus API, platform, input, graphics, resource, spatial, scene, and reference-game tests. List the exact graph with:
+CTest registers 55 targets, including standalone owned-library tests plus API, platform, input, graphics, resource, spatial, scene, UI, international-text, and reference-game validation. List the exact graph with:
 
 ```powershell
 ctest --test-dir build/gcc-debug-tests -N
@@ -169,7 +169,7 @@ build/gcc-debug-tests/lib/libPyramidEngined.a
 .\build\gcc-debug-tests\bin\BasicRenderingExample.exe
 ```
 
-without adding `C:\msys64\ucrt64\bin` to `PATH`. Installation places the same runtime files in `install/bin`. Disable this behavior only for controlled packaging with `-DPYRAMID_BUNDLE_MINGW_RUNTIME=OFF`.
+without adding `C:\msys64\ucrt64\bin` to `PATH`. Installation places the same runtime files in `install/bin`. Bundled assets such as `bin/Fonts/*.pfont` and `bin/Assets/Models/*` are resolved relative to the executable through `Pyramid::Platform::ResolveRuntimePath`, so launching `build\...\bin\BasicGame.exe` from another PowerShell directory or a shortcut is supported. Disable runtime-DLL bundling only for controlled packaging with `-DPYRAMID_BUNDLE_MINGW_RUNTIME=OFF`.
 
 Build and launch an example in one command:
 
@@ -274,13 +274,19 @@ Close running examples and any terminal/debugger using the output files, then re
 
 ## Compile a processed font
 
-After a normal build, the owned compiler is available beside the examples:
+After a normal build, regenerate both Ruqoom-owned reference TTFs and their 48-pixel processed atlases with:
 
 ```powershell
-.\build\gcc-debug-tests\bin\PyramidFontCompiler.exe `
-    .\Examples\BasicGame\Assets\Fonts\PyramidSans.ttf `
-    .\build\gcc-debug-tests\bin\Fonts\PyramidSans-24.pfont `
-    24 256 U+00E9 U+03A9 U+2713
+python .\scripts\regenerate-reference-fonts.py `
+    --compiler .\build\gcc-debug-tests\bin\PyramidFontCompiler.exe
 ```
 
-The checked-in reference `.pfont` is deterministic. Recompiling it with the same source and options should produce byte-identical output.
+Verify that the checked-in source and processed assets reproduce byte-for-byte without modifying them:
+
+```powershell
+python .\scripts\regenerate-reference-fonts.py `
+    --compiler .\build\gcc-debug-tests\bin\PyramidFontCompiler.exe `
+    --check
+```
+
+The reference atlases are baked at 48 pixels and scaled down by the UI so CPU-rasterized grayscale coverage remains smooth at the 16–20 pixel logical sizes used by `BasicGame`.

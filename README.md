@@ -24,7 +24,7 @@ The project is intended for engine development and experimentation. It is not ye
 | Text | Standalone `Pyramid::Text` UTF conversion, grapheme-safe editing, owned Arabic contextual shaping, common bidirectional visual runs, fallback font families, international wrapping, and renderer-neutral glyph placement |
 | Font | Standalone `Pyramid::Font` TrueType-outline parsing, CPU rasterization, deterministic `.pfont` assets, kerning, and bounded malformed-input rejection |
 | UI | Standalone hybrid `Pyramid::UI` runtime with retained screens, immediate debug tools, editable text controls, modal input blocking, clipping, responsive layout, and renderer-independent draw lists |
-| Tests | 53 CTest targets, including standalone foundation, math, input, image, model, font, text, and UI coverage plus focused engine/reference-game tests |
+| Tests | 55 CTest targets, including standalone foundation, math, input, image, model, font, text, UI, and runtime-path coverage plus focused engine/reference-game tests |
 | CI | GCC and Clang, Debug and Release, package install, and external-consumer validation |
 
 ## Implemented
@@ -49,7 +49,7 @@ The project is intended for engine development and experimentation. It is not ye
 - `Pyramid::Text::TextBuffer` keeps logical Unicode scalar offsets on extended grapheme boundaries, so caret movement and deletion do not split combining sequences, emoji ZWJ sequences, Hangul clusters, or regional-indicator pairs.
 - `Pyramid::Text` builds ordered fallback font families into one renderer-ready atlas and emits cluster, caret, selection, bidi-run, and glyph geometry for common Arabic/Latin mixed text. `Pyramid::UI` uses that mapping for visual RTL caret movement, hit testing, selection, wrapping, password masking, and retained text controls.
 - `UIRenderer` uploads batched quads through the graphics device, renders the active processed/fallback-family atlas or the embedded `Pyramid::Text` emergency atlas, supports registered image textures, explicitly restores the final DPI-scaled surface viewport after off-screen passes, applies scissor clipping, and restores the engine render-state baseline.
-- `BasicGame` includes a retained main menu with Arabic and mixed-direction validation text, a modal profile-settings form with Unicode text editing, responsive gameplay HUD, modal pause menu, and an F1 runtime overlay with collapsible diagnostics and a scrollable runtime log. It ships Ruqoom-owned Pyramid Sans and Pyramid Arabic processed assets.
+- `BasicGame` includes a retained main menu with Arabic and mixed-direction validation text, a modal profile-settings form with Unicode text editing, responsive gameplay HUD, modal pause menu, and an F1 runtime overlay with collapsible diagnostics and a scrollable runtime log. It ships high-resolution Ruqoom-owned Pyramid Sans and Pyramid Arabic processed assets, downsamples their antialiased coverage with linear filtering, and resolves them beside the executable, so direct `.exe` launches do not depend on the terminal working directory.
 - Installable CMake packages export `Pyramid::Foundation`, `Pyramid::Math`, `Pyramid::Input`, `Pyramid::Image`, `Pyramid::Model`, `Pyramid::Font`, `Pyramid::Text`, `Pyramid::UI`, and `Pyramid::Engine`.
 
 ## Important limitations

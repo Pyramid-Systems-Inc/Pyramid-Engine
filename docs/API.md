@@ -40,6 +40,17 @@ Header: `Pyramid/Platform/Window.hpp`
 
 The window interface requires initialization, presentation, context activation, message processing, close-state reporting, title/size/position/visibility mutation, and minimized/maximized queries. The checked-in implementation is `Win32OpenGLWindow`.
 
+Runtime assets deployed beside an executable should be resolved through the platform path API:
+
+```cpp
+#include <Pyramid/Platform/RuntimePath.hpp>
+
+const auto fontPath = Pyramid::Platform::ResolveRuntimePath(
+    "Fonts/PyramidArabic-48.pfont");
+```
+
+`GetExecutableDirectory()` returns the running binary's directory. `ResolveRuntimePath()` preserves absolute paths, prefers executable-relative assets, falls back to the current working directory for development inputs, and returns the executable-relative candidate for useful missing-file diagnostics. This prevents terminal, shortcut, IDE, or file-manager launch context from changing which packaged asset is loaded.
+
 `Window::SetResizeCallback()` receives platform-neutral `WindowResizeEvent` values while `ProcessMessages()` dispatches native messages. Each event includes client width, client height, and a `Restored`, `Minimized`, or `Maximized` state. `WindowResizeEvent::HasRenderableArea()` is false for minimized or zero-sized windows. `Game` installs this callback, updates the default graphics viewport, synchronizes the registered active camera and render system, suspends rendering for non-renderable client areas, and then forwards the event to the overridable `onWindowResize()` hook.
 
 ```cpp
@@ -211,8 +222,8 @@ Include the renderer-independent APIs with:
 ```cpp
 Pyramid::Text::FontAtlas latin;
 Pyramid::Text::FontAtlas arabic;
-Pyramid::Text::LoadFontAtlas("Fonts/PyramidSans-24.pfont", latin);
-Pyramid::Text::LoadFontAtlas("Fonts/PyramidArabic-24.pfont", arabic);
+Pyramid::Text::LoadFontAtlas("Fonts/PyramidSans-48.pfont", latin);
+Pyramid::Text::LoadFontAtlas("Fonts/PyramidArabic-48.pfont", arabic);
 
 Pyramid::Text::FontFamily family;
 std::string familyError;
