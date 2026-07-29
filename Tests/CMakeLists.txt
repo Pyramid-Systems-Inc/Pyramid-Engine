@@ -34,6 +34,13 @@ target_link_libraries(RuntimePathTests PRIVATE Pyramid::Engine)
 set_target_properties(RuntimePathTests PROPERTIES FOLDER "Tests/Platform")
 add_test(NAME Platform.RuntimePaths COMMAND $<TARGET_FILE:RuntimePathTests>)
 
+if(WIN32)
+    add_executable(SystemFontTests SystemFontTests.cpp)
+    target_link_libraries(SystemFontTests PRIVATE Pyramid::Engine)
+    set_target_properties(SystemFontTests PROPERTIES FOLDER "Tests/Platform")
+    add_test(NAME Platform.SystemFonts COMMAND $<TARGET_FILE:SystemFontTests>)
+endif()
+
 add_executable(WindowResizeEventTests WindowResizeEventTests.cpp)
 target_link_libraries(WindowResizeEventTests PRIVATE Pyramid::Input)
 target_include_directories(WindowResizeEventTests

@@ -136,6 +136,22 @@ namespace Pyramid::Platform
                 return false;
             }
 
+            int comparableLength = resolvedLength;
+            while (comparableLength > 0 && resolved[comparableLength - 1] == L'\0')
+            {
+                --comparableLength;
+            }
+            if (comparableLength <= 0 ||
+                ::CompareStringOrdinal(
+                    wideFamily.data(),
+                    static_cast<int>(wideFamily.size()),
+                    resolved.data(),
+                    comparableLength,
+                    TRUE) != CSTR_EQUAL)
+            {
+                return false;
+            }
+
             output.requestedFamily.assign(family);
             output.resolvedFamily = resolvedLength > 0
                 ? WideToUtf8(resolved.data(), resolvedLength)

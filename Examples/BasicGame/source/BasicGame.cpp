@@ -44,7 +44,182 @@ namespace
     constexpr std::string_view kCommandAction = "Command";
     constexpr std::string_view kToggleDebugUIAction = "ToggleDebugUI";
 
-    bool TryLoadSystemUIFont(
+    Pyramid::Font::BakeOptions MakeSystemFontBake(
+        Pyramid::u32 atlasWidth,
+        Pyramid::u32 atlasHeight,
+        std::vector<Pyramid::Font::CharacterRange> ranges)
+    {
+        Pyramid::Font::BakeOptions bake;
+        bake.pixelHeight = 64.0f;
+        bake.atlasWidth = atlasWidth;
+        bake.atlasHeight = atlasHeight;
+        bake.oversample = 1;
+        bake.padding = 1;
+        bake.mode = Pyramid::Font::RasterMode::SignedDistanceField;
+        bake.distanceRange = 10.0f;
+        bake.fallbackCodepoint = U'?';
+        bake.missingGlyphPolicy = Pyramid::Font::MissingGlyphPolicy::Skip;
+        bake.ranges = std::move(ranges);
+        return bake;
+    }
+
+    const Pyramid::Font::BakeOptions& LatinSystemFontBake()
+    {
+        static const Pyramid::Font::BakeOptions bake = MakeSystemFontBake(
+            2048,
+            1536,
+            {
+                {U' ', static_cast<char32_t>(0x017F)},
+                {static_cast<char32_t>(0x0370), static_cast<char32_t>(0x03FF)},
+                {static_cast<char32_t>(0x2000), static_cast<char32_t>(0x206F)},
+                {static_cast<char32_t>(0x20AC), static_cast<char32_t>(0x20AC)},
+                {static_cast<char32_t>(0x2190), static_cast<char32_t>(0x21FF)},
+                {static_cast<char32_t>(0x2713), static_cast<char32_t>(0x2713)}});
+        return bake;
+    }
+
+    const Pyramid::Font::BakeOptions& ArabicSystemFontBake()
+    {
+        static const Pyramid::Font::BakeOptions bake = MakeSystemFontBake(
+            2048,
+            1024,
+            {
+                {static_cast<char32_t>(0x0600), static_cast<char32_t>(0x06FF)},
+                {static_cast<char32_t>(0xFE80), static_cast<char32_t>(0xFEF4)}});
+        return bake;
+    }
+
+    const Pyramid::Font::BakeOptions& SymbolSystemFontBake()
+    {
+        static const Pyramid::Font::BakeOptions bake = MakeSystemFontBake(
+            1024,
+            1024,
+            {
+                {static_cast<char32_t>(0x2190), static_cast<char32_t>(0x21FF)},
+                {static_cast<char32_t>(0x2713), static_cast<char32_t>(0x2713)}});
+        return bake;
+    }
+
+    const std::vector<std::string_view>& LatinSystemFontCandidates()
+    {
+        static const std::vector<std::string_view> candidates = {
+            "Segoe UI", "Tahoma", "Arial"};
+        return candidates;
+    }
+
+    const std::vector<std::string_view>& ArabicSystemFontCandidates()
+    {
+        static const std::vector<std::string_view> candidates = {
+            "Cairo",
+            "Tahoma",
+            "Arial",
+            "Sakkal Majalla",
+            "Traditional Arabic",
+            "Simplified Arabic"};
+        return candidates;
+    }
+
+    const std::vector<std::string_view>& SymbolSystemFontCandidates()
+    {
+        static const std::vector<std::string_view> candidates = {
+            "Segoe UI Symbol", "Segoe UI", "Arial"};
+        return candidates;
+    }
+
+    const std::vector<char32_t>& RequiredLatinCodepoints()
+    {
+        static const std::vector<char32_t> required = {
+            U'?', U'A', U'a', U'0', U'\u00E9', U'\u03A9'};
+        return required;
+    }
+
+    const std::vector<char32_t>& RequiredSymbolCodepoints()
+    {
+        static const std::vector<char32_t> required = {
+            U'\u2190', U'\u2191', U'\u2192', U'\u2193', U'\u2713'};
+        return required;
+    }
+
+    const std::vector<char32_t>& RequiredArabicCodepoints()
+    {
+        static const std::vector<char32_t> required = []
+        {
+            std::vector<char32_t> codepoints = {
+                static_cast<char32_t>(0x060C),
+                static_cast<char32_t>(0x061B),
+                static_cast<char32_t>(0x061F)};
+            for (char32_t codepoint = 0x064B; codepoint <= 0x065F; ++codepoint)
+            {
+                codepoints.push_back(codepoint);
+            }
+            for (char32_t codepoint = 0x0660; codepoint <= 0x0669; ++codepoint)
+            {
+                codepoints.push_back(codepoint);
+            }
+            for (char32_t codepoint = 0xFE80; codepoint <= 0xFEF4; ++codepoint)
+            {
+                codepoints.push_back(codepoint);
+            }
+            return codepoints;
+        }();
+        return required;
+    }
+
+    std::string FormatFontDiagnostics(
+        const std::vector<Pyramid::Font::Diagnostic>& diagnostics)
+    {
+        if (diagnostics.empty())
+        {
+            return "no diagnostic was reported";
+        }
+
+        std::ostringstream stream;
+        for (std::size_t index = 0; index < diagnostics.size(); ++index)
+        {
+            if (index > 0)
+            {
+                stream << "; ";
+            }
+            stream << diagnostics[index].message;
+        }
+        return stream.str();
+    }
+
+    std::string FindMissingCodepoint(
+        const Pyramid::Font::BakedFont& font,
+        const std::vector<char32_t>& requiredCodepoints)
+    {
+        for (const char32_t codepoint : requiredCodepoints)
+        {
+            if (!font.FindGlyph(codepoint))
+            {
+                std::ostringstream stream;
+                stream << "U+" << std::uppercase << std::hex << std::setfill('0')
+                       << std::setw(codepoint <= 0xFFFF ? 4 : 6)
+                       << static_cast<Pyramid::u32>(codepoint);
+                return stream.str();
+            }
+        }
+        return {};
+    }
+
+    void AppendFontAttemptError(
+        std::string& error,
+        std::string_view candidate,
+        const std::string& reason)
+    {
+        if (!error.empty())
+        {
+            error += "; ";
+        }
+        error += "`" + std::string(candidate) + "`: " + reason;
+    }
+
+    bool TryLoadSystemFontAtlas(
+        std::string_view role,
+        const std::vector<std::string_view>& candidates,
+        const Pyramid::Font::BakeOptions& bake,
+        const std::vector<char32_t>& requiredCodepoints,
         Pyramid::Text::FontAtlas& output,
         std::string& description,
         std::string& error)
@@ -52,26 +227,6 @@ namespace
         output = {};
         description.clear();
         error.clear();
-
-        Pyramid::Font::BakeOptions bake;
-        bake.pixelHeight = 64.0f;
-        bake.atlasWidth = 2048;
-        bake.atlasHeight = 2048;
-        bake.oversample = 1;
-        bake.padding = 1;
-        bake.mode = Pyramid::Font::RasterMode::SignedDistanceField;
-        bake.distanceRange = 10.0f;
-        bake.fallbackCodepoint = U'?';
-        bake.missingGlyphPolicy = Pyramid::Font::MissingGlyphPolicy::Skip;
-        bake.ranges = {
-            {U' ', static_cast<char32_t>(0x017F)},
-            {static_cast<char32_t>(0x0370), static_cast<char32_t>(0x03FF)},
-            {static_cast<char32_t>(0x0600), static_cast<char32_t>(0x06FF)},
-            {static_cast<char32_t>(0x2000), static_cast<char32_t>(0x206F)},
-            {static_cast<char32_t>(0x20AC), static_cast<char32_t>(0x20AC)},
-            {static_cast<char32_t>(0x2190), static_cast<char32_t>(0x21FF)},
-            {static_cast<char32_t>(0x2713), static_cast<char32_t>(0x2713)},
-            {static_cast<char32_t>(0xFE70), static_cast<char32_t>(0xFEFF)}};
 
         const std::filesystem::path cacheDirectory =
             Pyramid::Platform::GetUserCacheDirectory("PyramidEngine/Fonts");
@@ -81,8 +236,6 @@ namespace
             return false;
         }
 
-        const std::array<std::string_view, 3> candidates = {
-            "Segoe UI", "Tahoma", "Arial"};
         for (const std::string_view candidate : candidates)
         {
             Pyramid::Platform::SystemFontRequest request;
@@ -91,7 +244,7 @@ namespace
             std::string sourceError;
             if (!Pyramid::Platform::LoadSystemFont(request, source, &sourceError))
             {
-                error = sourceError;
+                AppendFontAttemptError(error, candidate, sourceError);
                 continue;
             }
 
@@ -100,19 +253,35 @@ namespace
                     source.bytes.data(), source.bytes.size(), bake, cacheDirectory);
             if (!cached.Succeeded())
             {
-                error = "Pyramid could not parse or bake system family `" +
-                    source.resolvedFamily + "`";
+                AppendFontAttemptError(
+                    error,
+                    candidate,
+                    FormatFontDiagnostics(cached.diagnostics));
+                continue;
+            }
+
+            const std::string missing =
+                FindMissingCodepoint(cached.font, requiredCodepoints);
+            if (!missing.empty())
+            {
+                AppendFontAttemptError(
+                    error,
+                    candidate,
+                    role.empty()
+                        ? "required glyph " + missing + " is unavailable"
+                        : std::string(role) + " requires unavailable glyph " + missing);
                 continue;
             }
 
             output = Pyramid::Text::CreateFontAtlas(cached.font);
             if (!output.IsValid())
             {
-                error = "system font produced an invalid renderer atlas";
+                AppendFontAttemptError(
+                    error, candidate, "processed font produced an invalid renderer atlas");
                 output = {};
                 continue;
             }
-            description = source.resolvedFamily +
+            description = std::string(role) + " " + source.resolvedFamily +
                 (cached.cacheHit ? " (processed cache hit)" : " (processed and cached)");
             return true;
         }
@@ -560,8 +729,14 @@ void BasicGame::onCreate()
 
     std::string systemFontDescription;
     std::string systemFontError;
-    m_runtimeFontLoaded = TryLoadSystemUIFont(
-        m_runtimeFont, systemFontDescription, systemFontError);
+    m_runtimeFontLoaded = TryLoadSystemFontAtlas(
+        "Latin UI",
+        LatinSystemFontCandidates(),
+        LatinSystemFontBake(),
+        RequiredLatinCodepoints(),
+        m_runtimeFont,
+        systemFontDescription,
+        systemFontError);
     if (m_runtimeFontLoaded)
     {
         PYRAMID_LOG_INFO(
@@ -585,15 +760,85 @@ void BasicGame::onCreate()
         }
     }
 
+    std::string arabicFontDescription;
     std::string arabicFontError;
-    m_runtimeArabicFontLoaded = Pyramid::Text::LoadFontAtlas(
-        arabicFontPath.generic_string(), m_runtimeArabicFont, &arabicFontError);
+    m_runtimeArabicFontLoaded = TryLoadSystemFontAtlas(
+        "Arabic UI",
+        ArabicSystemFontCandidates(),
+        ArabicSystemFontBake(),
+        RequiredArabicCodepoints(),
+        m_runtimeArabicFont,
+        arabicFontDescription,
+        arabicFontError);
+    if (m_runtimeArabicFontLoaded)
+    {
+        PYRAMID_LOG_INFO(
+            "Loaded native Arabic outlines through Pyramid font pipeline: " +
+            arabicFontDescription);
+    }
+    else
+    {
+        std::string bundledError;
+        m_runtimeArabicFontLoaded = Pyramid::Text::LoadFontAtlas(
+            arabicFontPath.generic_string(), m_runtimeArabicFont, &bundledError);
+        if (m_runtimeArabicFontLoaded)
+        {
+            PYRAMID_LOG_WARN(
+                "Native Arabic UI font unavailable; loaded owned PyramidArabic "
+                "fallback: " + arabicFontError);
+        }
+        else
+        {
+            arabicFontError += "; bundled fallback failed: " + bundledError;
+        }
+    }
+
+    std::string symbolFontError;
+    if (m_runtimeFontLoaded && !m_runtimeFont.HasGlyph(U'\u2713'))
+    {
+        std::string symbolFontDescription;
+        m_runtimeSymbolFontLoaded = TryLoadSystemFontAtlas(
+            "Symbol UI",
+            SymbolSystemFontCandidates(),
+            SymbolSystemFontBake(),
+            RequiredSymbolCodepoints(),
+            m_runtimeSymbolFont,
+            symbolFontDescription,
+            symbolFontError);
+        if (m_runtimeSymbolFontLoaded)
+        {
+            PYRAMID_LOG_INFO(
+                "Loaded native UI symbols through Pyramid font pipeline: " +
+                symbolFontDescription);
+        }
+        else
+        {
+            std::string bundledError;
+            m_runtimeSymbolFontLoaded = Pyramid::Text::LoadFontAtlas(
+                latinFontPath.generic_string(), m_runtimeSymbolFont, &bundledError);
+            if (m_runtimeSymbolFontLoaded)
+            {
+                PYRAMID_LOG_WARN(
+                    "Native UI symbol font unavailable; loaded owned PyramidSans "
+                    "symbol fallback: " + symbolFontError);
+            }
+            else
+            {
+                symbolFontError += "; bundled symbol fallback failed: " + bundledError;
+            }
+        }
+    }
+
     if (m_runtimeFontLoaded)
     {
         std::vector<Pyramid::Text::FontAtlas> familyFonts{m_runtimeFont};
         if (m_runtimeArabicFontLoaded)
         {
             familyFonts.push_back(m_runtimeArabicFont);
+        }
+        if (m_runtimeSymbolFontLoaded)
+        {
+            familyFonts.push_back(m_runtimeSymbolFont);
         }
         std::string familyError;
         if (Pyramid::Text::BuildFontFamily(
@@ -615,8 +860,12 @@ void BasicGame::onCreate()
         if (!m_runtimeArabicFontLoaded)
         {
             PYRAMID_LOG_WARN(
-                "Owned Arabic fallback unavailable at `" +
+                "Arabic UI fonts unavailable at `" +
                 arabicFontPath.generic_string() + "`: " + arabicFontError);
+        }
+        if (!m_runtimeFont.HasGlyph(U'\u2713') && !m_runtimeSymbolFontLoaded)
+        {
+            PYRAMID_LOG_WARN("UI symbol fonts unavailable: " + symbolFontError);
         }
     }
     else

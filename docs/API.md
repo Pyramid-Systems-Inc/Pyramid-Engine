@@ -227,11 +227,13 @@ if (cached.Succeeded())
     auto atlas = Pyramid::Text::CreateFontAtlas(cached.font);
 ```
 
-On Windows, `Pyramid::Platform::LoadSystemFont()` extracts installed TrueType bytes only; it does not delegate parsing or rendering to GDI:
+Use separate bounded bake options for Latin, Arabic presentation forms, and symbols instead of assuming one fixed atlas can hold every requested range from a large installed font. Validate the glyphs required by each text role before accepting a candidate into a fallback family.
+
+On Windows, `Pyramid::Platform::LoadSystemFont()` extracts installed TrueType bytes only; it does not delegate parsing or rendering to GDI. Requested names are exact, case-insensitive family matches, so Windows font substitution is rejected:
 
 ```cpp
 Pyramid::Platform::SystemFontRequest request;
-request.preferredFamilies = {"Segoe UI", "Tahoma", "Arial"};
+request.preferredFamilies = {"Segoe UI"};
 Pyramid::Platform::SystemFontData source;
 std::string error;
 if (Pyramid::Platform::LoadSystemFont(request, source, &error))

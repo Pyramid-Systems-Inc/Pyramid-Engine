@@ -57,6 +57,7 @@ private:
     Pyramid::UI::Context m_debugUI;
     Pyramid::Text::FontAtlas m_runtimeFont;
     Pyramid::Text::FontAtlas m_runtimeArabicFont;
+    Pyramid::Text::FontAtlas m_runtimeSymbolFont;
     Pyramid::Text::FontFamily m_runtimeFontFamily;
     Pyramid::UI::ScreenStack m_gameScreens;
     std::shared_ptr<Pyramid::Scene> m_scene;
@@ -78,6 +79,7 @@ private:
     bool m_debugUIVisible = false;
     bool m_runtimeFontLoaded = false;
     bool m_runtimeArabicFontLoaded = false;
+    bool m_runtimeSymbolFontLoaded = false;
     bool m_gameplayStarted = false;
     bool m_animationPaused = false;
     bool m_performanceSectionOpen = true;

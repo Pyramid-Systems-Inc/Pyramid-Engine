@@ -8,9 +8,9 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 - Added signed-distance-field glyph rasterization, version-2 `.pfont` metadata, derivative-smoothed GPU rendering, and per-vertex optical-weight control while retaining compatibility with coverage atlases.
 - Added content-addressed processed-font caching with atomic publication, deterministic cache keys, missing-glyph skipping, and corruption-safe rebuilding through `Pyramid::Font`.
-- Added a Win32 system-font source that extracts installed Segoe UI, Tahoma, or Arial TrueType bytes through GDI while keeping parsing, Arabic shaping, rasterization, caching, fallback, and rendering inside Pyramid-owned libraries.
-- Added heading, body, label, button, input, and caption typography roles plus public heading/caption widgets; BasicGame now prefers native professional outlines and retains Ruqoom-owned 64-pixel SDF fonts as deterministic fallbacks.
-- Added `UI.ScalableTypography`, SDF shader assertions, cache tests, and 64-pixel deterministic asset checks; CTest now registers 56 targets.
+- Added a Win32 system-font source that extracts exact installed TrueType families through GDI while rejecting silent Windows substitutions; parsing, Arabic shaping, rasterization, caching, fallback, and rendering remain inside Pyramid-owned libraries.
+- Added heading, body, label, button, input, and caption typography roles plus public heading/caption widgets. BasicGame now builds a script-specific installed family from Segoe UI for Latin, Cairo when available or Tahoma for Arabic, and Segoe UI Symbol for icons, with required-glyph and atlas-capacity gates plus Ruqoom-owned 64-pixel SDF fallbacks.
+- Added `Platform.SystemFonts`, installed-family cache-hit/coverage validation, `UI.ScalableTypography`, SDF shader assertions, cache tests, and 64-pixel deterministic asset checks; CTest now registers 57 targets on Windows.
 
 ### Reference typography quality hotfix
 
