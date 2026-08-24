@@ -129,6 +129,29 @@ Target outcome: one interactive Ruqoom RTS vertical slice that validates the eng
 
 A full editor follows the validated runtime model. Baa integration starts as gameplay scripting only after its runtime, ABI/FFI, debugger, and hot-reload semantics are defined; engine reimplementation is a later compatibility project, not a blind source translation.
 
+### Baa scripting admission gate
+
+Pyramid Engine is registered as an Eco runtime consumer, not as a dependency of
+the hosted language toolchain. C++ and CMake remain the behavioral/build
+references until the following consumer-side gate passes:
+
+- [ ] Baa freezes a narrow hosted ABI/FFI for a gameplay module and an approved
+      engine-facing API surface.
+- [ ] Allocation, strings, errors, threads, module loading, debugger hooks, and
+      hot-reload state migration have explicit ownership and failure behavior.
+- [ ] One gameplay-only Baa module builds and loads beside the current C++
+      example without moving graphics, platform, or engine-core ownership.
+- [ ] Reload, rollback, crash containment, version mismatch, and Windows
+      packaging are deterministic and tested.
+- [ ] Qalam and Baa-LSP edit/debug the module without becoming the owner of
+      Pyramid scene or asset-authoring UI.
+- [ ] Takween orchestration waits until it can describe the mixed native+Baa
+      graph without prematurely replacing the validated CMake build.
+
+Arabic behavior shared with Qalam and ArbSh begins as the data-only
+`eco-arabic-text-corpus-v1` test corpus. Pyramid's renderer, fonts, shaping
+subset, and visual acceptance remain independently owned and validated.
+
 ### UI and editor continuation
 
 - [x] Runtime TrueType import, CPU rasterization, and owned versioned `.pfont` asset format.

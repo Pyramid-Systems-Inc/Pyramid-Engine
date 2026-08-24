@@ -4,6 +4,18 @@ Pyramid Engine is a Windows-first, general-purpose C++17 game-engine project bui
 
 **Current development version:** `0.6.0-pre-alpha`
 
+## Eco ecosystem role
+
+Pyramid Engine is an independently released Eco runtime consumer. It is not a
+dependency of Baa, Nazm, Takween, Qalam, or ArbSh, and those tools do not replace
+its current CMake/C++ reference build. Its first Baa integration is a future,
+gameplay-only scripting experiment after the hosted ABI/FFI, runtime ownership,
+debugger, and hot-reload contracts are explicitly admitted.
+
+The engine's Arabic text and UI work may consume shared logical fixtures from
+the planned `eco-arabic-text-corpus-v1`; this shares behavior tests rather than
+forcing a C# or Qt runtime dependency into the engine.
+
 The project is intended for engine development and experimentation. It is not yet a stable SDK or production-ready game engine.
 
 ## Status

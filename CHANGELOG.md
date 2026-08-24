@@ -4,6 +4,14 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### Ecosystem boundary documentation
+
+- Registered Pyramid Engine as an independent Eco runtime consumer and defined
+  the Baa gameplay-scripting admission gate without changing the current C++ or
+  CMake ownership.
+- Recorded the planned data-only Arabic interaction corpus boundary with ArbSh
+  and Qalam; no cross-runtime library dependency was introduced.
+
 ### Scalable typography and native font sources
 
 - Added signed-distance-field glyph rasterization, version-2 `.pfont` metadata, derivative-smoothed GPU rendering, and per-vertex optical-weight control while retaining compatibility with coverage atlases.
