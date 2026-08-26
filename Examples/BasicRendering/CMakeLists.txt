@@ -2,6 +2,7 @@ add_executable(BasicRenderingExample WIN32
     Main.cpp
     BasicRendering.cpp
     BasicRendering.hpp
+    ${PROJECT_SOURCE_DIR}/assets/branding/pyramid-engine.rc
 )
 
 target_link_libraries(BasicRenderingExample PRIVATE Pyramid::Engine)

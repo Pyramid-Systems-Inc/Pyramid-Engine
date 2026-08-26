@@ -1,4 +1,7 @@
-add_executable(PyramidFontCompiler main.cpp)
+add_executable(PyramidFontCompiler
+    main.cpp
+    ${PROJECT_SOURCE_DIR}/assets/branding/pyramid-engine.rc
+)
 target_link_libraries(PyramidFontCompiler PRIVATE Pyramid::Font)
 set_target_properties(PyramidFontCompiler PROPERTIES FOLDER "Tools")
 

@@ -2,6 +2,7 @@ add_executable(BasicGame WIN32
     source/Main.cpp
     source/BasicGame.cpp
     include/BasicGame.hpp
+    ${PROJECT_SOURCE_DIR}/assets/branding/pyramid-engine.rc
 )
 
 target_link_libraries(BasicGame PRIVATE Pyramid::Engine Pyramid::RTSReference)

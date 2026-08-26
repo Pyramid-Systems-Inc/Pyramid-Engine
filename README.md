@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/branding/pyramid-engine-master-v1.png" width="144" alt="Pyramid Engine logo">
+</p>
+
 # Pyramid Engine
 
 Pyramid Engine is a Windows-first, general-purpose C++17 game-engine project built around a Win32/WGL platform layer and an OpenGL renderer. A future Ruqoom RTS is the first proving game, not a constraint on the engine architecture.
