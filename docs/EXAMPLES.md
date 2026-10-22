@@ -28,7 +28,7 @@ Demonstrates:
 - UI pointer capture that blocks both named actions and raw RTS edge scrolling/selection/commands;
 - automatic default-viewport updates and active-camera projection resizing;
 - platform-neutral resize-event logging through `Game::onWindowResize()`;
-- logging configuration.
+- in-memory runtime logging through the F1 overlay.
 
 Build:
 
@@ -67,7 +67,7 @@ This is the lower-level reference rendering path. It demonstrates:
 - typed resource handles suitable for scene-facing references without long-lived mesh/material ownership;
 - inline GLSL 3.30 shaders compiled through a stable shader-cache asset ID;
 - a Pyramid-owned OBJ/MTL parser loading the bundled pyramid reference asset beside the executable;
-- generated hard-edge normals, polygon triangulation, vertex colors, and material-slot metadata;
+- explicit hard-edge normals and UVs, polygon triangulation, and material-slot metadata;
 - transactional publication of imported meshes, the MTL `map_Kd` image, and immutable material properties through the registry caches;
 - a caller-defined shader/material profile controlling uniform names, sRGB texture handling, sampler state, fallback behavior, and stable resource identifiers;
 - scene uniform buffers;
@@ -87,13 +87,17 @@ Run:
 ./scripts/run-smoke.ps1 -BuildDir build/gcc-debug -DurationSeconds 5
 ```
 
-A successful timed process run proves that startup did not immediately fail. After graphics changes, also verify:
+The smoke helper force-stops surviving processes and accepts an early exit with code zero. It does not establish successful initialization, correct pixels, or orderly shutdown. Capture startup-ready and shutdown diagnostics, inspect the visible output, and close each example normally. Neither example configures automatic file logging; redirect stdout/stderr when collecting diagnostics, or inspect BasicGame's F1 runtime log.
+
+Build and install trees include engine shaders, BasicRendering model assets, and BasicGame fonts beside the executables. Test a relocated install from an unrelated working directory with only Windows system directories on `PATH`; the checkout must not supply missing shipped files.
+
+After graphics changes, verify:
 
 - both windows open;
 - shader compilation reports no errors;
 - geometry is visible and initially framed from above rather than clipped by a stale shadow-map viewport;
 - the F1 overlay shows text/controls across the full panel and its log area scrolls without off-screen widgets receiving clicks;
-- resize, maximize, minimize, and restore messages appear in the log;
+- resize, maximize, minimize, and restore preserve the projection and active viewport; capture debug-level event messages when enabled;
 - the imported pyramid keeps the correct proportions after resizing;
 - minimizing suspends rendering until a renderable client area is restored;
 - resizing does not crash;

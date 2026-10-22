@@ -1,8 +1,8 @@
 #include <Pyramid/Graphics/Renderer/ShaderPathResolver.hpp>
+#include <Pyramid/Platform/RuntimePath.hpp>
 #include <Pyramid/Util/Log.hpp>
 #include <fstream>
 #include <sstream>
-#include <vector>
 
 namespace Pyramid
 {
@@ -12,26 +12,11 @@ namespace Pyramid
         {
             std::filesystem::path Resolve(const std::string& relativePath)
             {
-                namespace fs = std::filesystem;
-
-                std::vector<fs::path> candidates;
-                candidates.emplace_back(fs::path(relativePath));
-                candidates.emplace_back(fs::current_path() / relativePath);
-#ifdef PYRAMID_SOURCE_DIR
-                candidates.emplace_back(fs::path(PYRAMID_SOURCE_DIR) / relativePath);
-                candidates.emplace_back(fs::path(PYRAMID_SOURCE_DIR) / "Engine" / "Graphics" / "shaders" / fs::path(relativePath).filename());
-#endif
-
-                for (const auto& candidate : candidates)
-                {
-                    std::error_code ec;
-                    if (fs::exists(candidate, ec))
-                    {
-                        return fs::weakly_canonical(candidate, ec);
-                    }
-                }
-
-                return {};
+                const std::filesystem::path resolved =
+                    Platform::ResolveRuntimePath(relativePath);
+                std::error_code error;
+                return std::filesystem::is_regular_file(resolved, error) && !error
+                    ? resolved : std::filesystem::path{};
             }
 
             std::string LoadTextFile(const std::string& relativePath)

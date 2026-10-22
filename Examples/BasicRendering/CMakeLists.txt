@@ -19,3 +19,7 @@ add_custom_command(TARGET BasicRenderingExample POST_BUILD
 
 pyramid_require_mingw_runtime(BasicRenderingExample)
 install(TARGETS BasicRenderingExample RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT PyramidExamples)
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Assets/"
+    DESTINATION "${CMAKE_INSTALL_BINDIR}/Assets"
+    COMPONENT PyramidExamples
+)

@@ -693,7 +693,7 @@ sun.SetLight(light);
 scene.SetPrimaryLight(sun);
 ```
 
-Every entity has a stable `EntityId`, name, visibility flag, and mandatory `TransformComponent`. Optional `MeshRendererComponent` and `LightComponent` values provide rendering state. `Entity` is a lightweight non-owning facade; it becomes invalid after its scene or entity is destroyed.
+Every entity has a stable `EntityId`, name, visibility flag, and mandatory `TransformComponent`. Optional `MeshRendererComponent` and `LightComponent` values provide rendering state. `Entity` is a lightweight non-owning facade; it becomes permanently invalid after its entity is destroyed, its scene is cleared, or its scene is destroyed. Reusing an ID does not revive old facades, and a replacement facade compares unequal to the old one. Copies of a facade retain the same lifetime identity. A bare `EntityId` identifies the current entity at lookup time; it does not carry this lifetime check.
 
 ```cpp
 const Pyramid::EntityId id = unit.GetId();
@@ -703,6 +703,8 @@ auto world = unit.GetWorldMatrix();
 ```
 
 Hierarchy edits reject missing entities, cycles, and self-parenting. Reparenting preserves local TRS. World matrices and inherited visibility are recalculated from the authoritative hierarchy.
+
+`SetParent()` rejects stale or foreign non-empty facade arguments without changing the current parent; pass `Entity{}` or use `ClearParent()` to detach explicitly. `Scene::SetPrimaryLight()` likewise ignores stale or foreign non-empty facades; pass `Entity{}` to clear the primary light. `Scene::DestroyEntity(Entity)` rejects expired facades even when their IDs have been reused.
 
 ### Renderer proxies
 

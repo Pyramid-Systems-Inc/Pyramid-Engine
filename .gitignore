@@ -34,6 +34,7 @@ CMakeUserPresets.json
 *.ilk
 *.exp
 *.obj
+!Examples/BasicRendering/Assets/Models/pyramid.obj
 *.o
 *.a
 *.so

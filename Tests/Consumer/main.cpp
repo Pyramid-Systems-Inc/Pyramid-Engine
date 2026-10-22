@@ -31,10 +31,11 @@ int main()
     Pyramid::InputActionSystem inputActions;
     auto* gameplayContext = inputActions.CreateContext("consumer-gameplay");
     const bool actionConfigured = gameplayContext &&
-        gameplayContext->AddAction("MoveForward", Pyramid::InputActionType::Axis1D) &&
+        gameplayContext->AddAction("MoveForward", Pyramid::InputActionType::Axis2D) &&
         gameplayContext->AddBinding(
             "MoveForward",
-            Pyramid::InputBinding::KeyBinding(Pyramid::Key::W));
+            Pyramid::InputBinding::KeyBinding(
+                Pyramid::Key::W, 1.0f, Pyramid::InputAxisComponent::Y));
     inputActions.Update(input);
     Pyramid::Camera consumerCamera;
     Pyramid::FreeFlyCameraActions cameraActions;
@@ -70,7 +71,7 @@ int main()
               << " | serialized scene objects: " << sceneSerialization.serializedObjects
               << " | input W: " << input.IsKeyDown(Pyramid::Key::W)
               << " | move action: "
-              << inputActions.GetActionValue("consumer-gameplay", "MoveForward")
+              << inputActions.GetActionValue2D("consumer-gameplay", "MoveForward").y
               << " | camera z: " << consumerCamera.GetPosition().z
               << " | released resources: " << released.GetTotal() << '\n';
     return value.LengthSquared() > 0.0f && meshId.IsValid() && shaderId.IsValid() &&

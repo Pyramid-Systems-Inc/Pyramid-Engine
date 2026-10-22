@@ -99,3 +99,20 @@ target_include_directories(PyramidEngine
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/source
 )
+
+set(PYRAMID_RUNTIME_SHADERS
+    shadow.vert shadow.frag
+    forward.vert forward.frag
+    deferred_geometry.vert deferred_geometry.frag
+    deferred_lighting.vert deferred_lighting.frag
+)
+foreach(shader IN LISTS PYRAMID_RUNTIME_SHADERS)
+    configure_file("shaders/${shader}"
+        "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Engine/Graphics/shaders/${shader}"
+        COPYONLY
+    )
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/${shader}"
+        DESTINATION "${CMAKE_INSTALL_BINDIR}/Engine/Graphics/shaders"
+        COMPONENT PyramidEngine
+    )
+endforeach()

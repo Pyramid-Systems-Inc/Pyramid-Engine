@@ -1,17 +1,6 @@
-AGENTS.md -diff
-CHANGELOG.md -diff
-README.md -diff
-docs/API.md -diff
-docs/Architecture.md -diff
-docs/BUILDING.md -diff
-docs/EXAMPLES.md -diff
-docs/ROADMAP.md -diff
-Tests/PublicApiLinkage.cpp -diff
-Tests/CMakeLists.txt -diff
-docs/DEVELOPMENT.md -diff
-Engine/Core/include/Pyramid/Core/Game.hpp -diff
-Engine/Core/source/Game.cpp -diff
-Engine/Platform/include/Pyramid/Platform/Window.hpp -diff
-Engine/Platform/include/Pyramid/Platform/Windows/Win32OpenGLWindow.hpp -diff
-Engine/Platform/source/Windows/Win32OpenGLWindow.cpp -diff
-Tests/WindowResizeEventTests.cpp -diff
+# Keep source and documentation changes reviewable as text.
+*.md diff
+*.h diff
+*.hpp diff
+*.cpp diff
+CMakeLists.txt diff

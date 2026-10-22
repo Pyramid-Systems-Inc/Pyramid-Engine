@@ -99,7 +99,7 @@ namespace Pyramid
         bool enabled = true;
     };
 
-    /** Lightweight, non-owning scene entity facade. */
+    /** Non-owning facade that expires when its entity is destroyed or the scene is cleared. */
     class Entity final
     {
     public:
@@ -134,6 +134,7 @@ namespace Pyramid
 
         Entity GetParent() const;
         std::vector<Entity> GetChildren() const;
+        /** An empty facade detaches; stale/foreign parents are rejected. */
         bool SetParent(Entity parent);
         bool ClearParent();
 
@@ -151,7 +152,9 @@ namespace Pyramid
 
         bool operator==(const Entity& other) const
         {
-            return m_scene == other.m_scene && m_id == other.m_id;
+            return m_scene == other.m_scene && m_id == other.m_id &&
+                !m_lifetime.owner_before(other.m_lifetime) &&
+                !other.m_lifetime.owner_before(m_lifetime);
         }
 
         bool operator!=(const Entity& other) const { return !(*this == other); }

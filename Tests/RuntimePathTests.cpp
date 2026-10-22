@@ -1,4 +1,5 @@
 #include <Pyramid/Platform/RuntimePath.hpp>
+#include <Pyramid/Graphics/Renderer/ShaderPathResolver.hpp>
 
 #include <chrono>
 #include <filesystem>
@@ -33,6 +34,17 @@ namespace
 
     private:
         std::filesystem::path m_original;
+    };
+
+    struct DirectoryCleanup final
+    {
+        std::filesystem::path path;
+
+        ~DirectoryCleanup()
+        {
+            std::error_code ignored;
+            std::filesystem::remove_all(path, ignored);
+        }
     };
 
     bool SamePath(
@@ -73,11 +85,14 @@ int main()
         const fs::path userCache = Pyramid::Platform::GetUserCacheDirectory(
             std::string("PyramidRuntimePathTests-") + token);
         Require(!userCache.empty(), "per-user cache directory was not resolved");
+        const DirectoryCleanup cacheCleanup{userCache};
         Require(fs::is_directory(userCache), "per-user cache directory was not created");
         const fs::path executableFixtureDirectory = executableDirectory / fixtureName;
         const fs::path executableAsset = executableFixtureDirectory / "asset.bin";
         const fs::path unrelatedWorkingDirectory =
             fs::temp_directory_path() / ("PyramidRuntimePathWorking-" + token);
+        const DirectoryCleanup executableCleanup{executableFixtureDirectory};
+        const DirectoryCleanup workingCleanup{unrelatedWorkingDirectory};
 
         fs::create_directories(executableFixtureDirectory);
         fs::create_directories(unrelatedWorkingDirectory);
@@ -94,6 +109,39 @@ int main()
         Require(
             SamePath(resolvedExecutableAsset, executableAsset),
             "runtime path did not prefer the executable directory");
+
+        const fs::path shaderRelative = fixtureName / "fixture.vert";
+        const fs::path executableShader = executableDirectory / shaderRelative;
+        const fs::path decoyShader = unrelatedWorkingDirectory / shaderRelative;
+        fs::create_directories(decoyShader.parent_path());
+        {
+            std::ofstream stream(executableShader);
+            stream << "executable shader";
+            Require(static_cast<bool>(stream), "executable shader fixture could not be written");
+        }
+        {
+            std::ofstream stream(decoyShader);
+            stream << "wrong working-directory shader";
+            Require(static_cast<bool>(stream), "working-directory shader decoy could not be written");
+        }
+        Require(
+            SamePath(Pyramid::Renderer::ShaderPathResolver::Resolve(shaderRelative.generic_string()),
+                executableShader),
+            "shader path preferred a working-directory decoy over the executable asset");
+        Require(
+            Pyramid::Renderer::ShaderPathResolver::LoadTextFile(shaderRelative.generic_string()) ==
+                "executable shader",
+            "shader source did not load from the executable directory");
+        fs::remove(decoyShader);
+        Require(
+            SamePath(Pyramid::Renderer::ShaderPathResolver::Resolve(shaderRelative.generic_string()),
+                executableShader),
+            "shader path required a working-directory copy");
+        const std::string missingShader = (fixtureName / "missing.vert").generic_string();
+        Require(Pyramid::Renderer::ShaderPathResolver::Resolve(missingShader).empty(),
+            "missing shader path did not fail explicitly");
+        Require(Pyramid::Renderer::ShaderPathResolver::LoadTextFile(missingShader).empty(),
+            "missing shader source did not fail explicitly");
 
         const fs::path absoluteAsset =
             Pyramid::Platform::ResolveRuntimePath(executableAsset);
@@ -118,10 +166,6 @@ int main()
                 (executableDirectory / missingRelative).lexically_normal(),
             "missing runtime path did not report the executable-relative candidate");
 
-        std::error_code ignored;
-        fs::remove_all(executableFixtureDirectory, ignored);
-        fs::remove_all(unrelatedWorkingDirectory, ignored);
-        fs::remove_all(userCache, ignored);
     }
     catch (const std::exception& error)
     {

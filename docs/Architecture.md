@@ -56,6 +56,8 @@ Held states persist across frames. Repeated native key-down messages do not crea
 
 OpenGL resources use RAII wrappers, but raw pointers passed into binding and command APIs are non-owning. Their owners must outlive command execution.
 
+Texture binding accepts native OpenGL textures and immutable `TextureResource` wrappers from the registry caches. The OpenGL adapter resolves a wrapper to its existing native texture, validates that backend type, and binds through the shared state cache without changing ownership. Materials and command buffers use the same device path.
+
 ## Renderer
 
 `RenderSystem` records and executes command buffers. The public render-pass set contains only implemented types:
@@ -84,6 +86,8 @@ Known constraints:
 `Scene` is the authoritative hybrid entity/component model. Each entity owns a non-zero, scene-local `EntityId`, a name, a visibility flag, and exactly one `TransformComponent`. `MeshRendererComponent` and `LightComponent` are optional. Parent-child relationships are stored by entity ID; there is no independent `SceneNode` graph.
 
 Local transforms are authoritative. World transforms are cached with parent-before-local composition and recursively invalidated after local edits, reparenting, detachment, or ancestor changes. Parenting rejects self-links, duplicate children, missing entities, and cycles. Destroying an entity recursively destroys its descendants. Visibility is inherited through the hierarchy.
+
+Each entity record owns a lifetime token borrowed weakly by its `Entity` facades. Destruction, scene clearing, and scene destruction invalidate those facades permanently, even when a later entity reuses the same stable ID. Facade equality includes that lifetime identity; a bare `EntityId` remains a scene-local lookup key rather than a lifetime-checked reference. Stale facade arguments cannot destroy replacements, change their hierarchy, or clear their primary-light assignment.
 
 `RenderObject` and `Light` are renderer/spatial proxies generated from entity components. They are not the authoring model. Mesh-renderer proxies receive the entity world matrix, effective visibility, immutable mesh/material handles, shadow flags, and component bounds. Light proxies receive world position/orientation and `LightComponent` data. Transitional raw-proxy import helpers remain for low-level tests, but new code should create entities and attach components.
 
@@ -157,6 +161,7 @@ Size-based, render-target, and solid-color convenience factories remain availabl
 - CMake package configuration and version files support independent engine, foundation, math, input, image, model, font, text, and UI consumers. The engine package resolves every owned library as an explicit package dependency.
 - Windows CI validates separate engine, foundation/math/input, image, model, font, and UI consumers after installation.
 - Native MinGW build trees and installations copy the compiler runtime DLLs into their `bin` directory through `PyramidMinGWRuntime`; Pyramid executables therefore do not depend on an interactive MSYS2 shell or user-modified `PATH`.
+- Engine shader files are staged under `bin/Engine/Graphics/shaders` in build and install trees. `ShaderPathResolver` uses `Platform::ResolveRuntimePath`, giving executable-relative assets precedence over the development working-directory fallback without a compiled checkout path. The BasicRendering model/material/image and BasicGame fonts are installed beside their executables as well.
 
 ## Dependency direction
 

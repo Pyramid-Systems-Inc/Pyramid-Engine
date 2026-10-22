@@ -4,6 +4,24 @@ All notable changes to Pyramid Engine are documented here. The project is pre-al
 
 ## [Unreleased]
 
+### Runtime rendering and packaged assets
+
+- Fixed cached texture binding through materials and command buffers by resolving immutable texture wrappers at the OpenGL adapter while retaining native texture validation and state caching.
+- Restored the owned pyramid OBJ reference asset, installed its model/material/texture dependencies, and staged engine shaders beside build and installed executables.
+- Resolved shaders through the shared executable-relative runtime-path abstraction instead of a compiled checkout path, with regression coverage for working-directory decoys and missing files.
+- BasicRendering now presents immediately after drawing instead of invoking the base callback that cleared the rendered frame a second time.
+
+### Validation and change review
+
+- Restored text diffs for documentation, C++ sources/headers, and CMake lists instead of explicitly treating selected text files as binary.
+- Corrected the installed-consumer camera fixture to supply a two-dimensional movement action with forward input on its Y axis.
+
+### Entity lifetime safety
+
+- Tied non-owning entity facades to individual entity lifetimes so clearing a scene or destroying and recreating an entity with the same ID cannot revive old references.
+- Included lifetime identity in facade equality and rejected stale parenting, destruction, and primary-light arguments without mutating replacement entities.
+- Added lifecycle regressions covering reused IDs, copied and enumerated facades, hierarchy changes, explicit clearing, and scene destruction.
+
 ### Ecosystem boundary documentation
 
 - Registered Pyramid Engine as an independent Eco runtime consumer and defined

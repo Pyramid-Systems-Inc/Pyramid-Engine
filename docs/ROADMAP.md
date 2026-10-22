@@ -59,6 +59,8 @@ The current `0.6.0-pre-alpha` baseline includes:
 
 ### Texture and image correctness
 
+- [x] Bind immutable cached textures through the OpenGL device without rejecting their wrappers; verify material/command-buffer paths and visible imported textures.
+- Invalidate or update cached texture bindings when direct texture upload, reload, or mutable texture operations issue native GL binds; add a regression before claiming reload-state coherence.
 - Map all advertised texture formats or remove unsupported enum values.
 - Implement depth texture creation through the texture interface.
 - [x] Apply sRGB intent, border color, mip filters, and safe RGB unpack alignment.
@@ -69,6 +71,7 @@ The current `0.6.0-pre-alpha` baseline includes:
 
 ### Scene correctness
 
+- [x] Prevent retained entity facades from reviving after scene clearing or explicit reuse of a destroyed entity ID; reject stale facade mutations.
 - [x] Implement hierarchy-wide transform dirty propagation and cycle-safe reparenting.
 - [x] Extract normalized camera frustum planes and use transformed object bounds for scene/octree visibility.
 - Replace placeholder occlusion culling with a supported technique or remove the setting.
@@ -114,7 +117,7 @@ Target outcome: a trustworthy rendering SDK rather than a larger feature list.
 
 ## P3 — first playable RTS runtime
 
-Target outcome: one interactive Ruqoom RTS vertical slice that validates the engine rather than adding more infrastructure in isolation.
+Target outcome: one playable two-player Windows LAN/direct-IP Ruqoom RTS vertical slice that validates the engine rather than adding more infrastructure in isolation. Internet services, matchmaking, host migration, and seamless reconnect follow a demonstrated need.
 
 1. [x] real Win32 keyboard/mouse polling and focus-safe per-frame state;
 2. [x] engine-generic configurable action mapping with prioritized contexts, control consumption, chords, runtime rebinding, and an RTS camera reference profile;
@@ -122,10 +125,12 @@ Target outcome: one interactive Ruqoom RTS vertical slice that validates the eng
 4. [x] RTS reference-game input features built above the generic engine: edge scrolling, selection, and command input;
 5. [x] owned OBJ/MTL model import feeding existing mesh, diffuse-texture, and immutable material resources, with scene-hierarchy instantiation still pending;
 6. RTS components such as selectable, team/owner, movement target, health, and basic unit state;
-7. terrain/large-map rendering and scalable visibility/spatial updates;
-8. [x] debug statistics and inspection UI as the first editor foundation;
-9. versioned scene extensions for camera, environment, gameplay components, and editor metadata;
-10. verified Windows `0.7.0-pre-alpha` vertical slice, then Linux platform work.
+7. fixed-step simulation and a command queue, with per-frame input edges consumed once and explicit overload behavior;
+8. two-player LAN/direct-IP sessions, a bounded native transport, protocol/content compatibility checks, host-authoritative gameplay, validated ownership, snapshot presentation, and explicit disconnect behavior;
+9. terrain/large-map rendering and scalable visibility/spatial updates;
+10. [x] debug statistics and inspection UI as the first editor foundation;
+11. versioned scene extensions for camera/environment, game-owned persistence for gameplay components, and editor-owned metadata;
+12. measured 1080p/60 FPS acceptance with 500 total units on declared reference hardware, a separate 2,000-unit stress workload, and a verified Windows `0.7.0-pre-alpha` vertical slice, then Linux platform work. These are proposed performance targets, not demonstrated results.
 
 A full editor follows the validated runtime model. Baa integration starts as gameplay scripting only after its runtime, ABI/FFI, debugger, and hot-reload semantics are defined; engine reimplementation is a later compatibility project, not a blind source translation.
 

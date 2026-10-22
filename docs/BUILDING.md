@@ -266,7 +266,7 @@ The bundled engine shaders and examples use GLSL 3.30. Inspect the shader log an
 
 ### Executable cannot locate engine shaders
 
-Development builds resolve checked-in shaders using the compile-time source root. Copying only an executable away from the repository can break this lookup.
+Build and installation rules place engine shaders under `bin/Engine/Graphics/shaders`. The shared runtime-path resolver prefers files beside the executable and has no compiled checkout fallback. Distribute the complete installed runtime directory, including shaders, example assets, fonts, and MinGW runtime DLLs; copying only the executable is insufficient.
 
 ### Build files are locked
 

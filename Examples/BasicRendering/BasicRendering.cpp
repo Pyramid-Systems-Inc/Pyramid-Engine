@@ -514,7 +514,7 @@ void BasicRendering::onRender()
     // Render the scene
     RenderScene();
 
-    Game::onRender();
+    device->Present(true);
 }
 
 void BasicRendering::RenderScene()

@@ -147,6 +147,7 @@ namespace Pyramid
         const std::vector<std::shared_ptr<RenderObject>>& GetRenderObjects() const;
         const std::vector<std::shared_ptr<Light>>& GetLights() const;
 
+        /** An empty facade clears the primary; stale/foreign facades are ignored. */
         void SetPrimaryLight(Entity entity);
         void SetPrimaryLight(std::shared_ptr<Light> light);
         Entity GetPrimaryLightEntity() const;
@@ -158,6 +159,7 @@ namespace Pyramid
         std::vector<std::shared_ptr<RenderObject>> GetVisibleObjects(const Camera& camera) const;
         std::vector<std::shared_ptr<Light>> GetVisibleLights(const Camera& camera) const;
 
+        /** Removes all entities/proxies and permanently invalidates their facades. */
         void Clear();
         size_t GetObjectCount() const { return GetRenderObjects().size(); }
         size_t GetLightCount() const { return GetLights().size(); }
@@ -171,6 +173,7 @@ namespace Pyramid
 
         struct EntityRecord
         {
+            std::shared_ptr<u8> lifetimeToken = std::make_shared<u8>(0);
             EntityId id;
             std::string name;
             bool visible = true;
@@ -215,7 +218,6 @@ namespace Pyramid
         void SynchronizeLightProxies() const;
 
         std::string m_name;
-        std::shared_ptr<u8> m_lifetimeToken = std::make_shared<u8>(0);
         u64 m_nextEntityId = 1;
         std::unordered_map<EntityId, EntityRecord, EntityIdHash> m_entities;
         std::vector<EntityId> m_entityOrder;

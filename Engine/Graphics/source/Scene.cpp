@@ -304,7 +304,8 @@ namespace Pyramid
 
     Entity Scene::MakeEntity(EntityId id) const
     {
-        return Contains(id) ? Entity(const_cast<Scene*>(this), id, m_lifetimeToken) : Entity{};
+        const EntityRecord* record = FindRecord(id);
+        return record ? Entity(const_cast<Scene*>(this), id, record->lifetimeToken) : Entity{};
     }
 
     Entity Scene::FindEntity(EntityId id) { return MakeEntity(id); }
@@ -334,7 +335,7 @@ namespace Pyramid
         entities.reserve(m_entityOrder.size());
         for (EntityId id : m_entityOrder)
         {
-            entities.push_back(Entity(this, id, m_lifetimeToken));
+            entities.push_back(MakeEntity(id));
         }
         return entities;
     }
@@ -352,7 +353,7 @@ namespace Pyramid
             const EntityRecord* record = FindRecord(id);
             if (record && !record->parent)
             {
-                entities.push_back(Entity(this, id, m_lifetimeToken));
+                entities.push_back(MakeEntity(id));
             }
         }
         return entities;
@@ -772,7 +773,11 @@ namespace Pyramid
 
     void Scene::SetPrimaryLight(Entity entity)
     {
-        m_primaryLight = entity.GetScene() == this && entity.HasLight()
+        if (entity.GetId() && (!entity.IsValid() || entity.GetScene() != this))
+        {
+            return;
+        }
+        m_primaryLight = entity.HasLight()
             ? entity.GetId()
             : EntityId{};
     }
@@ -965,18 +970,18 @@ namespace Pyramid
         children.reserve(record->children.size());
         for (EntityId id : record->children)
         {
-            children.push_back(Entity(m_scene, id, m_lifetime));
+            children.push_back(m_scene->MakeEntity(id));
         }
         return children;
     }
 
     bool Entity::SetParent(Entity parent)
     {
-        if (!IsValid() || (parent && parent.GetScene() != m_scene))
+        if (!IsValid() || (parent.GetId() && (!parent.IsValid() || parent.GetScene() != m_scene)))
         {
             return false;
         }
-        return m_scene->SetParent(m_id, parent ? parent.GetId() : EntityId{});
+        return m_scene->SetParent(m_id, parent.GetId());
     }
 
     bool Entity::ClearParent() { return IsValid() && m_scene->SetParent(m_id, {}); }

@@ -12,6 +12,7 @@
 #include <Pyramid/Graphics/OpenGL/Shader/OpenGLShader.hpp>
 #include <Pyramid/Graphics/OpenGL/OpenGLTexture.hpp>
 #include <Pyramid/Graphics/Texture.hpp> // Added for ITexture2D factory methods
+#include <Pyramid/Graphics/Texture/TextureResource.hpp>
 #include <glad/glad.h>
 #include <algorithm>
 #include <limits>
@@ -419,8 +420,10 @@ namespace Pyramid
 
         if (texture)
         {
-            // Cast to OpenGL texture to access OpenGL-specific binding
-            OpenGLTexture2D *glTexture = dynamic_cast<OpenGLTexture2D *>(texture);
+            // Immutable cache resources retain the backend texture they wrap.
+            const auto* resource = dynamic_cast<const TextureResource*>(texture);
+            const auto* glTexture = dynamic_cast<const OpenGLTexture2D*>(
+                resource ? resource->GetTexture().get() : texture);
             if (glTexture)
             {
                 OpenGLStateManager::GetInstance().BindTextureUnit(slot, GL_TEXTURE_2D, glTexture->GetRendererID());
